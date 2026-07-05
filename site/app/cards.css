@@ -1,0 +1,224 @@
+/* Shared styles for the word-pair pages (/{pair} and /{pair}/{word}).
+   Reuses the design tokens from globals.css (--bg, --surface, --border,
+   --text, --muted, --accent) so the pages match the marketing site. */
+
+/* NAV (mirrors the home page nav) */
+.cards-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 2rem;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: rgba(10,10,10,0.85);
+  backdrop-filter: blur(12px);
+  z-index: 10;
+}
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-decoration: none;
+  color: var(--text);
+}
+.nav-brand img {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+}
+.nav-cta {
+  background: var(--accent);
+  color: var(--bg);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  transition: opacity 0.2s;
+}
+.nav-cta:hover { opacity: 0.85; }
+
+/* PAGE SHELL */
+.cards-main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 4rem;
+}
+
+.pair-crumb {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  text-decoration: none;
+}
+.pair-crumb:hover { text-decoration: underline; }
+
+/* WORD HEADER */
+.word-header { margin: 0.75rem 0 2.5rem; }
+.word-header h1 {
+  font-size: clamp(2.2rem, 6vw, 3rem);
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 0.5rem;
+}
+.word-emoji { margin-right: 0.5rem; }
+.word-meta {
+  color: var(--muted);
+  font-size: 0.95rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+}
+.word-definition {
+  margin-top: 0.75rem;
+  font-size: 1.15rem;
+}
+.card-count {
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* ASSOCIATION CARDS */
+.card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  list-style: none;
+}
+.assoc-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.card-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-bottom: 1px solid var(--border);
+}
+.card-body { padding: 1.25rem 1.5rem 1.5rem; }
+.card-mnemonic {
+  font-size: 1.05rem;
+  line-height: 1.55;
+}
+.card-explanation {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.provenance-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+}
+.card-date {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+/* PAIR INDEX */
+.pair-header { margin-bottom: 2rem; }
+.pair-header h1 {
+  font-size: clamp(1.8rem, 5vw, 2.4rem);
+  font-weight: 800;
+  line-height: 1.15;
+  margin-bottom: 0.4rem;
+}
+.pair-header p { color: var(--muted); }
+
+.word-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  list-style: none;
+}
+.word-list-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.9rem 1.25rem;
+  text-decoration: none;
+  color: var(--text);
+  transition: border-color 0.2s;
+}
+.word-list-item:hover { border-color: var(--accent); }
+.word-list-word { font-weight: 700; font-size: 1.05rem; }
+.word-list-meta { font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
+
+.empty-note { color: var(--muted); }
+
+/* GET-THE-APP CTA */
+.get-app {
+  margin-top: 3.5rem;
+  border-top: 1px solid var(--border);
+  padding-top: 2.5rem;
+  text-align: center;
+}
+.get-app h2 {
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+}
+.get-app h2 span { color: var(--accent); }
+.get-app p {
+  color: var(--muted);
+  max-width: 420px;
+  margin: 0 auto 1.5rem;
+}
+
+/* App Store button (same look as the home page hero button) */
+.appstore-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--text);
+  color: var(--bg);
+  text-decoration: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  transition: opacity 0.2s;
+}
+.appstore-btn:hover { opacity: 0.85; }
+.appstore-btn svg { flex-shrink: 0; }
+.appstore-btn-sub { font-size: 0.7rem; font-weight: 400; display: block; }
+.appstore-btn-main { font-size: 1rem; font-weight: 700; display: block; line-height: 1.1; }
+
+/* FOOTER (mirrors the home page footer) */
+.cards-footer {
+  border-top: 1px solid var(--border);
+  padding: 2rem;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.cards-footer a { color: var(--muted); text-decoration: underline; }
+.cards-footer a:hover { color: var(--text); }
+.footer-links { display: flex; justify-content: center; gap: 2rem; margin-top: 0.5rem; }
