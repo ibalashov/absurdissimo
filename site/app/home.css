@@ -133,6 +133,50 @@
 .feature-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.4rem; }
 .feature-card p { font-size: 0.88rem; color: var(--muted); }
 
+/* BROWSE */
+.browse {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 5rem 2rem;
+  border-top: 1px solid var(--border);
+}
+.browse h2 {
+  text-align: center;
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+.browse-sub {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.95rem;
+  margin-bottom: 2.5rem;
+}
+.browse-list {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+  max-width: 720px;
+  margin: 0 auto;
+}
+.browse-link {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.1rem 1.5rem;
+  text-decoration: none;
+  color: var(--text);
+  transition: border-color 0.2s;
+}
+.browse-link:hover { border-color: var(--accent); }
+.browse-pair { font-weight: 700; font-size: 1rem; }
+.browse-count { color: var(--muted); font-size: 0.85rem; white-space: nowrap; }
+
 /* FOOTER */
 .home footer {
   border-top: 1px solid var(--border);

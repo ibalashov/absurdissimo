@@ -1,7 +1,10 @@
 // Client for the public VocabCards read API (see WEBSITE.md in the
 // VocabCards repo). The website talks only to /public/* — no auth.
 
-const API_BASE = "https://vocabcards-server.fly.dev";
+// Overridable for local development (e.g. pointing at a stub server);
+// production builds use the default.
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE ?? "https://vocabcards-server.fly.dev";
 
 // ISR window: pages revalidate hourly. New associations appear on the site
 // within an hour of being generated in the app.
@@ -50,6 +53,18 @@ export interface PairIndexData {
   words: PairIndexWord[];
 }
 
+export interface PairSummary {
+  pair: string;
+  source_language: string;
+  target_language: string;
+  word_count: number;
+  association_count: number;
+}
+
+interface PairsData {
+  pairs: PairSummary[];
+}
+
 export function imageUrl(imageId: string): string {
   return `${API_BASE}/public/images/${imageId}`;
 }
@@ -73,6 +88,18 @@ export async function getWordPage(
   return getJson<WordPageData>(
     `/public/pairs/${encodeURIComponent(pair)}/${encodeURIComponent(word)}`,
   );
+}
+
+// The home page must render unchanged when the pairs endpoint is missing or
+// broken (it ships independently of the server side, see VocabCards#175), so
+// unlike the card pages this swallows *all* failures, not just 404.
+export async function getPairs(): Promise<PairSummary[]> {
+  try {
+    const data = await getJson<PairsData>("/public/pairs");
+    return data?.pairs ?? [];
+  } catch {
+    return [];
+  }
 }
 
 export async function getPairIndex(

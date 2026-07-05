@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getPairs, languageName } from "@/lib/api";
 import "./home.css";
+
+// Must match REVALIDATE_SECONDS in lib/api.ts (Next requires a literal here).
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: "Absurdissimo — Vocabulary that actually sticks",
@@ -8,7 +12,8 @@ export const metadata: Metadata = {
     "Look up words in 20 languages and get vivid, absurd mnemonic stories that make vocabulary impossible to forget.",
 };
 
-export default function Home() {
+export default async function Home() {
+  const pairs = await getPairs();
   return (
     <div className="home">
       <nav>
@@ -88,6 +93,30 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {pairs.length > 0 && (
+        <section className="browse">
+          <h2>Browse the cards</h2>
+          <p className="browse-sub">
+            Explore published mnemonic cards by language pair.
+          </p>
+          <ul className="browse-list">
+            {pairs.map((p) => (
+              <li key={p.pair}>
+                <Link className="browse-link" href={`/${p.pair}`}>
+                  <span className="browse-pair">
+                    {languageName(p.source_language)} →{" "}
+                    {languageName(p.target_language)}
+                  </span>
+                  <span className="browse-count">
+                    {p.word_count} {p.word_count === 1 ? "word" : "words"}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <footer>
         <p>Absurdissimo &copy; 2026 Ivan Balashov</p>
