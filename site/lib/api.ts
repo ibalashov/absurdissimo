@@ -29,6 +29,9 @@ export interface Association {
   word_info: WordInfo | null;
   image_id: string | null;
   provenance: string;
+  // AbsurdityLevel the card was generated with ("sensible" … "unhinged");
+  // null/absent for cards published before the server stored it.
+  absurdity?: string | null;
   created_at: string;
 }
 
@@ -182,4 +185,27 @@ export function formatDate(isoDate: string): string {
 
 export function provenanceLabel(provenance: string): string {
   return provenance === "generated" ? "AI-generated" : provenance;
+}
+
+// API levels are lowercase enum values ("wild"); display them capitalized,
+// matching the app's AbsurdityLevel.displayName.
+export function absurdityLabel(absurdity: string): string {
+  return absurdity.charAt(0).toUpperCase() + absurdity.slice(1);
+}
+
+// BCP-47 tag for browser speech synthesis, keyed by the API's language
+// names. Mirrors the app's Language.speechLanguageCode so both surfaces
+// pick equivalent voices.
+const SPEECH_LANGUAGE_CODES: Record<string, string> = {
+  english: "en-US",
+  russian: "ru-RU",
+  italian: "it-IT",
+  german: "de-DE",
+  french: "fr-FR",
+  spanish: "es-ES",
+  hebrew: "he-IL",
+};
+
+export function speechLanguageCode(apiName: string): string | null {
+  return SPEECH_LANGUAGE_CODES[apiName] ?? null;
 }
