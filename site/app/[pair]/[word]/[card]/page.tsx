@@ -3,15 +3,18 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import CardImage from "@/components/CardImage";
 import CardTile from "@/components/CardTile";
+import PronounceButton from "@/components/PronounceButton";
 import { SiteFooter, SiteNav } from "@/components/chrome";
 import {
   Association,
+  absurdityLabel,
   formatDate,
   getWordPage,
   imageUrl,
   languageName,
   PAIR_PATTERN,
   provenanceLabel,
+  speechLanguageCode,
   WordPageData,
 } from "@/lib/api";
 import "../../../cards.css";
@@ -84,6 +87,7 @@ export default async function CardPage({ params }: { params: Params }) {
   const source = languageName(data.source_language);
   const target = languageName(data.target_language);
   const info = card.word_info;
+  const speechLang = speechLanguageCode(data.source_language);
   const wordPath = `/${data.pair}/${encodeURIComponent(data.word)}`;
   const siblings = data.associations
     .filter((a) => a.id !== card.id)
@@ -118,6 +122,7 @@ export default async function CardPage({ params }: { params: Params }) {
               <span className="d-word" dir="auto">
                 {data.word}
               </span>
+              {speechLang && <PronounceButton word={data.word} lang={speechLang} />}
               {info?.transcription && (
                 <span className="d-ipa">{info.transcription}</span>
               )}
@@ -145,6 +150,11 @@ export default async function CardPage({ params }: { params: Params }) {
               <span className="chip chip-pair">
                 {source} → {target}
               </span>
+              {card.absurdity && (
+                <span className="chip chip-absurdity">
+                  {card.absurdity} absurdity
+                </span>
+              )}
               <span className="chip chip-prov">
                 {provenanceLabel(card.provenance)} ·{" "}
                 {formatDate(card.created_at)}
@@ -162,7 +172,11 @@ export default async function CardPage({ params }: { params: Params }) {
                       href={`${wordPath}/${sib.id}`}
                       imageSrc={sib.image_id ? imageUrl(sib.image_id) : null}
                       word={data.word}
-                      sub={formatDate(sib.created_at)}
+                      sub={
+                        sib.absurdity
+                          ? `${absurdityLabel(sib.absurdity)} · ${formatDate(sib.created_at)}`
+                          : formatDate(sib.created_at)
+                      }
                     />
                   ))}
                 </div>

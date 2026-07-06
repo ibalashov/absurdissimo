@@ -233,6 +233,25 @@
 }
 .chip-pair { background: var(--accent-soft); color: var(--accent); }
 .chip-prov { border: 1px solid var(--border); color: var(--muted); }
+.chip-absurdity { border: 1px solid var(--accent); color: var(--accent); }
+
+/* Pronunciation button (browser TTS, PronounceButton.tsx) */
+.pronounce-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+.pronounce-btn:hover { color: var(--accent); border-color: var(--accent); }
+.pronounce-btn.speaking { color: var(--accent); border-color: var(--accent); }
 .siblings h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.8rem; }
 .siblings .tile-grid {
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
