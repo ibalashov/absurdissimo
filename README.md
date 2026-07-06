@@ -19,10 +19,11 @@ the root untouched. A `.nojekyll` file disables Jekyll processing on Pages so
 the added `site/` sources can never break the Pages build; the static files are
 served as-is, same as before.
 
-The Next.js app ports the same content: home page (`/`) mirrors `index.html`,
-`/privacy` mirrors `privacy.html`. It also reserves the phase-1 routing
-skeleton — `/{pair}/{word}` (e.g. `/it-en/gatto`) — which 404s until word-pair
-card pages ship.
+In the Next.js app the home page (`/`) is the deck: a cross-pair feed of
+recent mnemonic cards with a language-pair sidebar. The marketing content that
+mirrors `index.html` lives at `/app`, and `/privacy` mirrors `privacy.html`.
+Cards browse as `/{pair}` → `/{pair}/{word}` → `/{pair}/{word}/{association_id}`
+(e.g. `/it-en/viaggio/115`).
 
 ## Constraints (by design)
 

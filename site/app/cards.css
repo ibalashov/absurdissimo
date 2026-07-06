@@ -173,6 +173,84 @@
 
 .empty-note { color: var(--muted); }
 
+/* CARD DETAIL PAGE (/{pair}/{word}/{association_id}) */
+.card-detail-main {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+.crumbs {
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  color: var(--muted);
+  margin-bottom: 1rem;
+}
+.crumbs a { color: var(--muted); text-decoration: none; }
+.crumbs a:hover { color: var(--accent); }
+.crumbs .sep { margin: 0 0.35rem; }
+.crumbs .here { color: var(--text); }
+.detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 440px) 1fr;
+  gap: 1.8rem;
+  align-items: start;
+}
+.detail-img {
+  width: 100%;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  display: block;
+}
+.d-top { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; }
+.d-word { font-size: 2rem; font-weight: 800; letter-spacing: -0.01em; }
+.d-ipa { font-family: var(--mono); font-size: 0.85rem; color: var(--accent); }
+.d-def { color: var(--muted); font-size: 0.92rem; margin-bottom: 1rem; }
+.d-mnemonic { font-size: 1.02rem; line-height: 1.6; margin-bottom: 1rem; }
+.d-why {
+  border-left: 2px solid var(--accent);
+  padding: 0.1rem 0 0.1rem 0.9rem;
+  margin-bottom: 1.3rem;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+.d-why b {
+  display: block;
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 0.2rem;
+}
+.d-chips { display: flex; gap: 0.5rem; margin-bottom: 1.6rem; flex-wrap: wrap; }
+.chip {
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-radius: 99px;
+  padding: 0.22rem 0.6rem;
+}
+.chip-pair { background: var(--accent-soft); color: var(--accent); }
+.chip-prov { border: 1px solid var(--border); color: var(--muted); }
+.siblings h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.8rem; }
+.siblings .tile-grid {
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+}
+.sib-empty { color: var(--muted); font-size: 0.88rem; }
+.sib-empty a { color: var(--accent); }
+.back {
+  display: inline-block;
+  margin-top: 1.6rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+.back:hover { color: var(--accent); }
+@media (max-width: 900px) {
+  .detail-grid { grid-template-columns: 1fr; }
+}
+
 /* GET-THE-APP CTA */
 .get-app {
   margin-top: 3.5rem;
