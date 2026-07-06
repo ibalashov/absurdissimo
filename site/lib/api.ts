@@ -65,6 +65,35 @@ interface PairsData {
   pairs: PairSummary[];
 }
 
+// One card in the cross-pair home feed (GET /public/cards, VocabCards#193).
+// `id` is the association id used for card-page links; it is typed optional
+// so the feed still renders (linking to the word page instead) if the server
+// ships the contract without it.
+export interface FeedCard {
+  id?: number;
+  pair: string;
+  source_language: string;
+  target_language: string;
+  word: string;
+  mnemonic: string;
+  explanation: string;
+  word_info: WordInfo | null;
+  image_id: string | null;
+  provenance: string;
+  created_at: string;
+}
+
+interface FeedData {
+  cards: FeedCard[];
+}
+
+// A word entry flattened across all pair indexes; feeds the toolbar search.
+export interface WordIndexEntry {
+  word: string;
+  pair: string;
+  association_count: number;
+}
+
 export function imageUrl(imageId: string): string {
   return `${API_BASE}/public/images/${imageId}`;
 }
@@ -106,6 +135,36 @@ export async function getPairIndex(
   pair: string,
 ): Promise<PairIndexData | null> {
   return getJson<PairIndexData>(`/public/pairs/${encodeURIComponent(pair)}`);
+}
+
+// null means "feed unavailable" (endpoint not deployed yet, or erroring) —
+// the home page then degrades to the pair navigator (VocabCards#194). This
+// swallows *all* failures on purpose: the page must not break without #193.
+export async function getFeedCards(limit = 48): Promise<FeedCard[] | null> {
+  try {
+    const data = await getJson<FeedData>(`/public/cards?limit=${limit}`);
+    return data?.cards ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// Flattens every pair's word index into one list for the toolbar search.
+// Individual pair failures are dropped: search degrades, the page survives.
+export async function getWordIndexEntries(
+  pairs: PairSummary[],
+): Promise<WordIndexEntry[]> {
+  const indexes = await Promise.all(
+    pairs.map((p) => getPairIndex(p.pair).catch(() => null)),
+  );
+  return indexes.flatMap(
+    (index) =>
+      index?.words.map((w) => ({
+        word: w.word,
+        pair: index.pair,
+        association_count: w.association_count,
+      })) ?? [],
+  );
 }
 
 export function languageName(apiName: string): string {

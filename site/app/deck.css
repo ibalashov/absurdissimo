@@ -1,0 +1,271 @@
+/* Home page: the deck feed (ranked-deck layout, design B — VocabCards#194).
+   Ported from the settled mockup; phase-2 slots (Top sort, score pills, duel
+   widget) are deliberately absent. Card tile styles live in globals.css. */
+
+/* STICKY TOOLBAR */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.7rem 1.4rem;
+  background: #0a0a0ae6;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-weight: 700;
+  font-size: 1rem;
+  text-decoration: none;
+  white-space: nowrap;
+  color: var(--text);
+}
+.brand img { width: 26px; height: 26px; border-radius: 6px; }
+.search {
+  flex: 1;
+  max-width: 340px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.42rem 0.8rem;
+}
+.search input {
+  font: inherit;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text);
+  width: 100%;
+  font-size: 0.9rem;
+}
+.search span { color: var(--muted); font-size: 0.85rem; }
+.sort {
+  display: flex;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.18rem;
+  margin-left: auto;
+}
+.sort button {
+  font: inherit;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted);
+  border-radius: 8px;
+  padding: 0.3rem 0.85rem;
+}
+.sort button[aria-pressed="true"] { background: var(--accent); color: var(--bg); }
+.icon-btn {
+  font: inherit;
+  color: inherit;
+  background: none;
+  cursor: pointer;
+  font-size: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.35rem 0.6rem;
+  transition: border-color 0.2s;
+}
+.icon-btn:hover { border-color: var(--accent); }
+.top-cta {
+  background: var(--accent);
+  color: var(--bg);
+  font-weight: 700;
+  font-size: 0.82rem;
+  border-radius: 99px;
+  padding: 0.42rem 0.95rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+/* SHELL: SIDEBAR + FEED */
+.shell {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 1.4rem;
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  gap: 1.6rem;
+  align-items: start;
+}
+.shell aside {
+  position: sticky;
+  top: 4.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+}
+.panel h3 {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.7rem;
+}
+
+/* Pair filter (buttons when the feed is live, links when degraded) */
+.pair-filter { display: flex; flex-direction: column; }
+.pair-filter button,
+.pair-filter a {
+  font: inherit;
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.6rem;
+  text-align: left;
+  text-decoration: none;
+  padding: 0.4rem 0.55rem;
+  border-radius: 8px;
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+.pair-filter button:hover,
+.pair-filter a:hover { background: var(--surface-2); color: var(--text); }
+.pair-filter button[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--text);
+  font-weight: 600;
+}
+.pair-filter .cnt {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.7rem;
+}
+.side-stats {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.side-stats b { color: var(--text); font-size: 1.05rem; display: block; }
+.side-cta { font-size: 0.82rem; color: var(--muted); }
+.side-cta a { color: var(--accent); font-weight: 600; text-decoration: none; }
+.side-cta a:hover { text-decoration: underline; }
+
+/* FEED */
+.shell main { min-width: 0; }
+.feed-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8rem;
+  margin: 0.2rem 0 1rem;
+}
+.feed-head h1 { font-size: 1.15rem; font-weight: 700; }
+.feed-head span {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Toolbar search: word matches across all pair indexes */
+.word-matches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.word-matches a {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 0.28rem 0.8rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+  transition: border-color 0.2s;
+}
+.word-matches a:hover { border-color: var(--accent); }
+.word-matches .cnt {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.66rem;
+  color: var(--muted);
+}
+.empty-feed { color: var(--muted); font-size: 0.9rem; }
+
+/* Degraded mode: /public/cards unavailable → pair navigator in the feed area */
+.pair-nav-list {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 0.9rem;
+}
+.pair-nav-link {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.8rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  padding: 0.9rem 1.1rem;
+  text-decoration: none;
+  color: var(--text);
+  transition: border-color 0.2s;
+}
+.pair-nav-link:hover { border-color: var(--accent); }
+.pair-nav-pair { font-weight: 700; font-size: 0.95rem; }
+.pair-nav-count {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.7rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.pair-nav-note { color: var(--muted); font-size: 0.88rem; margin-bottom: 1rem; }
+
+/* FOOTER (same look as cards-footer; home doesn't import cards.css) */
+.deck-footer {
+  border-top: 1px solid var(--border);
+  padding: 2rem;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-top: 2rem;
+}
+.deck-footer a { color: var(--muted); text-decoration: underline; }
+.deck-footer a:hover { color: var(--text); }
+.deck-footer .footer-links {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 900px) {
+  .shell { grid-template-columns: 1fr; }
+  .shell aside { position: static; order: 2; }
+  .search { max-width: none; }
+  .search span { display: none; }
+}
