@@ -79,11 +79,8 @@ export default function Privacy() {
         <h2>Your rights</h2>
         <p>
           Since no personal data is collected, there is nothing to access,
-          correct, or delete. If you have questions, contact us at{" "}
-          <a href="mailto:ibalashov+absurdissimo@gmail.com">
-            ibalashov+absurdissimo@gmail.com
-          </a>
-          .
+          correct, or delete. If you have questions, reach us through our{" "}
+          <Link href="/feedback">feedback page</Link>.
         </p>
 
         <h2>Changes</h2>
@@ -94,9 +91,7 @@ export default function Privacy() {
 
         <h2>Contact</h2>
         <p>
-          <a href="mailto:ibalashov+absurdissimo@gmail.com">
-            ibalashov+absurdissimo@gmail.com
-          </a>
+          <Link href="/feedback">Send us feedback</Link>
         </p>
       </div>
     </div>

@@ -23,10 +23,7 @@ export function AppStoreButton() {
       aria-label="Get early access on TestFlight"
     >
       <AppleLogo />
-      <span>
-        <span className="appstore-btn-main">Get early access</span>
-        <span className="appstore-btn-sub">TestFlight beta</span>
-      </span>
+      <span className="appstore-btn-main">Get early access</span>
     </a>
   );
 }
@@ -72,7 +69,7 @@ export function SiteFooter() {
     <footer className="cards-footer">
       <p>Absurdissimo &copy; 2026 Ivan Balashov</p>
       <div className="footer-links">
-        <a href="mailto:ibalashov@gmail.com">Support</a>
+        <Link href="/feedback">Feedback</Link>
         <Link href="/privacy">Privacy Policy</Link>
       </div>
     </footer>

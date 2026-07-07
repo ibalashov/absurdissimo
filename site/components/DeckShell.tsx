@@ -25,7 +25,7 @@ export default function DeckShell({
       <footer className="deck-footer">
         <p>Absurdissimo &copy; 2026 Ivan Balashov</p>
         <div className="footer-links">
-          <a href="mailto:ibalashov@gmail.com">Support</a>
+          <Link href="/feedback">Feedback</Link>
           <Link href="/privacy">Privacy Policy</Link>
         </div>
       </footer>
