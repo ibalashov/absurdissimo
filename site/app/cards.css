@@ -273,6 +273,17 @@
 .appstore-btn-sub { font-size: 0.7rem; font-weight: 400; display: block; }
 .appstore-btn-main { font-size: 1rem; font-weight: 700; display: block; line-height: 1.1; }
 
+/* Beta / early-access note under the download button */
+.beta-note {
+  margin: 1.25rem auto 0;
+  max-width: 440px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.beta-note a { color: var(--accent); text-decoration: underline; }
+.beta-note strong { color: var(--text); font-weight: 600; }
+
 /* FOOTER (mirrors the home page footer) */
 .cards-footer {
   border-top: 1px solid var(--border);
