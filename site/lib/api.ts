@@ -202,10 +202,20 @@ export function provenanceLabel(provenance: string): string {
   return provenance === "generated" ? "AI-generated" : provenance;
 }
 
-// API levels are lowercase enum values ("wild"); display them capitalized,
-// matching the app's AbsurdityLevel.displayName.
+// API levels are lowercase enum values ("wild"); display them as a numeric
+// level with the app's emoji ramp (AbsurdityLevel order and emoji).
+const ABSURDITY_LEVELS: Record<string, { rank: number; emoji: string }> = {
+  sensible: { rank: 1, emoji: "🙂" },
+  quirky: { rank: 2, emoji: "😏" },
+  wild: { rank: 3, emoji: "🤪" },
+  bizarre: { rank: 4, emoji: "😵‍💫" },
+  unhinged: { rank: 5, emoji: "🤯" },
+};
+
 export function absurdityLabel(absurdity: string): string {
-  return absurdity.charAt(0).toUpperCase() + absurdity.slice(1);
+  const level = ABSURDITY_LEVELS[absurdity];
+  if (!level) return absurdity;
+  return `${level.rank} of 5 ${level.emoji}`;
 }
 
 // BCP-47 tag for browser speech synthesis, keyed by the API's language
