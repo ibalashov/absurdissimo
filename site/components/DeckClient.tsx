@@ -53,15 +53,21 @@ export default function DeckClient({
   words,
   totalCards,
   totalWords,
+  initialPair,
 }: {
   pairs: PairSummary[];
   cards: FeedCard[] | null;
   words: WordIndexEntry[];
   totalCards: number;
   totalWords: number;
+  // Which pair the sidebar filter starts on: "all" on the home route (`/`) or
+  // a pair slug on `/[pair]`. The route is the source of truth — selecting a
+  // pair navigates rather than mutating local state, so the filter lives in
+  // the URL and survives the back button (see the sidebar links below).
+  initialPair: string;
 }) {
   const router = useRouter();
-  const [pairSel, setPairSel] = useState("all");
+  const pairSel = initialPair;
   const [query, setQuery] = useState("");
   // Session cache of per-pair API responses; "error" pins the fallback
   // (client-side filter of the preloaded deck) so a failed pair isn't
@@ -177,25 +183,25 @@ export default function DeckClient({
                 ))
               ) : (
                 <>
-                  <button
-                    aria-pressed={pairSel === "all"}
-                    onClick={() => setPairSel("all")}
+                  <Link
+                    href="/"
+                    aria-current={pairSel === "all" ? "true" : undefined}
                   >
                     <span>All pairs</span>
                     <span className="cnt">{totalCards}</span>
-                  </button>
+                  </Link>
                   {pairs.map((p) => (
-                    <button
+                    <Link
                       key={p.pair}
-                      aria-pressed={pairSel === p.pair}
-                      onClick={() => setPairSel(p.pair)}
+                      href={`/${p.pair}`}
+                      aria-current={pairSel === p.pair ? "true" : undefined}
                     >
                       <span>
                         {languageName(p.source_language)} →{" "}
                         {languageName(p.target_language)}
                       </span>
                       <span className="cnt">{p.association_count}</span>
-                    </button>
+                    </Link>
                   ))}
                 </>
               )}
