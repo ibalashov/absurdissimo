@@ -185,6 +185,33 @@ export async function getWordIndexEntries(
   );
 }
 
+// Everything the deck surface needs, loaded once. Shared by the home page
+// (`/`, all pairs) and the per-pair route (`/[pair]`, filtered) so the two
+// render the identical deck — the pair route is just the home page with a
+// pair preselected, not a separate list page.
+export interface DeckData {
+  pairs: PairSummary[];
+  cards: FeedCard[] | null;
+  words: WordIndexEntry[];
+  totalCards: number;
+  totalWords: number;
+}
+
+export async function loadDeckData(): Promise<DeckData> {
+  const pairs = await getPairs();
+  const [cards, words] = await Promise.all([
+    getFeedCards(),
+    getWordIndexEntries(pairs),
+  ]);
+  return {
+    pairs,
+    cards,
+    words,
+    totalCards: pairs.reduce((n, p) => n + p.association_count, 0),
+    totalWords: pairs.reduce((n, p) => n + p.word_count, 0),
+  };
+}
+
 export function languageName(apiName: string): string {
   return apiName.charAt(0).toUpperCase() + apiName.slice(1);
 }

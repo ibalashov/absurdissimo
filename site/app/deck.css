@@ -145,7 +145,8 @@
 }
 .pair-filter button:hover,
 .pair-filter a:hover { background: var(--surface-2); color: var(--text); }
-.pair-filter button[aria-pressed="true"] {
+.pair-filter button[aria-pressed="true"],
+.pair-filter a[aria-current="true"] {
   background: var(--accent-soft);
   color: var(--text);
   font-weight: 600;

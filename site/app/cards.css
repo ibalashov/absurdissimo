@@ -138,41 +138,6 @@
   color: var(--muted);
 }
 
-/* PAIR INDEX */
-.pair-header { margin-bottom: 2rem; }
-.pair-header h1 {
-  font-size: clamp(1.8rem, 5vw, 2.4rem);
-  font-weight: 800;
-  line-height: 1.15;
-  margin-bottom: 0.4rem;
-}
-.pair-header p { color: var(--muted); }
-
-.word-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  list-style: none;
-}
-.word-list-item {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 0.9rem 1.25rem;
-  text-decoration: none;
-  color: var(--text);
-  transition: border-color 0.2s;
-}
-.word-list-item:hover { border-color: var(--accent); }
-.word-list-word { font-weight: 700; font-size: 1.05rem; }
-.word-list-meta { font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
-
-.empty-note { color: var(--muted); }
-
 /* CARD DETAIL PAGE (/{pair}/{word}/{association_id}) */
 .card-detail-main {
   max-width: 1080px;
