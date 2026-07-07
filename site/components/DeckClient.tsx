@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import CardTile from "@/components/CardTile";
 import {
   FeedCard,
+  fetchPairCards,
   imageUrl,
   languageName,
   PairSummary,
@@ -20,6 +21,14 @@ import {
 // `cards === null` means GET /public/cards is unavailable (VocabCards#193 not
 // deployed): the feed area degrades to a pair navigator and the pair filter
 // becomes plain links to the pair pages.
+//
+// Selecting a pair fetches that pair's newest cards from the API
+// (VocabCards#209) — the preloaded feed is only the 48 newest cards
+// site-wide, so filtering it in memory starves every pair outside that
+// window. Responses are cached per pair for the session; while a fetch is in
+// flight the feed shows a loading note, and on failure it falls back to
+// filtering the preloaded deck client-side (never worse than the old
+// behavior).
 
 function pairCode(pair: string): string {
   return pair.toUpperCase().replace("-", " → ");
@@ -54,16 +63,48 @@ export default function DeckClient({
   const router = useRouter();
   const [pairSel, setPairSel] = useState("all");
   const [query, setQuery] = useState("");
+  // Session cache of per-pair API responses; "error" pins the fallback
+  // (client-side filter of the preloaded deck) so a failed pair isn't
+  // refetched on every re-render.
+  const [pairCache, setPairCache] = useState<
+    Record<string, FeedCard[] | "error">
+  >({});
   const q = query.trim().toLowerCase();
+
+  useEffect(() => {
+    if (pairSel === "all" || cards === null || pairCache[pairSel]) return;
+    let cancelled = false;
+    fetchPairCards(pairSel)
+      .then((fetched) => {
+        if (!cancelled) setPairCache((c) => ({ ...c, [pairSel]: fetched }));
+      })
+      .catch(() => {
+        if (!cancelled) setPairCache((c) => ({ ...c, [pairSel]: "error" }));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [pairSel, cards, pairCache]);
+
+  const cached = pairSel === "all" ? undefined : pairCache[pairSel];
+  const loading = pairSel !== "all" && cards !== null && cached === undefined;
+
+  // The list the feed currently shows: the preloaded deck for "All pairs",
+  // the pair's own API response once fetched, or the client-side filter of
+  // the preloaded deck while loading / after a fetch failure.
+  const activeCards = useMemo(() => {
+    if (cards === null) return null;
+    if (pairSel === "all") return cards;
+    if (cached && cached !== "error") return cached;
+    return cards.filter((c) => c.pair === pairSel);
+  }, [cards, pairSel, cached]);
 
   const shown = useMemo(
     () =>
-      (cards ?? []).filter(
-        (c) =>
-          (pairSel === "all" || c.pair === pairSel) &&
-          (!q || c.word.toLowerCase().includes(q)),
+      (activeCards ?? []).filter(
+        (c) => !q || c.word.toLowerCase().includes(q),
       ),
-    [cards, pairSel, q],
+    [activeCards, q],
   );
 
   const wordMatches = useMemo(() => {
@@ -79,8 +120,8 @@ export default function DeckClient({
   }, [words, pairSel, q]);
 
   function randomCard() {
-    if (!cards?.length) return;
-    router.push(cardHref(cards[Math.floor(Math.random() * cards.length)]));
+    if (!shown.length) return;
+    router.push(cardHref(shown[Math.floor(Math.random() * shown.length)]));
   }
 
   return (
@@ -104,7 +145,7 @@ export default function DeckClient({
         <div className="sort" role="group" aria-label="Sort order">
           <button aria-pressed="true">New</button>
         </div>
-        {cards !== null && cards.length > 0 && (
+        {cards !== null && shown.length > 0 && (
           <button
             className="icon-btn"
             title="Random card"
@@ -182,7 +223,16 @@ export default function DeckClient({
             <h1>Newest cards</h1>
             {cards !== null && (
               <span>
-                {shown.length} of {totalCards} in the deck
+                {loading
+                  ? "Loading…"
+                  : `${shown.length} of ${
+                      // The pair's own corpus count, not the site-wide total:
+                      // a filtered view spans only that pair.
+                      pairSel === "all"
+                        ? totalCards
+                        : (pairs.find((p) => p.pair === pairSel)
+                            ?.association_count ?? shown.length)
+                    } in the deck`}
               </span>
             )}
           </div>
@@ -226,6 +276,8 @@ export default function DeckClient({
                 ))}
               </ul>
             </>
+          ) : loading ? (
+            <p className="empty-feed">Loading cards…</p>
           ) : shown.length === 0 ? (
             <p className="empty-feed">
               No cards match{q ? ` “${query.trim()}”` : ""} — try another word

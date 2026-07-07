@@ -152,6 +152,21 @@ export async function getFeedCards(limit = 48): Promise<FeedCard[] | null> {
   }
 }
 
+// Client-side fetch of one pair's newest cards (VocabCards#208/#209). Runs
+// in the browser when a sidebar pair is selected, so no ISR revalidate hint.
+// Unlike getFeedCards this *throws* on failure: DeckClient catches and falls
+// back to client-side filtering of the preloaded deck.
+export async function fetchPairCards(
+  pair: string,
+  limit = 48,
+): Promise<FeedCard[]> {
+  const path = `/public/cards?pair=${encodeURIComponent(pair)}&limit=${limit}`;
+  const res = await fetch(`${API_BASE}${path}`);
+  if (!res.ok) throw new Error(`API ${path} responded ${res.status}`);
+  const data = (await res.json()) as FeedData;
+  return data.cards;
+}
+
 // Flattens every pair's word index into one list for the toolbar search.
 // Individual pair failures are dropped: search degrades, the page survives.
 export async function getWordIndexEntries(
