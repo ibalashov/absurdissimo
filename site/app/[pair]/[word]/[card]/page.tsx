@@ -152,7 +152,7 @@ export default async function CardPage({ params }: { params: Params }) {
               </span>
               {card.absurdity && (
                 <span className="chip chip-absurdity">
-                  {card.absurdity} absurdity
+                  absurdity {absurdityLabel(card.absurdity)}
                 </span>
               )}
               <span className="chip chip-prov">
