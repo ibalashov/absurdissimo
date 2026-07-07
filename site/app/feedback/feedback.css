@@ -1,0 +1,108 @@
+/* Feedback page — reuses the design tokens from globals.css and the nav/footer
+   from cards.css. */
+
+.feedback-page {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 4rem;
+}
+
+.feedback-page h1 {
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  font-weight: 800;
+  margin-bottom: 0.75rem;
+}
+
+.feedback-intro {
+  color: var(--muted);
+  line-height: 1.6;
+  margin-bottom: 2rem;
+}
+
+.feedback-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.feedback-form label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 0.75rem;
+}
+
+.feedback-form textarea,
+.feedback-form input {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font: inherit;
+  padding: 0.75rem;
+  resize: vertical;
+}
+
+.feedback-form textarea:focus,
+.feedback-form input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.feedback-form textarea::placeholder,
+.feedback-form input::placeholder {
+  color: var(--muted);
+}
+
+.feedback-form button {
+  margin-top: 1.5rem;
+  align-self: flex-start;
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 0.75rem 1.75rem;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.feedback-form button:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.feedback-form button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.feedback-error {
+  color: #ff6b6b;
+  font-size: 0.9rem;
+  margin-top: 0.75rem;
+}
+
+.feedback-done {
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.feedback-done-emoji {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+}
+
+.feedback-done h2 {
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+}
+
+.feedback-done p {
+  color: var(--muted);
+  line-height: 1.6;
+  max-width: 400px;
+  margin: 0 auto;
+}
