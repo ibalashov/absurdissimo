@@ -1,9 +1,11 @@
 import Link from "next/link";
 
-// The App Store link/copy mirrors the home page hero button. The app is not
-// released yet, so the href stays "#" until there is a real App Store URL —
-// update both places together.
-export const APP_STORE_URL = "#";
+// The app is not on the App Store yet — it ships as a TestFlight beta while the
+// first release is prepared. Every "get the app" link across the site points at
+// this invite; swap it for the real App Store URL at launch. The hero button on
+// the standalone marketing page (../../index.html) and the /app page must be
+// updated together with this constant.
+export const APP_STORE_URL = "https://testflight.apple.com/join/ateXeB2Z";
 
 function AppleLogo() {
   return (
@@ -18,12 +20,12 @@ export function AppStoreButton() {
     <a
       className="appstore-btn"
       href={APP_STORE_URL}
-      aria-label="Download on the App Store"
+      aria-label="Get early access on TestFlight"
     >
       <AppleLogo />
       <span>
-        <span className="appstore-btn-sub">Download on the</span>
-        <span className="appstore-btn-main">App Store</span>
+        <span className="appstore-btn-main">Get early access</span>
+        <span className="appstore-btn-sub">TestFlight beta</span>
       </span>
     </a>
   );
@@ -55,6 +57,12 @@ export function GetAppSection() {
         that make vocabulary impossible to forget.
       </p>
       <AppStoreButton />
+      <p className="beta-note">
+        🚧 Absurdissimo is still in beta. Install Apple&rsquo;s{" "}
+        <a href="https://testflight.apple.com/join/ateXeB2Z">TestFlight</a> app
+        first, then tap above to join and be one of the very first to try it.{" "}
+        <strong>The first App Store release is coming soon.</strong>
+      </p>
     </section>
   );
 }
