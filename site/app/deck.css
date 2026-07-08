@@ -48,26 +48,6 @@
   font-size: 0.9rem;
 }
 .search span { color: var(--muted); font-size: 0.85rem; }
-.sort {
-  display: flex;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 0.18rem;
-  margin-left: auto;
-}
-.sort button {
-  font: inherit;
-  border: none;
-  background: none;
-  cursor: pointer;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--muted);
-  border-radius: 8px;
-  padding: 0.3rem 0.85rem;
-}
-.sort button[aria-pressed="true"] { background: var(--accent); color: var(--bg); }
 .icon-btn {
   font: inherit;
   color: inherit;
@@ -94,6 +74,16 @@
   transition: border-color 0.2s;
 }
 .new-card-btn:hover { border-color: var(--accent); }
+/* Flush-right action cluster (random card, new card, app CTA). A wrapper with a
+   single auto margin keeps them grouped regardless of which buttons render —
+   auto margins on individual flex items would split the free space between
+   them. */
+.topbar-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
 
 /* "Coming soon" modal for web card creation. */
 .modal-overlay {
@@ -338,6 +328,8 @@
   gap: 0.4rem;
   margin: 1.8rem 0 0.4rem;
 }
+/* Mirrored pager above the grid: tighter to the feed head, roomier below. */
+.pager-top { margin: 0.2rem 0 1.2rem; }
 .pager button {
   font: inherit;
   cursor: pointer;

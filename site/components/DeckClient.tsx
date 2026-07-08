@@ -15,10 +15,10 @@ import {
   WordIndexEntry,
 } from "@/lib/api";
 
-// The interactive deck: sticky toolbar (search, sort, random card, app CTA),
-// sidebar (pair filter, corpus stats, app CTA) and the card feed. Sort ships
-// "New" only; Top sort, score pills and the duel widget are phase 2
-// (VocabCards#194) and deliberately absent.
+// The interactive deck: sticky toolbar (search, random card, new-card CTA, app
+// CTA), sidebar (pair filter, corpus stats, app CTA) and the card feed. Sort,
+// score pills and the duel widget are phase 2 (VocabCards#194) and absent — the
+// feed is newest-first, so a lone "New" sort toggle did nothing and was removed.
 //
 // `cards === null` means GET /public/cards is unavailable (VocabCards#193 not
 // deployed): the feed area degrades to a pair navigator and the pair filter
@@ -251,6 +251,52 @@ export default function DeckClient({
       window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  // The numbered pager, mirrored above and below the grid. `place` only tweaks
+  // spacing and the landmark label so the two navs are distinguishable to
+  // screen readers. Hidden while searching (search filters the current page)
+  // and for single-page decks.
+  function pagerNav(place: "top" | "bottom") {
+    if (cards === null || q || pageCount <= 1) return null;
+    return (
+      <nav
+        className={place === "top" ? "pager pager-top" : "pager"}
+        aria-label={place === "top" ? "Deck pages (top)" : "Deck pages"}
+      >
+        <button
+          className="pager-btn"
+          disabled={page <= 1}
+          onClick={() => goToPage(page - 1)}
+        >
+          ‹ Prev
+        </button>
+        {pageList(page, pageCount).map((it, i) =>
+          it === "gap" ? (
+            <span key={`gap-${i}`} className="pager-gap" aria-hidden="true">
+              …
+            </span>
+          ) : (
+            <button
+              key={it}
+              className="pager-num"
+              aria-label={`Page ${it}`}
+              aria-current={it === page ? "page" : undefined}
+              onClick={() => goToPage(it)}
+            >
+              {it}
+            </button>
+          ),
+        )}
+        <button
+          className="pager-btn"
+          disabled={page >= pageCount}
+          onClick={() => goToPage(page + 1)}
+        >
+          Next ›
+        </button>
+      </nav>
+    );
+  }
+
   return (
     <>
       <div className="topbar">
@@ -269,30 +315,29 @@ export default function DeckClient({
             onChange={(e) => setQuery(e.target.value)}
           />
         </label>
-        <div className="sort" role="group" aria-label="Sort order">
-          <button aria-pressed="true">New</button>
-        </div>
-        {cards !== null && shown.length > 0 && (
+        <div className="topbar-actions">
+          {cards !== null && shown.length > 0 && (
+            <button
+              className="icon-btn"
+              title="Random card"
+              aria-label="Open a random card"
+              onClick={randomCard}
+            >
+              🎲
+            </button>
+          )}
           <button
-            className="icon-btn"
-            title="Random card"
-            aria-label="Open a random card"
-            onClick={randomCard}
+            className="new-card-btn"
+            title="Create a new card"
+            aria-label="Create a new card"
+            onClick={onNewCardClick}
           >
-            🎲
+            +<span className="new-card-label"> New card</span>
           </button>
-        )}
-        <button
-          className="new-card-btn"
-          title="Create a new card"
-          aria-label="Create a new card"
-          onClick={onNewCardClick}
-        >
-          +<span className="new-card-label"> New card</span>
-        </button>
-        <Link className="top-cta" href="/app">
-          Get the app
-        </Link>
+          <Link className="top-cta" href="/app">
+            Get the app
+          </Link>
+        </div>
       </div>
 
       {newCardOpen && (
@@ -469,54 +514,23 @@ export default function DeckClient({
               or pair.
             </p>
           ) : (
-            <div className="tile-grid">
-              {shown.map((c, i) => (
-                <CardTile
-                  key={c.id ?? `${c.pair}/${c.word}/${i}`}
-                  href={cardHref(c)}
-                  imageSrc={c.image_id ? imageUrl(c.image_id) : null}
-                  word={c.word}
-                  sub={`${pairCode(c.pair)} · ${shortDate(c.created_at)}`}
-                />
-              ))}
-            </div>
+            <>
+              {pagerNav("top")}
+              <div className="tile-grid">
+                {shown.map((c, i) => (
+                  <CardTile
+                    key={c.id ?? `${c.pair}/${c.word}/${i}`}
+                    href={cardHref(c)}
+                    imageSrc={c.image_id ? imageUrl(c.image_id) : null}
+                    word={c.word}
+                    sub={`${pairCode(c.pair)} · ${shortDate(c.created_at)}`}
+                  />
+                ))}
+              </div>
+            </>
           )}
 
-          {cards !== null && !q && pageCount > 1 && (
-            <nav className="pager" aria-label="Deck pages">
-              <button
-                className="pager-btn"
-                disabled={page <= 1}
-                onClick={() => goToPage(page - 1)}
-              >
-                ‹ Prev
-              </button>
-              {pageList(page, pageCount).map((it, i) =>
-                it === "gap" ? (
-                  <span key={`gap-${i}`} className="pager-gap" aria-hidden="true">
-                    …
-                  </span>
-                ) : (
-                  <button
-                    key={it}
-                    className="pager-num"
-                    aria-label={`Page ${it}`}
-                    aria-current={it === page ? "page" : undefined}
-                    onClick={() => goToPage(it)}
-                  >
-                    {it}
-                  </button>
-                ),
-              )}
-              <button
-                className="pager-btn"
-                disabled={page >= pageCount}
-                onClick={() => goToPage(page + 1)}
-              >
-                Next ›
-              </button>
-            </nav>
-          )}
+          {pagerNav("bottom")}
         </main>
       </div>
     </>
