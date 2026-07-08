@@ -215,6 +215,49 @@
 }
 .empty-feed { color: var(--muted); font-size: 0.9rem; }
 
+/* Numbered pager for browsing the full deck (offset paging) */
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  margin: 1.8rem 0 0.4rem;
+}
+.pager button {
+  font: inherit;
+  cursor: pointer;
+  min-width: 2.1rem;
+  padding: 0.34rem 0.6rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  transition:
+    border-color 0.2s,
+    color 0.2s;
+}
+.pager button:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.pager button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.pager .pager-num[aria-current="page"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+}
+.pager-gap {
+  color: var(--muted);
+  padding: 0 0.15rem;
+  font-variant-numeric: tabular-nums;
+}
+
 /* Degraded mode: /public/cards unavailable → pair navigator in the feed area */
 .pair-nav-list {
   list-style: none;

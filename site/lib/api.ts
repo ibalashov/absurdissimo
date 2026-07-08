@@ -14,6 +14,11 @@ export const REVALIDATE_SECONDS = 3600;
 // (the catch-all /[pair] route also matches /favicon.ico and friends).
 export const PAIR_PATTERN = /^[a-z]{2}-[a-z]{2}$/;
 
+// Cards per deck page. The deck browses the full corpus via numbered pages
+// (offset paging on GET /public/cards); this is both the SSR preload size and
+// the client page size. Must stay <= the server's per-request cap (50).
+export const PAGE_SIZE = 48;
+
 export interface WordInfo {
   part_of_speech?: string | null;
   gender?: string | null;
@@ -143,7 +148,7 @@ export async function getPairIndex(
 // null means "feed unavailable" (endpoint not deployed yet, or erroring) —
 // the home page then degrades to the pair navigator (VocabCards#194). This
 // swallows *all* failures on purpose: the page must not break without #193.
-export async function getFeedCards(limit = 48): Promise<FeedCard[] | null> {
+export async function getFeedCards(limit = PAGE_SIZE): Promise<FeedCard[] | null> {
   try {
     const data = await getJson<FeedData>(`/public/cards?limit=${limit}`);
     return data?.cards ?? null;
@@ -152,15 +157,23 @@ export async function getFeedCards(limit = 48): Promise<FeedCard[] | null> {
   }
 }
 
-// Client-side fetch of one pair's newest cards (VocabCards#208/#209). Runs
-// in the browser when a sidebar pair is selected, so no ISR revalidate hint.
-// Unlike getFeedCards this *throws* on failure: DeckClient catches and falls
-// back to client-side filtering of the preloaded deck.
-export async function fetchPairCards(
-  pair: string,
-  limit = 48,
+// Client-side fetch of one page of the deck feed (VocabCards#208/#209 + the
+// full-deck browse). `pair` null is the cross-pair feed; a slug filters to one
+// pair. `page` is 1-based and paginates the *whole* corpus via offset — the
+// preloaded feed is only page 1, so later pages must come from the API. Runs in
+// the browser, so no ISR revalidate hint. Unlike getFeedCards this *throws* on
+// failure: DeckClient catches and, for page 1, falls back to client-side
+// filtering of the preloaded deck.
+export async function fetchDeckPage(
+  pair: string | null,
+  page: number,
 ): Promise<FeedCard[]> {
-  const path = `/public/cards?pair=${encodeURIComponent(pair)}&limit=${limit}`;
+  const params = new URLSearchParams({
+    limit: String(PAGE_SIZE),
+    offset: String((Math.max(1, page) - 1) * PAGE_SIZE),
+  });
+  if (pair) params.set("pair", pair);
+  const path = `/public/cards?${params.toString()}`;
   const res = await fetch(`${API_BASE}${path}`);
   if (!res.ok) throw new Error(`API ${path} responded ${res.status}`);
   const data = (await res.json()) as FeedData;
