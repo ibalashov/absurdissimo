@@ -277,9 +277,18 @@
 .shell main { min-width: 0; }
 .feed-head {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0.2rem 0 1rem;
+}
+/* Title + count sit together on the left, baseline-aligned; the top pager (a
+   flex sibling) is pushed to the right edge by space-between. */
+.feed-head-info {
+  display: flex;
   align-items: baseline;
   gap: 0.8rem;
-  margin: 0.2rem 0 1rem;
+  min-width: 0;
 }
 .feed-head h1 { font-size: 1.15rem; font-weight: 700; }
 .feed-head span {
@@ -328,8 +337,14 @@
   gap: 0.4rem;
   margin: 1.8rem 0 0.4rem;
 }
-/* Mirrored pager above the grid: tighter to the feed head, roomier below. */
-.pager-top { margin: 0.2rem 0 1.2rem; }
+/* Mirrored pager, inline on the feed-head row: no vertical margin, flush right
+   (feed-head's space-between pushes it there), and it must not wrap or shrink. */
+.pager-top {
+  margin: 0;
+  flex: none;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+}
 .pager button {
   font: inherit;
   cursor: pointer;

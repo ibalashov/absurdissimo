@@ -251,10 +251,10 @@ export default function DeckClient({
       window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  // The numbered pager, mirrored above and below the grid. `place` only tweaks
-  // spacing and the landmark label so the two navs are distinguishable to
-  // screen readers. Hidden while searching (search filters the current page)
-  // and for single-page decks.
+  // The numbered pager, mirrored twice: inline on the feed-head row (top) and
+  // below the grid (bottom). `place` only tweaks spacing/layout and the landmark
+  // label so the two navs are distinguishable to screen readers. Hidden while
+  // searching (search filters the current page) and for single-page decks.
   function pagerNav(place: "top" | "bottom") {
     if (cards === null || q || pageCount <= 1) return null;
     return (
@@ -449,18 +449,21 @@ export default function DeckClient({
 
         <main>
           <div className="feed-head">
-            <h1>Newest cards</h1>
-            {cards !== null && (
-              <span>
-                {loading
-                  ? "Loading…"
-                  : q
-                    ? `${shown.length} match${
-                        shown.length === 1 ? "" : "es"
-                      } on this page`
-                    : `Page ${page} of ${pageCount} · ${total} cards`}
-              </span>
-            )}
+            <div className="feed-head-info">
+              <h1>Newest cards</h1>
+              {cards !== null && (
+                <span>
+                  {loading
+                    ? "Loading…"
+                    : q
+                      ? `${shown.length} match${
+                          shown.length === 1 ? "" : "es"
+                        } on this page`
+                      : `Page ${page} of ${pageCount} · ${total} cards`}
+                </span>
+              )}
+            </div>
+            {pagerNav("top")}
           </div>
 
           {wordMatches.length > 0 && (
@@ -514,20 +517,17 @@ export default function DeckClient({
               or pair.
             </p>
           ) : (
-            <>
-              {pagerNav("top")}
-              <div className="tile-grid">
-                {shown.map((c, i) => (
-                  <CardTile
-                    key={c.id ?? `${c.pair}/${c.word}/${i}`}
-                    href={cardHref(c)}
-                    imageSrc={c.image_id ? imageUrl(c.image_id) : null}
-                    word={c.word}
-                    sub={`${pairCode(c.pair)} · ${shortDate(c.created_at)}`}
-                  />
-                ))}
-              </div>
-            </>
+            <div className="tile-grid">
+              {shown.map((c, i) => (
+                <CardTile
+                  key={c.id ?? `${c.pair}/${c.word}/${i}`}
+                  href={cardHref(c)}
+                  imageSrc={c.image_id ? imageUrl(c.image_id) : null}
+                  word={c.word}
+                  sub={`${pairCode(c.pair)} · ${shortDate(c.created_at)}`}
+                />
+              ))}
+            </div>
           )}
 
           {pagerNav("bottom")}
