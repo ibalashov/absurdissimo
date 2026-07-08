@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import CardImage from "@/components/CardImage";
+import MnemonicText from "@/components/MnemonicText";
 import { GetAppSection, SiteFooter, SiteNav } from "@/components/chrome";
 import {
   Association,
@@ -125,7 +126,9 @@ export default async function WordPairPage({ params }: { params: Params }) {
                 />
               )}
               <div className="card-body">
-                <p className="card-mnemonic">{card.mnemonic}</p>
+                <p className="card-mnemonic" dir="auto">
+                  <MnemonicText text={card.mnemonic} />
+                </p>
                 {card.explanation && (
                   <p className="card-explanation">{card.explanation}</p>
                 )}

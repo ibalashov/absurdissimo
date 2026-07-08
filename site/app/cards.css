@@ -108,6 +108,11 @@
   font-size: 1.05rem;
   line-height: 1.55;
 }
+/* Sound-alike keywords in a mnemonic, matching the iOS card (yellow accent). */
+.kw {
+  color: var(--accent);
+  font-weight: 600;
+}
 .card-explanation {
   margin-top: 0.75rem;
   font-size: 0.9rem;

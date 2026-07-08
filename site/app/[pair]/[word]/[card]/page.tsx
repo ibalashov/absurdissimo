@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import CardImage from "@/components/CardImage";
 import CardTile from "@/components/CardTile";
+import MnemonicText from "@/components/MnemonicText";
 import PronounceButton from "@/components/PronounceButton";
 import { SiteFooter, SiteNav } from "@/components/chrome";
 import {
@@ -138,7 +139,7 @@ export default async function CardPage({ params }: { params: Params }) {
                 .join(" · ")}
             </p>
             <p className="d-mnemonic" dir="auto">
-              {card.mnemonic}
+              <MnemonicText text={card.mnemonic} />
             </p>
             {card.explanation && (
               <div className="d-why">
