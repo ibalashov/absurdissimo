@@ -203,15 +203,15 @@ export default function DeckClient({
   }
 
   // Card creation isn't supported on the web yet (it lives in the iOS app).
-  // The "New card" button surfaces a "coming soon" hint and reports the
-  // interest through the existing feedback relay (POST /api/feedback ->
-  // server /feedback -> `feedback_submitted` PostHog event that emails Ivan),
-  // so demand for web card creation is visible. Reported once per mount so
-  // repeat clicks don't spam the inbox; best-effort, never blocks the UI.
-  const [newCardHint, setNewCardHint] = useState(false);
+  // The "New card" button opens a "coming soon" modal and reports the interest
+  // through the existing feedback relay (POST /api/feedback -> server /feedback
+  // -> `feedback_submitted` PostHog event that emails Ivan), so demand for web
+  // card creation is visible. Reported once per mount so repeat clicks don't
+  // spam the inbox; best-effort, never blocks the UI.
+  const [newCardOpen, setNewCardOpen] = useState(false);
   const newCardReported = useRef(false);
   function onNewCardClick() {
-    setNewCardHint(true);
+    setNewCardOpen(true);
     if (newCardReported.current) return;
     newCardReported.current = true;
     fetch("/api/feedback", {
@@ -223,11 +223,15 @@ export default function DeckClient({
       }),
     }).catch(() => {});
   }
+  // Close the modal on Escape while it's open.
   useEffect(() => {
-    if (!newCardHint) return;
-    const t = setTimeout(() => setNewCardHint(false), 3200);
-    return () => clearTimeout(t);
-  }, [newCardHint]);
+    if (!newCardOpen) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setNewCardOpen(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [newCardOpen]);
 
   // Record the sidebar choice for the session before navigating away, so
   // middleware.ts can rewrite "/" to it. A session cookie (no Max-Age): the
@@ -278,26 +282,65 @@ export default function DeckClient({
             🎲
           </button>
         )}
-        <div className="new-card">
-          <button
-            className="new-card-btn"
-            title="Create a new card"
-            aria-label="Create a new card"
-            onClick={onNewCardClick}
-          >
-            +<span className="new-card-label"> New card</span>
-          </button>
-          {newCardHint && (
-            <span className="new-card-hint" role="status">
-              Creating cards on the web is coming soon — for now, make them in
-              the app.
-            </span>
-          )}
-        </div>
+        <button
+          className="new-card-btn"
+          title="Create a new card"
+          aria-label="Create a new card"
+          onClick={onNewCardClick}
+        >
+          +<span className="new-card-label"> New card</span>
+        </button>
         <Link className="top-cta" href="/app">
           Get the app
         </Link>
       </div>
+
+      {newCardOpen && (
+        <div
+          className="modal-overlay"
+          onClick={() => setNewCardOpen(false)}
+          role="presentation"
+        >
+          <div
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="new-card-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="modal-close"
+              aria-label="Close"
+              onClick={() => setNewCardOpen(false)}
+            >
+              ×
+            </button>
+            <p className="modal-emoji" aria-hidden="true">
+              🃏
+            </p>
+            <h2 id="new-card-title">Creating cards on the web is coming soon</h2>
+            <p className="modal-body">
+              For now, cards are made in the Absurdissimo iPhone app — pick a
+              word, and it dreams up an absurd mnemonic and image. Your cards
+              show up here automatically.
+            </p>
+            <p className="modal-note">
+              We’ve noted that you’d like to make cards on the web. 🙌
+            </p>
+            <div className="modal-actions">
+              <Link className="modal-cta" href="/app">
+                Get the app
+              </Link>
+              <button
+                className="modal-dismiss"
+                onClick={() => setNewCardOpen(false)}
+              >
+                Maybe later
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="shell">
         <aside>
