@@ -10,7 +10,6 @@ import {
   imageUrl,
   languageName,
   PAGE_SIZE,
-  PAIR_PATTERN,
   PairSummary,
   WordIndexEntry,
 } from "@/lib/api";
@@ -31,14 +30,16 @@ import {
 // note, and page 1 of a pair falls back to client-side filtering of the
 // preloaded deck on failure (never worse than the pre-pagination behavior).
 //
-// The selected pair sticks for the session: picking a pair or "All pairs" in
-// the sidebar records it (sessionStorage), and landing on "/" restores it — so
-// navigating home (e.g. the logo) keeps the pair. Only those two sidebar
-// actions change it; see the effect below.
+// The selected pair sticks for the session via the `pair` cookie: picking a
+// pair or "All pairs" in the sidebar writes it (rememberPair below), and
+// `middleware.ts` reads it to rewrite "/" to that pair's deck at the edge — so
+// navigating home (the logo, the back button) keeps the pair with no flash and
+// no client redirect. Only those two sidebar actions change it; merely viewing
+// a card or a pair deck (arriving by link) never rewrites the cookie.
 
-// sessionStorage key holding the sticky pair slug, or "all" for the cross-pair
-// deck. Session-scoped on purpose (the request said "stick to session").
-const PAIR_SESSION_KEY = "absurdissimo.pair";
+// Session cookie holding the sticky pair slug (or "all" for the cross-pair
+// deck). Name must match the cookie read in middleware.ts.
+const PAIR_COOKIE = "pair";
 
 function pairCode(pair: string): string {
   return pair.toUpperCase().replace("-", " → ");
@@ -122,30 +123,6 @@ export default function DeckClient({
   const isPreloadedPage = pairSel === "all" && page === 1;
   const cached = pageCache[cacheKey];
 
-  // Persist the selected pair and restore it on the home route so it sticks for
-  // the session. On "/" (pairSel "all") a stored pair bounces to `/[pair]`;
-  // picking a pair or "All pairs" writes sessionStorage on click (the logo does
-  // not, so it lands back on the stuck pair). SSR still renders "/" as the
-  // all-pairs deck for crawlers — this restore is a client enhancement.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (pairSel === "all") {
-      const stored = window.sessionStorage.getItem(PAIR_SESSION_KEY);
-      if (
-        stored &&
-        stored !== "all" &&
-        PAIR_PATTERN.test(stored) &&
-        pairs.some((p) => p.pair === stored)
-      ) {
-        router.replace(`/${stored}`);
-      }
-    } else {
-      window.sessionStorage.setItem(PAIR_SESSION_KEY, pairSel);
-    }
-    // Only re-run when the route's pair changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pairSel]);
-
   // Fetch the current page unless it's the SSR preload or already cached.
   useEffect(() => {
     if (cards === null || isPreloadedPage || pageCache[cacheKey]) return;
@@ -200,11 +177,13 @@ export default function DeckClient({
     router.push(cardHref(shown[Math.floor(Math.random() * shown.length)]));
   }
 
-  // Record the sidebar choice for the session before navigating away; the
-  // restore effect re-applies it when the user later lands on "/".
+  // Record the sidebar choice for the session before navigating away, so
+  // middleware.ts can rewrite "/" to it. A session cookie (no Max-Age): the
+  // pair sticks until the browser/tab closes or the user picks another pair or
+  // "All pairs" (which writes "all", falling through to the real "/").
   function rememberPair(slug: string) {
-    if (typeof window !== "undefined") {
-      window.sessionStorage.setItem(PAIR_SESSION_KEY, slug);
+    if (typeof document !== "undefined") {
+      document.cookie = `${PAIR_COOKIE}=${slug}; path=/; SameSite=Lax`;
     }
   }
 
