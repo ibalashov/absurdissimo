@@ -333,17 +333,16 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   gap: 0.4rem;
   margin: 1.8rem 0 0.4rem;
 }
-/* Mirrored pager, inline on the feed-head row: no vertical margin, flush right
-   (feed-head's space-between pushes it there), and it must not wrap or shrink. */
+/* Mirrored pager, inline on the feed-head row: no vertical margin (feed-head's
+   space-between flushes it right), and it must not wrap or shrink. */
 .pager-top {
   margin: 0;
   flex: none;
   flex-wrap: nowrap;
-  justify-content: flex-end;
 }
 .pager button {
   font: inherit;
