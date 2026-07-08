@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import CardTile from "@/components/CardTile";
 import {
@@ -15,10 +15,10 @@ import {
   WordIndexEntry,
 } from "@/lib/api";
 
-// The interactive deck: sticky toolbar (search, sort, random card, app CTA),
-// sidebar (pair filter, corpus stats, app CTA) and the card feed. Sort ships
-// "New" only; Top sort, score pills and the duel widget are phase 2
-// (VocabCards#194) and deliberately absent.
+// The interactive deck: sticky toolbar (search, random card, new-card CTA, app
+// CTA), sidebar (pair filter, corpus stats, app CTA) and the card feed. Sort,
+// score pills and the duel widget are phase 2 (VocabCards#194) and absent — the
+// feed is newest-first, so a lone "New" sort toggle did nothing and was removed.
 //
 // `cards === null` means GET /public/cards is unavailable (VocabCards#193 not
 // deployed): the feed area degrades to a pair navigator and the pair filter
@@ -202,6 +202,37 @@ export default function DeckClient({
     router.push(cardHref(shown[Math.floor(Math.random() * shown.length)]));
   }
 
+  // Card creation isn't supported on the web yet (it lives in the iOS app).
+  // The "New card" button opens a "coming soon" modal and reports the interest
+  // through the existing feedback relay (POST /api/feedback -> server /feedback
+  // -> `feedback_submitted` PostHog event that emails Ivan), so demand for web
+  // card creation is visible. Reported once per mount so repeat clicks don't
+  // spam the inbox; best-effort, never blocks the UI.
+  const [newCardOpen, setNewCardOpen] = useState(false);
+  const newCardReported = useRef(false);
+  function onNewCardClick() {
+    setNewCardOpen(true);
+    if (newCardReported.current) return;
+    newCardReported.current = true;
+    fetch("/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message:
+          "[deck] Someone tapped “New card” on the website — wants to create cards on the web (only the app supports it today).",
+      }),
+    }).catch(() => {});
+  }
+  // Close the modal on Escape while it's open.
+  useEffect(() => {
+    if (!newCardOpen) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setNewCardOpen(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [newCardOpen]);
+
   // Record the sidebar choice for the session before navigating away, so
   // middleware.ts can rewrite "/" to it. A session cookie (no Max-Age): the
   // pair sticks until the browser/tab closes or the user picks another pair or
@@ -218,6 +249,52 @@ export default function DeckClient({
     setPage(clamped);
     if (typeof window !== "undefined")
       window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  // The numbered pager, mirrored twice: inline on the feed-head row (top) and
+  // below the grid (bottom). `place` only tweaks spacing/layout and the landmark
+  // label so the two navs are distinguishable to screen readers. Hidden while
+  // searching (search filters the current page) and for single-page decks.
+  function pagerNav(place: "top" | "bottom") {
+    if (cards === null || q || pageCount <= 1) return null;
+    return (
+      <nav
+        className={place === "top" ? "pager pager-top" : "pager"}
+        aria-label={place === "top" ? "Deck pages (top)" : "Deck pages"}
+      >
+        <button
+          className="pager-btn"
+          disabled={page <= 1}
+          onClick={() => goToPage(page - 1)}
+        >
+          ‹ Prev
+        </button>
+        {pageList(page, pageCount).map((it, i) =>
+          it === "gap" ? (
+            <span key={`gap-${i}`} className="pager-gap" aria-hidden="true">
+              …
+            </span>
+          ) : (
+            <button
+              key={it}
+              className="pager-num"
+              aria-label={`Page ${it}`}
+              aria-current={it === page ? "page" : undefined}
+              onClick={() => goToPage(it)}
+            >
+              {it}
+            </button>
+          ),
+        )}
+        <button
+          className="pager-btn"
+          disabled={page >= pageCount}
+          onClick={() => goToPage(page + 1)}
+        >
+          Next ›
+        </button>
+      </nav>
+    );
   }
 
   return (
@@ -238,23 +315,77 @@ export default function DeckClient({
             onChange={(e) => setQuery(e.target.value)}
           />
         </label>
-        <div className="sort" role="group" aria-label="Sort order">
-          <button aria-pressed="true">New</button>
-        </div>
-        {cards !== null && shown.length > 0 && (
+        <div className="topbar-actions">
+          {cards !== null && shown.length > 0 && (
+            <button
+              className="icon-btn"
+              title="Random card"
+              aria-label="Open a random card"
+              onClick={randomCard}
+            >
+              🎲
+            </button>
+          )}
           <button
-            className="icon-btn"
-            title="Random card"
-            aria-label="Open a random card"
-            onClick={randomCard}
+            className="new-card-btn"
+            title="Create a new card"
+            aria-label="Create a new card"
+            onClick={onNewCardClick}
           >
-            🎲
+            +<span className="new-card-label"> New card</span>
           </button>
-        )}
-        <Link className="top-cta" href="/app">
-          Get the app
-        </Link>
+          <Link className="top-cta" href="/app">
+            Get the app
+          </Link>
+        </div>
       </div>
+
+      {newCardOpen && (
+        <div
+          className="modal-overlay"
+          onClick={() => setNewCardOpen(false)}
+          role="presentation"
+        >
+          <div
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="new-card-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="modal-close"
+              aria-label="Close"
+              onClick={() => setNewCardOpen(false)}
+            >
+              ×
+            </button>
+            <p className="modal-emoji" aria-hidden="true">
+              🃏
+            </p>
+            <h2 id="new-card-title">Creating cards on the web is coming soon</h2>
+            <p className="modal-body">
+              For now, cards are made in the Absurdissimo iPhone app — pick a
+              word, and it dreams up an absurd mnemonic and image. Your cards
+              show up here automatically.
+            </p>
+            <p className="modal-note">
+              We’ve noted that you’d like to make cards on the web. 🙌
+            </p>
+            <div className="modal-actions">
+              <Link className="modal-cta" href="/app">
+                Get the app
+              </Link>
+              <button
+                className="modal-dismiss"
+                onClick={() => setNewCardOpen(false)}
+              >
+                Maybe later
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="shell">
         <aside>
@@ -318,18 +449,21 @@ export default function DeckClient({
 
         <main>
           <div className="feed-head">
-            <h1>Newest cards</h1>
-            {cards !== null && (
-              <span>
-                {loading
-                  ? "Loading…"
-                  : q
-                    ? `${shown.length} match${
-                        shown.length === 1 ? "" : "es"
-                      } on this page`
-                    : `Page ${page} of ${pageCount} · ${total} cards`}
-              </span>
-            )}
+            <div className="feed-head-info">
+              <h1>Newest cards</h1>
+              {cards !== null && (
+                <span>
+                  {loading
+                    ? "Loading…"
+                    : q
+                      ? `${shown.length} match${
+                          shown.length === 1 ? "" : "es"
+                        } on this page`
+                      : `Page ${page} of ${pageCount} · ${total} cards`}
+                </span>
+              )}
+            </div>
+            {pagerNav("top")}
           </div>
 
           {wordMatches.length > 0 && (
@@ -396,41 +530,7 @@ export default function DeckClient({
             </div>
           )}
 
-          {cards !== null && !q && pageCount > 1 && (
-            <nav className="pager" aria-label="Deck pages">
-              <button
-                className="pager-btn"
-                disabled={page <= 1}
-                onClick={() => goToPage(page - 1)}
-              >
-                ‹ Prev
-              </button>
-              {pageList(page, pageCount).map((it, i) =>
-                it === "gap" ? (
-                  <span key={`gap-${i}`} className="pager-gap" aria-hidden="true">
-                    …
-                  </span>
-                ) : (
-                  <button
-                    key={it}
-                    className="pager-num"
-                    aria-label={`Page ${it}`}
-                    aria-current={it === page ? "page" : undefined}
-                    onClick={() => goToPage(it)}
-                  >
-                    {it}
-                  </button>
-                ),
-              )}
-              <button
-                className="pager-btn"
-                disabled={page >= pageCount}
-                onClick={() => goToPage(page + 1)}
-              >
-                Next ›
-              </button>
-            </nav>
-          )}
+          {pagerNav("bottom")}
         </main>
       </div>
     </>

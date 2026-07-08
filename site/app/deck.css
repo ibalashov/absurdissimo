@@ -48,26 +48,6 @@
   font-size: 0.9rem;
 }
 .search span { color: var(--muted); font-size: 0.85rem; }
-.sort {
-  display: flex;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 0.18rem;
-  margin-left: auto;
-}
-.sort button {
-  font: inherit;
-  border: none;
-  background: none;
-  cursor: pointer;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--muted);
-  border-radius: 8px;
-  padding: 0.3rem 0.85rem;
-}
-.sort button[aria-pressed="true"] { background: var(--accent); color: var(--bg); }
 .icon-btn {
   font: inherit;
   color: inherit;
@@ -80,6 +60,130 @@
   transition: border-color 0.2s;
 }
 .icon-btn:hover { border-color: var(--accent); }
+.new-card-btn {
+  font: inherit;
+  color: var(--text);
+  background: none;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.42rem 0.85rem;
+  white-space: nowrap;
+  transition: border-color 0.2s;
+}
+.new-card-btn:hover { border-color: var(--accent); }
+/* Flush-right action cluster (random card, new card, app CTA). A wrapper with a
+   single auto margin keeps them grouped regardless of which buttons render —
+   auto margins on individual flex items would split the free space between
+   them. */
+.topbar-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* "Coming soon" modal for web card creation. */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.2rem;
+  background: #0a0a0acc;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: modal-fade 0.16s ease-out;
+}
+.modal {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 2rem 1.7rem 1.6rem;
+  text-align: center;
+  box-shadow: 0 24px 60px #000a;
+  animation: modal-pop 0.18s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+.modal-close {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.8rem;
+  font: inherit;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  border-radius: 8px;
+}
+.modal-close:hover { color: var(--text); }
+.modal-emoji { font-size: 2.8rem; margin-bottom: 0.6rem; }
+.modal h2 {
+  font-size: 1.3rem;
+  font-weight: 800;
+  line-height: 1.25;
+  margin-bottom: 0.7rem;
+}
+.modal-body {
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.55;
+  margin-bottom: 0.9rem;
+}
+.modal-note {
+  color: var(--text);
+  font-size: 0.88rem;
+  font-weight: 600;
+  background: var(--accent-soft);
+  border-radius: 10px;
+  padding: 0.55rem 0.8rem;
+  margin-bottom: 1.3rem;
+}
+.modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.modal-cta {
+  background: var(--accent);
+  color: var(--bg);
+  font-weight: 700;
+  font-size: 0.92rem;
+  border-radius: 99px;
+  padding: 0.65rem 1rem;
+  text-decoration: none;
+}
+.modal-dismiss {
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.3rem;
+}
+.modal-dismiss:hover { color: var(--text); }
+@keyframes modal-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes modal-pop {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .modal-overlay, .modal { animation: none; }
+}
 .top-cta {
   background: var(--accent);
   color: var(--bg);
@@ -173,9 +277,18 @@
 .shell main { min-width: 0; }
 .feed-head {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0.2rem 0 1rem;
+}
+/* Title + count sit together on the left, baseline-aligned; the top pager (a
+   flex sibling) is pushed to the right edge by space-between. */
+.feed-head-info {
+  display: flex;
   align-items: baseline;
   gap: 0.8rem;
-  margin: 0.2rem 0 1rem;
+  min-width: 0;
 }
 .feed-head h1 { font-size: 1.15rem; font-weight: 700; }
 .feed-head span {
@@ -220,9 +333,16 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   gap: 0.4rem;
   margin: 1.8rem 0 0.4rem;
+}
+/* Mirrored pager, inline on the feed-head row: no vertical margin (feed-head's
+   space-between flushes it right), and it must not wrap or shrink. */
+.pager-top {
+  margin: 0;
+  flex: none;
+  flex-wrap: nowrap;
 }
 .pager button {
   font: inherit;
@@ -312,4 +432,7 @@
   .shell aside { position: static; order: 2; }
   .search { max-width: none; }
   .search span { display: none; }
+  /* Collapse the New-card button to just "+" so the tight toolbar row fits. */
+  .new-card-label { display: none; }
+  .new-card-btn { padding: 0.42rem 0.62rem; }
 }
