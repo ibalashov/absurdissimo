@@ -7,6 +7,7 @@ import CardTile from "@/components/CardTile";
 import {
   FeedCard,
   fetchDeckPage,
+  fetchPairsLive,
   imageUrl,
   languageName,
   PAGE_SIZE,
@@ -97,6 +98,30 @@ export default function DeckClient({
   const [query, setQuery] = useState("");
   const q = query.trim().toLowerCase();
 
+  // The count props (pair chips, corpus stats, pager total) come from the
+  // hour-cached SSR render, but the feed's cards are fetched live — so freshly
+  // generated cards show up beneath a stale count. Refetch the summaries live
+  // on mount and prefer them, so every count tracks the cards. Falls back to
+  // the SSR props on failure or until the fetch lands (no hydration mismatch:
+  // this only updates after the first client render).
+  const [livePairs, setLivePairs] = useState<PairSummary[] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetchPairsLive().then((fresh) => {
+      if (!cancelled && fresh.length) setLivePairs(fresh);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const pairsView = livePairs ?? pairs;
+  const totalCardsView = livePairs
+    ? livePairs.reduce((n, p) => n + p.association_count, 0)
+    : totalCards;
+  const totalWordsView = livePairs
+    ? livePairs.reduce((n, p) => n + p.word_count, 0)
+    : totalWords;
+
   // Current page (1-based). Client state, not a URL param: reading it via
   // useSearchParams would deopt the indexable "/" out of static SSR. A pair
   // change is a full navigation, which remounts this and resets to page 1.
@@ -114,8 +139,8 @@ export default function DeckClient({
   // short — handled by clamping the pager to what the API returns.)
   const total =
     pairSel === "all"
-      ? totalCards
-      : (pairs.find((p) => p.pair === pairSel)?.association_count ?? 0);
+      ? totalCardsView
+      : (pairsView.find((p) => p.pair === pairSel)?.association_count ?? 0);
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const cacheKey = `${pairSel}#${page}`;
@@ -237,7 +262,7 @@ export default function DeckClient({
             <h3>Language pairs</h3>
             <div className="pair-filter">
               {cards === null ? (
-                pairs.map((p) => (
+                pairsView.map((p) => (
                   <Link key={p.pair} href={`/${p.pair}`}>
                     <span>
                       {languageName(p.source_language)} →{" "}
@@ -254,9 +279,9 @@ export default function DeckClient({
                     aria-current={pairSel === "all" ? "true" : undefined}
                   >
                     <span>All pairs</span>
-                    <span className="cnt">{totalCards}</span>
+                    <span className="cnt">{totalCardsView}</span>
                   </Link>
-                  {pairs.map((p) => (
+                  {pairsView.map((p) => (
                     <Link
                       key={p.pair}
                       href={`/${p.pair}`}
@@ -276,13 +301,13 @@ export default function DeckClient({
           </div>
           <div className="panel side-stats">
             <div>
-              <b>{totalCards}</b>cards
+              <b>{totalCardsView}</b>cards
             </div>
             <div>
-              <b>{totalWords}</b>words
+              <b>{totalWordsView}</b>words
             </div>
             <div>
-              <b>{pairs.length}</b>pairs
+              <b>{pairsView.length}</b>pairs
             </div>
           </div>
           <div className="panel side-cta">
@@ -330,7 +355,7 @@ export default function DeckClient({
                 by language pair:
               </p>
               <ul className="pair-nav-list">
-                {pairs.map((p) => (
+                {pairsView.map((p) => (
                   <li key={p.pair}>
                     <Link className="pair-nav-link" href={`/${p.pair}`}>
                       <span className="pair-nav-pair">

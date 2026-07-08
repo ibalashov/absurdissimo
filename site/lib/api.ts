@@ -139,6 +139,23 @@ export async function getPairs(): Promise<PairSummary[]> {
   }
 }
 
+// Live, uncached pair summaries for the browser. The deck's cards are fetched
+// live client-side (fetchDeckPage), but its counts come from the hour-cached
+// SSR render (loadDeckData), so right after new cards are generated the deck
+// shows the old count next to fresh cards. DeckClient calls this on mount to
+// bring the counts in step with the cards. `no-store` bypasses ISR/HTTP cache;
+// like getPairs it swallows all failures so the SSR counts simply stand.
+export async function fetchPairsLive(): Promise<PairSummary[]> {
+  try {
+    const res = await fetch(`${API_BASE}/public/pairs`, { cache: "no-store" });
+    if (!res.ok) return [];
+    const data = (await res.json()) as PairsData;
+    return data?.pairs ?? [];
+  } catch {
+    return [];
+  }
+}
+
 export async function getPairIndex(
   pair: string,
 ): Promise<PairIndexData | null> {
