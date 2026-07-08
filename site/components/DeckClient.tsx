@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import CardTile from "@/components/CardTile";
 import {
@@ -97,6 +97,34 @@ export default function DeckClient({
   const pairSel = initialPair;
   const [query, setQuery] = useState("");
   const q = query.trim().toLowerCase();
+
+  // Sort is "New" only for now (Top sort is phase 2, VocabCards#194). Clicking
+  // the button surfaces a "coming soon" hint and reports the interest through
+  // the existing feedback relay (POST /api/feedback → server /feedback →
+  // `feedback_submitted` PostHog event that emails Ivan), so demand for sort
+  // options is visible. Reported once per mount so repeat clicks don't spam.
+  const [sortHint, setSortHint] = useState(false);
+  const sortReported = useRef(false);
+  function onSortClick() {
+    setSortHint(true);
+    if (sortReported.current) return;
+    sortReported.current = true;
+    fetch("/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message:
+          "[deck] Someone tapped the “New” sort button — interest in more sort options (e.g. Top).",
+      }),
+    }).catch(() => {
+      // Best-effort signal; a failed relay shouldn't disrupt the UI.
+    });
+  }
+  useEffect(() => {
+    if (!sortHint) return;
+    const t = setTimeout(() => setSortHint(false), 2600);
+    return () => clearTimeout(t);
+  }, [sortHint]);
 
   // The count props (pair chips, corpus stats, pager total) come from the
   // hour-cached SSR render, but the feed's cards are fetched live — so freshly
@@ -239,7 +267,14 @@ export default function DeckClient({
           />
         </label>
         <div className="sort" role="group" aria-label="Sort order">
-          <button aria-pressed="true">New</button>
+          <button aria-pressed="true" onClick={onSortClick}>
+            New
+          </button>
+          {sortHint && (
+            <span className="sort-hint" role="status">
+              More sort options coming soon
+            </span>
+          )}
         </div>
         {cards !== null && shown.length > 0 && (
           <button
