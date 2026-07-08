@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import CardTile from "@/components/CardTile";
 import {
@@ -202,6 +202,33 @@ export default function DeckClient({
     router.push(cardHref(shown[Math.floor(Math.random() * shown.length)]));
   }
 
+  // Card creation isn't supported on the web yet (it lives in the iOS app).
+  // The "New card" button surfaces a "coming soon" hint and reports the
+  // interest through the existing feedback relay (POST /api/feedback ->
+  // server /feedback -> `feedback_submitted` PostHog event that emails Ivan),
+  // so demand for web card creation is visible. Reported once per mount so
+  // repeat clicks don't spam the inbox; best-effort, never blocks the UI.
+  const [newCardHint, setNewCardHint] = useState(false);
+  const newCardReported = useRef(false);
+  function onNewCardClick() {
+    setNewCardHint(true);
+    if (newCardReported.current) return;
+    newCardReported.current = true;
+    fetch("/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message:
+          "[deck] Someone tapped “New card” on the website — wants to create cards on the web (only the app supports it today).",
+      }),
+    }).catch(() => {});
+  }
+  useEffect(() => {
+    if (!newCardHint) return;
+    const t = setTimeout(() => setNewCardHint(false), 3200);
+    return () => clearTimeout(t);
+  }, [newCardHint]);
+
   // Record the sidebar choice for the session before navigating away, so
   // middleware.ts can rewrite "/" to it. A session cookie (no Max-Age): the
   // pair sticks until the browser/tab closes or the user picks another pair or
@@ -251,6 +278,22 @@ export default function DeckClient({
             🎲
           </button>
         )}
+        <div className="new-card">
+          <button
+            className="new-card-btn"
+            title="Create a new card"
+            aria-label="Create a new card"
+            onClick={onNewCardClick}
+          >
+            +<span className="new-card-label"> New card</span>
+          </button>
+          {newCardHint && (
+            <span className="new-card-hint" role="status">
+              Creating cards on the web is coming soon — for now, make them in
+              the app.
+            </span>
+          )}
+        </div>
         <Link className="top-cta" href="/app">
           Get the app
         </Link>

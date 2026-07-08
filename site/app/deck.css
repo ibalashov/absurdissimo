@@ -80,6 +80,37 @@
   transition: border-color 0.2s;
 }
 .icon-btn:hover { border-color: var(--accent); }
+.new-card { position: relative; display: flex; }
+.new-card-btn {
+  font: inherit;
+  color: var(--text);
+  background: none;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.42rem 0.85rem;
+  white-space: nowrap;
+  transition: border-color 0.2s;
+}
+.new-card-btn:hover { border-color: var(--accent); }
+.new-card-hint {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  z-index: 20;
+  max-width: 15rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text);
+  box-shadow: 0 6px 20px #0006;
+}
 .top-cta {
   background: var(--accent);
   color: var(--bg);
@@ -312,4 +343,7 @@
   .shell aside { position: static; order: 2; }
   .search { max-width: none; }
   .search span { display: none; }
+  /* Collapse the New-card button to just "+" so the tight toolbar row fits. */
+  .new-card-label { display: none; }
+  .new-card-btn { padding: 0.42rem 0.62rem; }
 }
