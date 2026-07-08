@@ -6,9 +6,11 @@ import { useRouter } from "next/navigation";
 import CardTile from "@/components/CardTile";
 import {
   FeedCard,
-  fetchPairCards,
+  fetchDeckPage,
   imageUrl,
   languageName,
+  PAGE_SIZE,
+  PAIR_PATTERN,
   PairSummary,
   WordIndexEntry,
 } from "@/lib/api";
@@ -22,13 +24,21 @@ import {
 // deployed): the feed area degrades to a pair navigator and the pair filter
 // becomes plain links to the pair pages.
 //
-// Selecting a pair fetches that pair's newest cards from the API
-// (VocabCards#209) — the preloaded feed is only the 48 newest cards
-// site-wide, so filtering it in memory starves every pair outside that
-// window. Responses are cached per pair for the session; while a fetch is in
-// flight the feed shows a loading note, and on failure it falls back to
-// filtering the preloaded deck client-side (never worse than the old
-// behavior).
+// The full deck is browsable by numbered pages: the SSR preload is only page 1
+// (the 48 newest, cross-pair or per-pair), and every other page — plus every
+// page of a pair outside that newest window — is fetched from the API by
+// offset. Pages are cached for the session; a fetch in flight shows a loading
+// note, and page 1 of a pair falls back to client-side filtering of the
+// preloaded deck on failure (never worse than the pre-pagination behavior).
+//
+// The selected pair sticks for the session: picking a pair or "All pairs" in
+// the sidebar records it (sessionStorage), and landing on "/" restores it — so
+// navigating home (e.g. the logo) keeps the pair. Only those two sidebar
+// actions change it; see the effect below.
+
+// sessionStorage key holding the sticky pair slug, or "all" for the cross-pair
+// deck. Session-scoped on purpose (the request said "stick to session").
+const PAIR_SESSION_KEY = "absurdissimo.pair";
 
 function pairCode(pair: string): string {
   return pair.toUpperCase().replace("-", " → ");
@@ -47,6 +57,21 @@ function cardHref(card: FeedCard): string {
   return card.id != null ? `${wordPage}/${card.id}` : wordPage;
 }
 
+// Windowed page list for the numbered pager: always the first and last page,
+// plus one on each side of the current page, with "gap" markers for the rest.
+// e.g. current 5 of 10 → [1, gap, 4, 5, 6, gap, 10].
+function pageList(current: number, count: number): (number | "gap")[] {
+  const out: (number | "gap")[] = [];
+  for (let n = 1; n <= count; n++) {
+    if (n === 1 || n === count || (n >= current - 1 && n <= current + 1)) {
+      out.push(n);
+    } else if (out[out.length - 1] !== "gap") {
+      out.push("gap");
+    }
+  }
+  return out;
+}
+
 export default function DeckClient({
   pairs,
   cards,
@@ -61,55 +86,100 @@ export default function DeckClient({
   totalCards: number;
   totalWords: number;
   // Which pair the sidebar filter starts on: "all" on the home route (`/`) or
-  // a pair slug on `/[pair]`. The route is the source of truth — selecting a
-  // pair navigates rather than mutating local state, so the filter lives in
-  // the URL and survives the back button (see the sidebar links below).
+  // a pair slug on `/[pair]`. The route is the source of truth for the pair —
+  // selecting one navigates rather than mutating local state, so the filter
+  // lives in the URL and survives the back button.
   initialPair: string;
 }) {
   const router = useRouter();
   const pairSel = initialPair;
   const [query, setQuery] = useState("");
-  // Session cache of per-pair API responses; "error" pins the fallback
-  // (client-side filter of the preloaded deck) so a failed pair isn't
-  // refetched on every re-render.
-  const [pairCache, setPairCache] = useState<
-    Record<string, FeedCard[] | "error">
-  >({});
   const q = query.trim().toLowerCase();
 
+  // Current page (1-based). Client state, not a URL param: reading it via
+  // useSearchParams would deopt the indexable "/" out of static SSR. A pair
+  // change is a full navigation, which remounts this and resets to page 1.
+  const [page, setPage] = useState(1);
+
+  // Session cache of fetched pages, keyed `${pairSel}#${page}`; "error" pins
+  // the fallback so a failed page isn't refetched on every re-render.
+  const [pageCache, setPageCache] = useState<
+    Record<string, FeedCard[] | "error">
+  >({});
+
+  // Total cards for the current selection: site-wide for "all", else the pair's
+  // own corpus. Drives the numbered pager. (The count includes the few
+  // image-less rows the feed drops server-side, so the last page can come back
+  // short — handled by clamping the pager to what the API returns.)
+  const total =
+    pairSel === "all"
+      ? totalCards
+      : (pairs.find((p) => p.pair === pairSel)?.association_count ?? 0);
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  const cacheKey = `${pairSel}#${page}`;
+  // Page 1 of the cross-pair deck is the SSR preload; never refetch it.
+  const isPreloadedPage = pairSel === "all" && page === 1;
+  const cached = pageCache[cacheKey];
+
+  // Persist the selected pair and restore it on the home route so it sticks for
+  // the session. On "/" (pairSel "all") a stored pair bounces to `/[pair]`;
+  // picking a pair or "All pairs" writes sessionStorage on click (the logo does
+  // not, so it lands back on the stuck pair). SSR still renders "/" as the
+  // all-pairs deck for crawlers — this restore is a client enhancement.
   useEffect(() => {
-    if (pairSel === "all" || cards === null || pairCache[pairSel]) return;
+    if (typeof window === "undefined") return;
+    if (pairSel === "all") {
+      const stored = window.sessionStorage.getItem(PAIR_SESSION_KEY);
+      if (
+        stored &&
+        stored !== "all" &&
+        PAIR_PATTERN.test(stored) &&
+        pairs.some((p) => p.pair === stored)
+      ) {
+        router.replace(`/${stored}`);
+      }
+    } else {
+      window.sessionStorage.setItem(PAIR_SESSION_KEY, pairSel);
+    }
+    // Only re-run when the route's pair changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pairSel]);
+
+  // Fetch the current page unless it's the SSR preload or already cached.
+  useEffect(() => {
+    if (cards === null || isPreloadedPage || pageCache[cacheKey]) return;
     let cancelled = false;
-    fetchPairCards(pairSel)
+    fetchDeckPage(pairSel === "all" ? null : pairSel, page)
       .then((fetched) => {
-        if (!cancelled) setPairCache((c) => ({ ...c, [pairSel]: fetched }));
+        if (!cancelled) setPageCache((c) => ({ ...c, [cacheKey]: fetched }));
       })
       .catch(() => {
-        if (!cancelled) setPairCache((c) => ({ ...c, [pairSel]: "error" }));
+        if (!cancelled) setPageCache((c) => ({ ...c, [cacheKey]: "error" }));
       });
     return () => {
       cancelled = true;
     };
-  }, [pairSel, cards, pairCache]);
+  }, [cacheKey, isPreloadedPage, cards, pageCache, pairSel, page]);
 
-  const cached = pairSel === "all" ? undefined : pairCache[pairSel];
-  const loading = pairSel !== "all" && cards !== null && cached === undefined;
+  const loading = cards !== null && !isPreloadedPage && cached === undefined;
 
-  // The list the feed currently shows: the preloaded deck for "All pairs",
-  // the pair's own API response once fetched, or the client-side filter of
-  // the preloaded deck while loading / after a fetch failure.
+  // The cards this page shows: the SSR preload for "all" page 1, the fetched
+  // page once cached, or — only for page 1 of a pair while loading / on error —
+  // a client-side filter of the preloaded cross-pair deck. Later pages have
+  // nothing to fall back to.
   const activeCards = useMemo(() => {
     if (cards === null) return null;
-    if (pairSel === "all") return cards;
+    if (isPreloadedPage) return cards;
     if (cached && cached !== "error") return cached;
-    return cards.filter((c) => c.pair === pairSel);
-  }, [cards, pairSel, cached]);
+    if (page === 1 && pairSel !== "all")
+      return cards.filter((c) => c.pair === pairSel);
+    return [];
+  }, [cards, isPreloadedPage, cached, page, pairSel]);
 
   const shown = useMemo(
     () =>
-      (activeCards ?? []).filter(
-        (c) => !q || c.word.toLowerCase().includes(q),
-      ),
+      (activeCards ?? []).filter((c) => !q || c.word.toLowerCase().includes(q)),
     [activeCards, q],
   );
 
@@ -128,6 +198,22 @@ export default function DeckClient({
   function randomCard() {
     if (!shown.length) return;
     router.push(cardHref(shown[Math.floor(Math.random() * shown.length)]));
+  }
+
+  // Record the sidebar choice for the session before navigating away; the
+  // restore effect re-applies it when the user later lands on "/".
+  function rememberPair(slug: string) {
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem(PAIR_SESSION_KEY, slug);
+    }
+  }
+
+  function goToPage(n: number) {
+    const clamped = Math.min(Math.max(1, n), pageCount);
+    if (clamped === page) return;
+    setPage(clamped);
+    if (typeof window !== "undefined")
+      window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   return (
@@ -185,6 +271,7 @@ export default function DeckClient({
                 <>
                   <Link
                     href="/"
+                    onClick={() => rememberPair("all")}
                     aria-current={pairSel === "all" ? "true" : undefined}
                   >
                     <span>All pairs</span>
@@ -194,6 +281,7 @@ export default function DeckClient({
                     <Link
                       key={p.pair}
                       href={`/${p.pair}`}
+                      onClick={() => rememberPair(p.pair)}
                       aria-current={pairSel === p.pair ? "true" : undefined}
                     >
                       <span>
@@ -231,14 +319,11 @@ export default function DeckClient({
               <span>
                 {loading
                   ? "Loading…"
-                  : `${shown.length} of ${
-                      // The pair's own corpus count, not the site-wide total:
-                      // a filtered view spans only that pair.
-                      pairSel === "all"
-                        ? totalCards
-                        : (pairs.find((p) => p.pair === pairSel)
-                            ?.association_count ?? shown.length)
-                    } in the deck`}
+                  : q
+                    ? `${shown.length} match${
+                        shown.length === 1 ? "" : "es"
+                      } on this page`
+                    : `Page ${page} of ${pageCount} · ${total} cards`}
               </span>
             )}
           </div>
@@ -284,6 +369,10 @@ export default function DeckClient({
             </>
           ) : loading ? (
             <p className="empty-feed">Loading cards…</p>
+          ) : cached === "error" && page > 1 ? (
+            <p className="empty-feed">
+              Couldn’t load this page — check your connection and try again.
+            </p>
           ) : shown.length === 0 ? (
             <p className="empty-feed">
               No cards match{q ? ` “${query.trim()}”` : ""} — try another word
@@ -301,6 +390,42 @@ export default function DeckClient({
                 />
               ))}
             </div>
+          )}
+
+          {cards !== null && !q && pageCount > 1 && (
+            <nav className="pager" aria-label="Deck pages">
+              <button
+                className="pager-btn"
+                disabled={page <= 1}
+                onClick={() => goToPage(page - 1)}
+              >
+                ‹ Prev
+              </button>
+              {pageList(page, pageCount).map((it, i) =>
+                it === "gap" ? (
+                  <span key={`gap-${i}`} className="pager-gap" aria-hidden="true">
+                    …
+                  </span>
+                ) : (
+                  <button
+                    key={it}
+                    className="pager-num"
+                    aria-label={`Page ${it}`}
+                    aria-current={it === page ? "page" : undefined}
+                    onClick={() => goToPage(it)}
+                  >
+                    {it}
+                  </button>
+                ),
+              )}
+              <button
+                className="pager-btn"
+                disabled={page >= pageCount}
+                onClick={() => goToPage(page + 1)}
+              >
+                Next ›
+              </button>
+            </nav>
           )}
         </main>
       </div>
