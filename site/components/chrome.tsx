@@ -78,9 +78,12 @@ export function ViewToggle({
   const encoded = encodeURIComponent(word);
   return (
     <div className="view-toggle" role="tablist" aria-label="View">
+      {/* ?view=classic tells the middleware to record the choice (it strips
+          the param); landing on /c records "community", so that link is
+          plain. See middleware.ts, vc_view. */}
       <Link
         className={active === "classic" ? "on" : ""}
-        href={`/${pair}/${encoded}`}
+        href={`/${pair}/${encoded}?view=classic`}
         aria-selected={active === "classic"}
         role="tab"
       >
