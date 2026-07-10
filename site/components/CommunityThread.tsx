@@ -62,15 +62,21 @@ function CommentList({
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function submit() {
     const body = text.trim();
     if (!body || busy) return;
     setBusy(true);
+    setError(null);
     try {
       await onAdd(entry.id, body);
       setText("");
       setOpen(false);
+    } catch (e) {
+      // Don't swallow: show why the comment was rejected (network, or once
+      // server moderation lands, a length/rate-limit/profanity error).
+      setError(e instanceof Error ? e.message : "Could not post — try again.");
     } finally {
       setBusy(false);
     }
@@ -90,9 +96,11 @@ function CommentList({
             rows={2}
             value={text}
             placeholder="Add a comment…"
+            aria-label="Add a comment"
             onChange={(e) => setText(e.target.value)}
             maxLength={1000}
           />
+          {error && <p className="submit-error">{error}</p>}
           <div className="comment-form-actions">
             <button className="btn-ghost" onClick={() => setOpen(false)} disabled={busy}>
               Cancel
@@ -174,7 +182,6 @@ export default function CommunityThread({
 }: {
   pair: string;
   word: string;
-  displayWord: string;
   initialEntries: CommunityEntry[];
 }) {
   const [entries, setEntries] = useState<CommunityEntry[]>(initialEntries);

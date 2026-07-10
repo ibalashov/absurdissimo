@@ -61,22 +61,21 @@ function headers(deviceId: string): HeadersInit {
   return { "X-Device-Id": deviceId, "Content-Type": "application/json" };
 }
 
-// Server-side first-paint read. Returns null on any non-2xx (unknown pair/word,
-// or the API being unreachable) so the route can 404 or degrade gracefully.
+// Server-side first-paint read. Returns null only on a real 404 (unknown
+// pair/word) so the route can notFound(); throws on any other failure (5xx,
+// network, cold-start timeout) so the route can show a soft "unavailable"
+// state instead of hard-404ing a valid page.
 export async function fetchThreadServer(
   pair: string,
   word: string,
 ): Promise<CommunityThread | null> {
-  try {
-    const res = await fetch(
-      `${API_BASE}/community/${encodeURIComponent(pair)}/${encodeURIComponent(word)}`,
-      { headers: headers(SSR_DEVICE_ID), cache: "no-store" },
-    );
-    if (!res.ok) return null;
-    return (await res.json()) as CommunityThread;
-  } catch {
-    return null;
-  }
+  const res = await fetch(
+    `${API_BASE}/community/${encodeURIComponent(pair)}/${encodeURIComponent(word)}`,
+    { headers: headers(SSR_DEVICE_ID), cache: "no-store" },
+  );
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`community thread ${res.status}`);
+  return (await res.json()) as CommunityThread;
 }
 
 // Client read: same thread, but under the visitor's real device id so
@@ -139,7 +138,12 @@ export async function addComment(
     headers: headers(getDeviceId()),
     body: JSON.stringify({ body: commentBody }),
   });
-  if (!res.ok) throw new Error(`comment ${res.status}`);
+  if (!res.ok) {
+    // Surface the server's actionable message (length/rate-limit/moderation),
+    // matching submitEntry, so the comment UI can show why it was rejected.
+    const detail = await res.json().catch(() => null);
+    throw new Error(detail?.detail ?? `comment ${res.status}`);
+  }
   return (await res.json()) as CommunityComment;
 }
 

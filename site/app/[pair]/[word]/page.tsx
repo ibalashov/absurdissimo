@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import CardImage from "@/components/CardImage";
+import { ClassicCommunityToggle } from "@/components/ClassicCommunityToggle";
 import MnemonicText from "@/components/MnemonicText";
-import { GetAppSection, SiteFooter, SiteNav, ViewToggle } from "@/components/chrome";
+import { GetAppSection, SiteFooter, SiteNav } from "@/components/chrome";
 import {
   Association,
   formatDate,
@@ -94,7 +95,7 @@ export default async function WordPairPage({ params }: { params: Params }) {
           <Link className="pair-crumb" href={`/${data.pair}`}>
             {source} → {target}
           </Link>
-          <ViewToggle pair={data.pair} word={data.word} active="classic" />
+          <ClassicCommunityToggle pair={data.pair} word={data.word} />
         </div>
         <header className="word-header">
           <h1>
