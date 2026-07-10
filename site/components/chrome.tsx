@@ -64,43 +64,6 @@ export function GetAppSection() {
   );
 }
 
-// Switch between the classic read-only word page and the community thread for
-// the same word. Rendered on both pages so either view links to the other.
-export function ViewToggle({
-  pair,
-  word,
-  active,
-}: {
-  pair: string;
-  word: string;
-  active: "classic" | "community";
-}) {
-  const encoded = encodeURIComponent(word);
-  return (
-    <div className="view-toggle" role="tablist" aria-label="View">
-      {/* ?view=classic tells the middleware to record the choice (it strips
-          the param); landing on /c records "community", so that link is
-          plain. See middleware.ts, vc_view. */}
-      <Link
-        className={active === "classic" ? "on" : ""}
-        href={`/${pair}/${encoded}?view=classic`}
-        aria-selected={active === "classic"}
-        role="tab"
-      >
-        Classic
-      </Link>
-      <Link
-        className={active === "community" ? "on" : ""}
-        href={`/c/${pair}/${encoded}`}
-        aria-selected={active === "community"}
-        role="tab"
-      >
-        Community
-      </Link>
-    </div>
-  );
-}
-
 export function SiteFooter() {
   return (
     <footer className="cards-footer">

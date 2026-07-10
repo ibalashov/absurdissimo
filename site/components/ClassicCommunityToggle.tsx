@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ViewToggle } from "./chrome";
+import { MARKER_COOKIE } from "@/lib/preview";
+import { ViewToggle } from "./ViewToggle";
 
 // Classic-page community toggle, revealed only during an owner preview so the
 // ISR classic page (revalidate = 3600) stays static for the public — reading
@@ -20,7 +21,7 @@ export function ClassicCommunityToggle({
   const [show, setShow] = useState(false);
   useEffect(() => {
     setShow(
-      document.cookie.split("; ").some((c) => c === "vc_community_preview=1"),
+      document.cookie.split("; ").some((c) => c === `${MARKER_COOKIE}=1`),
     );
   }, []);
   if (!show) return null;

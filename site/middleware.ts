@@ -1,24 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { AUTH_COOKIE, communityAllowed, VIEW_COOKIE } from "@/lib/preview";
 
 const PAIR = /^[a-z]{2}-[a-z]{2}$/;
-const YEAR = 60 * 60 * 24 * 365;
 
-// The visitor's last classic-vs-community choice on word pages, remembered at
-// the edge (same no-flash pattern as the home rewrite below). Visiting a
-// community thread stamps it "community"; the toggle's Classic tab clears it
-// via ?view=classic. Set/read only when community is on for this browser
-// (preview marker or public launch flag), so public traffic and its static
-// serving are untouched.
-const VIEW_COOKIE = "vc_view";
-
-function communityOn(req: NextRequest): boolean {
-  return (
-    process.env.COMMUNITY_ENABLED === "true" ||
-    req.cookies.get("vc_community_preview")?.value === "1"
-  );
-}
-
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Home-route stickiness (no flash). When the visitor has picked a language
@@ -37,54 +22,33 @@ export function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Community thread page: remember that this visitor prefers the community
-  // view, so plain word links (deck, search, shares) land there too.
-  if (/^\/c\/[a-z]{2}-[a-z]{2}\/[^/]+$/.test(pathname)) {
-    const res = NextResponse.next();
-    if (communityOn(req) && req.cookies.get(VIEW_COOKIE)?.value !== "community") {
-      res.cookies.set(VIEW_COOKIE, "community", {
-        sameSite: "lax",
-        secure: true,
-        path: "/",
-        maxAge: YEAR,
-      });
-    }
-    return res;
-  }
-
-  // Classic word page. The toggle's Classic tab links here with ?view=classic:
-  // record the choice and redirect to the clean URL. Otherwise, a visitor who
-  // last chose community gets sent to the community view of the same word.
-  const word = pathname.match(/^\/([a-z]{2}-[a-z]{2})\/([^/]+)$/);
-  if (word && communityOn(req)) {
-    if (req.nextUrl.searchParams.get("view") === "classic") {
-      const url = req.nextUrl.clone();
-      url.searchParams.delete("view");
-      const res = NextResponse.redirect(url);
-      res.cookies.set(VIEW_COOKIE, "classic", {
-        sameSite: "lax",
-        secure: true,
-        path: "/",
-        maxAge: YEAR,
-      });
-      return res;
-    }
-    if (req.cookies.get(VIEW_COOKIE)?.value === "community") {
-      const url = req.nextUrl.clone();
-      url.pathname = `/c${pathname}`;
-      return NextResponse.redirect(url);
-    }
+  // Sticky view choice on classic word pages. ViewToggle records the
+  // visitor's classic-vs-community pick in VIEW_COOKIE client-side, on click
+  // (never here: middleware Set-Cookie on GET paths also fires on <Link>
+  // prefetches, which would stamp and race the choice without a click). This
+  // branch only honors it: plain word links redirect to the community view
+  // for browsers that chose it AND still pass the exact auth gate the /c
+  // route enforces — gating on the cosmetic marker cookie instead would
+  // dead-end every word page in /c's 404 whenever the marker outlives the
+  // auth cookie (secret rotation, cookie eviction). A redirect, not a
+  // rewrite: the URL must say /c so the community page's toggle state and
+  // links stay coherent.
+  if (
+    /^\/[a-z]{2}-[a-z]{2}\/[^/]+$/.test(pathname) &&
+    req.cookies.get(VIEW_COOKIE)?.value === "community" &&
+    (await communityAllowed(req.cookies.get(AUTH_COOKIE)?.value))
+  ) {
+    const url = req.nextUrl.clone();
+    url.pathname = `/c${pathname}`;
+    return NextResponse.redirect(url);
   }
 
   return NextResponse.next();
 }
 
 // "/:pair/:word" is constrained to real pair slugs in the matcher itself, so
-// routes like /api/* or /feedback never invoke the middleware.
+// routes like /api/* or /feedback never invoke the middleware; three-segment
+// card deep-links don't match either.
 export const config = {
-  matcher: [
-    "/",
-    "/c/:pair/:word",
-    "/:pair([a-z]{2}-[a-z]{2})/:word",
-  ],
+  matcher: ["/", "/:pair([a-z]{2}-[a-z]{2})/:word"],
 };
