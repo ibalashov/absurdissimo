@@ -3,7 +3,7 @@
 
 // Overridable for local development (e.g. pointing at a stub server);
 // production builds use the default.
-const API_BASE =
+export const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE ?? "https://vocabcards-server.fly.dev";
 
 // ISR window: pages revalidate hourly. New associations appear on the site
