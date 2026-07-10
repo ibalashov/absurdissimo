@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import CardImage from "@/components/CardImage";
+import { ClassicCommunityToggle } from "@/components/ClassicCommunityToggle";
 import MnemonicText from "@/components/MnemonicText";
 import { GetAppSection, SiteFooter, SiteNav } from "@/components/chrome";
 import {
@@ -90,9 +91,12 @@ export default async function WordPairPage({ params }: { params: Params }) {
     <>
       <SiteNav />
       <main className="cards-main">
-        <Link className="pair-crumb" href={`/${data.pair}`}>
-          {source} → {target}
-        </Link>
+        <div className="page-topbar">
+          <Link className="pair-crumb" href={`/${data.pair}`}>
+            {source} → {target}
+          </Link>
+          <ClassicCommunityToggle pair={data.pair} word={data.word} />
+        </div>
         <header className="word-header">
           <h1>
             {info?.emoji && <span className="word-emoji">{info.emoji}</span>}
