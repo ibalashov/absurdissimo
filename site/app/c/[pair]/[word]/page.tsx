@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import CommunityThread from "@/components/CommunityThread";
 import { ViewToggle } from "@/components/ViewToggle";
-import { GetAppSection, SiteFooter, SiteNav } from "@/components/chrome";
+import { SiteFooter, SiteNav } from "@/components/chrome";
 import { languageName, PAIR_PATTERN } from "@/lib/api";
 import { fetchThreadServer } from "@/lib/community";
 import { communityVisible } from "@/lib/flags";
@@ -57,9 +57,17 @@ export default async function CommunityWordPage({ params }: { params: Params }) 
       <SiteNav />
       <main className="cards-main community-main">
         <div className="page-topbar">
-          <Link className="pair-crumb" href={`/${pair}`}>
-            {source} → {target}
-          </Link>
+          <nav className="crumbs" aria-label="Breadcrumb">
+            <Link href="/">deck</Link>
+            <span className="sep">/</span>
+            <Link href={`/${pair}`}>
+              {source} → {target}
+            </Link>
+            <span className="sep">/</span>
+            <span className="here" dir="auto">
+              {thread.display_word}
+            </span>
+          </nav>
           <ViewToggle pair={pair} word={decoded} active="community" />
         </div>
         <header className="word-header">
@@ -72,7 +80,6 @@ export default async function CommunityWordPage({ params }: { params: Params }) 
           initialEntries={thread.entries}
         />
 
-        <GetAppSection />
       </main>
       <SiteFooter />
     </>

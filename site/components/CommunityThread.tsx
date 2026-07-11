@@ -2,6 +2,7 @@
 
 import { type FormEvent, useEffect, useState } from "react";
 import { absurdityLabel, formatDate, imageUrl } from "@/lib/api";
+import MnemonicText from "./MnemonicText";
 import {
   addComment,
   castVote,
@@ -150,7 +151,7 @@ function EntryCard({
           )}
           <div className="assoc-text">
             <p className="mnemonic" dir="auto">
-              {entry.mnemonic}
+              <MnemonicText text={entry.mnemonic} />
             </p>
             {entry.explanation && <p className="explanation">{entry.explanation}</p>}
             <div className="chips">

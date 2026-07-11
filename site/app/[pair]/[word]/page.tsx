@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import CardImage from "@/components/CardImage";
 import { ClassicCommunityToggle } from "@/components/ClassicCommunityToggle";
 import MnemonicText from "@/components/MnemonicText";
-import { GetAppSection, SiteFooter, SiteNav } from "@/components/chrome";
+import { SiteFooter, SiteNav } from "@/components/chrome";
 import {
   Association,
   formatDate,
@@ -149,7 +149,6 @@ export default async function WordPairPage({ params }: { params: Params }) {
           ))}
         </ul>
 
-        <GetAppSection />
       </main>
       <SiteFooter />
     </>
