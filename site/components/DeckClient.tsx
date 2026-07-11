@@ -481,12 +481,18 @@ export default function DeckClient({
                 chip IS the language-level filter (no "All ⟨language⟩"
                 sub-row); "All" restores the full grouped view. Omitted in the
                 degraded cards === null mode, where the groups below are plain
-                links to the pair pages. */}
+                links to the pair pages. prefetch={false} on every chip: their
+                middleware outcome depends on the pair cookie written onClick,
+                and a prefetch runs the middleware with the OLD cookie — for
+                "All" that would cache the sticky pair's deck under "/"
+                (prod-only: prefetch is off in dev); the ?lang= URLs are also
+                shielded by the middleware's lang bail. */}
             {cards !== null && (
               <nav className="lang-chips" aria-label="Studied languages">
                 <Link
                   className="lang-chip-all"
                   href="/"
+                  prefetch={false}
                   onClick={() => rememberPair("all")}
                   aria-current={
                     pairSel === "all" && !langSel ? "true" : undefined
@@ -498,6 +504,7 @@ export default function DeckClient({
                   <Link
                     key={g.code}
                     href={`/?lang=${g.code}`}
+                    prefetch={false}
                     onClick={() => rememberPair("all")}
                     aria-current={langSel === g.code ? "true" : undefined}
                     aria-label={`Only ${languageName(g.name)}`}

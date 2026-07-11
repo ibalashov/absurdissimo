@@ -12,7 +12,15 @@ export async function middleware(req: NextRequest) {
   // sent. Cookieless requests (crawlers, first-time visitors) fall through to
   // the real all-pairs "/", the one indexable page, so its static rendering
   // and SEO are untouched.
+  //
+  // An explicit `?lang=` in the URL (a sidebar flag chip, VocabCards#315) is a
+  // fresh filter choice, and the rewrite must never outrank it — bail before
+  // reading the cookie. This also makes prefetched `/?lang=…` payloads correct
+  // regardless of cookie timing: prefetch runs this middleware before the
+  // click writes `pair=all`, and a rewrite here would cache the old pair's
+  // deck under the lang URL, silently swallowing the narrowing on click.
   if (pathname === "/") {
+    if (req.nextUrl.searchParams.has("lang")) return NextResponse.next();
     const pair = req.cookies.get("pair")?.value;
     if (pair && PAIR.test(pair)) {
       const url = req.nextUrl.clone();
