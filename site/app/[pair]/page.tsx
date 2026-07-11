@@ -66,13 +66,24 @@ export async function generateMetadata({
 
 export default async function NarrowedDeckPage({
   params,
+  searchParams,
 }: {
   params: Params;
+  searchParams: Promise<{ all?: string }>;
 }) {
   const { pair: sel } = await params;
   if (!PAIR_PATTERN.test(sel) && !LANG_PATTERN.test(sel)) notFound();
+  // `?all=1` on a pair route records the filter context the pair was picked
+  // from: the sidebar's flag filter is a separate axis from the pair
+  // selection, and picking a pair must not move it. Plain /fr-ru = picked
+  // from the French view (list narrowed, 🇫🇷 outlined); /fr-ru?all=1 = picked
+  // from the All view (every group listed, "All" outlined). In the URL so the
+  // SSR HTML already carries the right chip state (no hydration jump), and
+  // cookie-independent so prefetching stays safe. Meaningless on a language
+  // route (its chip IS the filter) — ignored there.
+  const allView = PAIR_PATTERN.test(sel) && (await searchParams).all === "1";
   const data = await loadDeckData();
   if (!selExists(data.pairs, sel)) notFound();
 
-  return <DeckShell data={data} initialSel={sel} />;
+  return <DeckShell data={data} initialSel={sel} allView={allView} />;
 }
