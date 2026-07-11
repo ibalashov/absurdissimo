@@ -14,7 +14,7 @@ export default function Privacy() {
           ← Back
         </Link>
         <h1>Privacy Policy</h1>
-        <p className="updated">Last updated: June 2026</p>
+        <p className="updated">Last updated: July 2026</p>
 
         <p>
           Absurdissimo (&quot;the app&quot;) is operated by Ivan Balashov. This
@@ -42,9 +42,24 @@ export default function Privacy() {
           </li>
         </ul>
 
+        <h2>Google sign-in on the community pages</h2>
+        <p>
+          Posting an association or a comment in the community view on this
+          website requires signing in with Google. When you sign in, our
+          server receives and stores your Google account identifier and email
+          address, used only to recognize your account. The display handle
+          you choose is shown publicly next to your contributions. Voting
+          stays anonymous: votes remain keyed to the random device identifier,
+          not to your account. Browsing and voting never require an account.
+        </p>
+
         <h2>What we do not collect</h2>
         <ul>
-          <li>Your name, email, or Apple ID</li>
+          <li>Your name or Apple ID</li>
+          <li>
+            Your email — unless you sign in with Google on the website&apos;s
+            community pages (see above)
+          </li>
           <li>Your location</li>
           <li>Your contacts or photos</li>
           <li>Any data from other apps</li>
@@ -78,8 +93,10 @@ export default function Privacy() {
 
         <h2>Your rights</h2>
         <p>
-          Since no personal data is collected, there is nothing to access,
-          correct, or delete. If you have questions, reach us through our{" "}
+          The app itself collects no personal data, so there is nothing to
+          access, correct, or delete. If you signed in with Google on the
+          website and want your account data removed, or have any other
+          questions, reach us through our{" "}
           <Link href="/feedback">feedback page</Link>.
         </p>
 

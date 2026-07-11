@@ -546,6 +546,55 @@
   align-items: center;
 }
 
+/* sign-in gate (#307): the GIS button replaces the composer / comment forms
+   when signed out; voting stays anonymous and unaffected */
+.signin {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.signin-button {
+  min-height: 44px; /* reserve the async GIS button's slot: no layout shift */
+  display: flex;
+  align-items: center;
+}
+.comment-signin {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.comment-signin .signin-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.comment-signin .comment-form-actions {
+  margin-top: 0;
+}
+.signout {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: var(--muted);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.signout:hover {
+  color: var(--text);
+}
+
+/* first-sign-in handle prompt */
+.handle-prompt input {
+  max-width: 20rem;
+}
+.handle-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 1.2rem;
+}
+
 /* related tiles: image preview / emoji */
 .wchip .wthumb {
   width: 36px;
