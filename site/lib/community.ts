@@ -19,6 +19,8 @@ export interface CommunityComment {
   // optional until the server side is deployed.
   avatar?: string | null;
   created_at: string;
+  // Set by owner edits (VocabCards #333); null/absent = never edited.
+  updated_at?: string | null;
 }
 
 export interface CommunityEntry {
@@ -38,6 +40,8 @@ export interface CommunityEntry {
   your_vote: number; // -1 | 0 | 1
   is_pick: boolean;
   created_at: string;
+  // Set by owner edits (VocabCards #333); null/absent = never edited.
+  updated_at?: string | null;
   comments: CommunityComment[];
 }
 
@@ -214,6 +218,57 @@ export async function addComment(
     throw new Error(detail?.detail ?? `comment ${res.status}`);
   }
   return (await res.json()) as CommunityComment;
+}
+
+// Owner edits (VocabCards #333): PATCH/DELETE with the same bearer headers as
+// creation. The server checks ownership (403 for anyone else); the UI only
+// shows these affordances on the caller's own items, but the server is the
+// gate, not the UI.
+
+export async function updateComment(
+  commentId: number,
+  commentBody: string,
+): Promise<CommunityComment> {
+  const res = await fetch(`${API_BASE}/community/comments/${commentId}`, {
+    method: "PATCH",
+    headers: bearerHeaders(),
+    body: JSON.stringify({ body: commentBody }),
+  });
+  if (!res.ok) {
+    handleUnauthorized(res);
+    const detail = await res.json().catch(() => null);
+    throw new Error(detail?.detail ?? `edit ${res.status}`);
+  }
+  return (await res.json()) as CommunityComment;
+}
+
+export async function deleteComment(commentId: number): Promise<void> {
+  const res = await fetch(`${API_BASE}/community/comments/${commentId}`, {
+    method: "DELETE",
+    headers: bearerHeaders(),
+  });
+  if (!res.ok) {
+    handleUnauthorized(res);
+    const detail = await res.json().catch(() => null);
+    throw new Error(detail?.detail ?? `delete ${res.status}`);
+  }
+}
+
+export async function updateEntry(
+  entryId: number,
+  body: { keyword?: string; mnemonic: string; explanation?: string },
+): Promise<CommunityEntry> {
+  const res = await fetch(`${API_BASE}/community/entries/${entryId}`, {
+    method: "PATCH",
+    headers: bearerHeaders(),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    handleUnauthorized(res);
+    const detail = await res.json().catch(() => null);
+    throw new Error(detail?.detail ?? `edit ${res.status}`);
+  }
+  return (await res.json()) as CommunityEntry;
 }
 
 // "Top" = highest score, oldest as tie-break (mirrors the server's ranking so

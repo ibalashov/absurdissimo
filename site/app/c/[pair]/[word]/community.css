@@ -353,6 +353,55 @@
   cursor: default;
 }
 
+/* Owner edit/delete affordances (#333): quiet mono text buttons in the
+   .comment-add voice, so they read as metadata until hovered. */
+.own-actions {
+  display: inline-flex;
+  gap: 0.6rem;
+  margin-left: auto;
+  align-self: flex-start;
+}
+.own-action {
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  padding: 0;
+  white-space: nowrap;
+}
+.own-action:hover:not(:disabled) {
+  color: var(--accent);
+}
+.own-action.danger:hover:not(:disabled) {
+  color: #e05d5d;
+}
+.own-action:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.edited {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+/* A comment row in edit mode drops the flex layout so the form spans it. */
+.comment.editing {
+  display: block;
+}
+.comment .comment-form {
+  margin-top: 0;
+}
+/* Entry edit form (#333): the composer's .field trio inline in the card. */
+.entry-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.entry-edit .field {
+  margin: 0;
+}
+
 .empty-thread {
   color: var(--muted);
   margin: 1.5rem 0;
