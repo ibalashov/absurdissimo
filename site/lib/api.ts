@@ -192,20 +192,24 @@ export async function getPairCards(
 
 // Client-side fetch of one page of the deck feed (VocabCards#208/#209 + the
 // full-deck browse). `pair` null is the cross-pair feed; a slug filters to one
-// pair. `page` is 1-based and paginates the *whole* corpus via offset — the
-// preloaded feed is only page 1, so later pages must come from the API. Runs in
-// the browser, so no ISR revalidate hint. Unlike getFeedCards this *throws* on
-// failure: DeckClient catches and, for page 1, falls back to client-side
-// filtering of the preloaded deck.
+// pair; `lang` (ISO 639-1 source-language code, VocabCards#314) filters to all
+// of that language's pairs combined — pass at most one of the two. `page` is
+// 1-based and paginates the *whole* corpus via offset — the preloaded feed is
+// only page 1, so later pages must come from the API. Runs in the browser, so
+// no ISR revalidate hint. Unlike getFeedCards this *throws* on failure:
+// DeckClient catches and, for page 1, falls back to client-side filtering of
+// the preloaded deck (which also covers #314 not being deployed yet).
 export async function fetchDeckPage(
   pair: string | null,
   page: number,
+  lang?: string | null,
 ): Promise<FeedCard[]> {
   const params = new URLSearchParams({
     limit: String(PAGE_SIZE),
     offset: String((Math.max(1, page) - 1) * PAGE_SIZE),
   });
   if (pair) params.set("pair", pair);
+  else if (lang) params.set("lang", lang);
   const path = `/public/cards?${params.toString()}`;
   const res = await fetch(`${API_BASE}${path}`);
   if (!res.ok) throw new Error(`API ${path} responded ${res.status}`);
@@ -260,6 +264,24 @@ export async function loadDeckData(): Promise<DeckData> {
 
 export function languageName(apiName: string): string {
   return apiName.charAt(0).toUpperCase() + apiName.slice(1);
+}
+
+// Emoji flag per language, keyed by the API's language names. Mirrors the
+// iOS app's canonical Language.flag mapping (English is 🇬🇧). Plain Unicode
+// emoji on purpose — Windows/Chrome letter-code degradation is accepted, no
+// SVG dependency (VocabCards#315).
+const LANGUAGE_FLAGS: Record<string, string> = {
+  english: "🇬🇧",
+  russian: "🇷🇺",
+  italian: "🇮🇹",
+  german: "🇩🇪",
+  french: "🇫🇷",
+  spanish: "🇪🇸",
+  hebrew: "🇮🇱",
+};
+
+export function languageFlag(apiName: string): string | null {
+  return LANGUAGE_FLAGS[apiName] ?? null;
 }
 
 export function formatDate(isoDate: string): string {

@@ -1,14 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import CardTile from "@/components/CardTile";
 import {
   FeedCard,
   fetchDeckPage,
   fetchPairsLive,
   imageUrl,
+  languageFlag,
   languageName,
   PAGE_SIZE,
   PairSummary,
@@ -35,8 +36,19 @@ import {
 // pair or "All pairs" in the sidebar writes it (rememberPair below), and
 // `middleware.ts` reads it to rewrite "/" to that pair's deck at the edge — so
 // navigating home (the logo, the back button) keeps the pair with no flash and
-// no client redirect. Only those two sidebar actions change it; merely viewing
+// no client redirect. Only those sidebar actions change it; merely viewing
 // a card or a pair deck (arriving by link) never rewrites the cookie.
+//
+// The sidebar groups pairs by studied (source) language under a flag-chip row
+// (VocabCards#315): picking a flag narrows the deck to all of that language's
+// pairs combined, at `/?lang=<code>` (ISO 639-1, as in pair slugs). The route
+// stays the source of truth for the filter, but `/` must remain static (ISR),
+// so the server component never reads searchParams — the `lang` param is read
+// client-side by LangSync below (useSearchParams inside its own Suspense
+// boundary, so nothing outside that null-rendering leaf deopts). A flag chip
+// also writes the pair cookie to "all", otherwise the middleware's sticky-pair
+// rewrite of "/" would swallow the lang narrowing. Language-narrowed state is
+// URL-only — deliberately not session-sticky.
 
 // Session cookie holding the sticky pair slug (or "all" for the cross-pair
 // deck). Name must match the cookie read in middleware.ts.
@@ -74,6 +86,43 @@ function pageList(current: number, count: number): (number | "gap")[] {
   return out;
 }
 
+// Reports the `?lang=` search param up to DeckClient. useSearchParams on a
+// static page must sit under a Suspense boundary; isolating it in this
+// null-rendering leaf keeps the rest of the deck statically prerendered —
+// wrapping DeckClient itself would put the whole deck behind the fallback.
+function LangSync({ onLang }: { onLang: (lang: string | null) => void }) {
+  const lang = useSearchParams().get("lang");
+  useEffect(() => {
+    onLang(lang);
+  }, [lang, onLang]);
+  return null;
+}
+
+// Pairs grouped by studied (source) language, in API order. `code` is the
+// ISO 639-1 code from the pair slug ("it-en" → "it") — the same code the
+// `?lang=` URL param and the server's `lang` filter use.
+interface LangGroup {
+  code: string;
+  name: string;
+  pairs: PairSummary[];
+  total: number;
+}
+
+function groupBySource(pairs: PairSummary[]): LangGroup[] {
+  const groups = new Map<string, LangGroup>();
+  for (const p of pairs) {
+    const code = p.pair.split("-")[0];
+    let g = groups.get(code);
+    if (!g) {
+      g = { code, name: p.source_language, pairs: [], total: 0 };
+      groups.set(code, g);
+    }
+    g.pairs.push(p);
+    g.total += p.association_count;
+  }
+  return [...groups.values()];
+}
+
 export default function DeckClient({
   pairs,
   cards,
@@ -98,6 +147,10 @@ export default function DeckClient({
   const [query, setQuery] = useState("");
   const q = query.trim().toLowerCase();
 
+  // The `?lang=` param, reported by LangSync after hydration (null while
+  // prerendered, so the static "/" HTML is always the full deck).
+  const [langParam, setLangParam] = useState<string | null>(null);
+
   // The count props (pair chips, corpus stats, pager total) come from the
   // hour-cached SSR render, but the feed's cards are fetched live — so freshly
   // generated cards show up beneath a stale count. Refetch the summaries live
@@ -115,6 +168,21 @@ export default function DeckClient({
     };
   }, []);
   const pairsView = livePairs ?? pairs;
+  const langGroups = useMemo(() => groupBySource(pairsView), [pairsView]);
+  // The active language filter: only meaningful on the home route (a pair
+  // route is already narrower), only for codes that exist in the corpus (an
+  // unknown ?lang= is ignored rather than showing an empty deck), and never
+  // in the degraded cards === null mode (no chips there to undo it).
+  const langSel =
+    cards !== null &&
+    pairSel === "all" &&
+    langParam &&
+    langGroups.some((g) => g.code === langParam)
+      ? langParam
+      : null;
+  const langGroup = langSel
+    ? langGroups.find((g) => g.code === langSel)!
+    : null;
   const totalCardsView = livePairs
     ? livePairs.reduce((n, p) => n + p.association_count, 0)
     : totalCards;
@@ -125,7 +193,12 @@ export default function DeckClient({
   // Current page (1-based). Client state, not a URL param: reading it via
   // useSearchParams would deopt the indexable "/" out of static SSR. A pair
   // change is a full navigation, which remounts this and resets to page 1.
+  // A lang-chip change is same-route (`/` → `/?lang=…`) and does NOT remount,
+  // so the effect below resets the page instead.
   const [page, setPage] = useState(1);
+  useEffect(() => {
+    setPage(1);
+  }, [langSel]);
 
   // Session cache of fetched pages, keyed `${pairSel}#${page}`; "error" pins
   // the fallback so a failed page isn't refetched on every re-render.
@@ -133,26 +206,30 @@ export default function DeckClient({
     Record<string, FeedCard[] | "error">
   >({});
 
-  // Total cards for the current selection: site-wide for "all", else the pair's
-  // own corpus. Drives the numbered pager. (The count includes the few
-  // image-less rows the feed drops server-side, so the last page can come back
-  // short — handled by clamping the pager to what the API returns.)
-  const total =
-    pairSel === "all"
+  // Total cards for the current selection: site-wide for "all", the language's
+  // pairs combined for a flag chip, else the pair's own corpus. Drives the
+  // numbered pager. (The count includes the few image-less rows the feed drops
+  // server-side, so the last page can come back short — handled by clamping
+  // the pager to what the API returns.)
+  const total = langGroup
+    ? langGroup.total
+    : pairSel === "all"
       ? totalCardsView
       : (pairsView.find((p) => p.pair === pairSel)?.association_count ?? 0);
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  const cacheKey = `${pairSel}#${page}`;
+  // "lang=" can't collide with pair slugs (always "xx-yy"), so one cache holds
+  // both kinds of selection.
+  const cacheKey = langSel ? `lang=${langSel}#${page}` : `${pairSel}#${page}`;
   // Page 1 of the cross-pair deck is the SSR preload; never refetch it.
-  const isPreloadedPage = pairSel === "all" && page === 1;
+  const isPreloadedPage = pairSel === "all" && !langSel && page === 1;
   const cached = pageCache[cacheKey];
 
   // Fetch the current page unless it's the SSR preload or already cached.
   useEffect(() => {
     if (cards === null || isPreloadedPage || pageCache[cacheKey]) return;
     let cancelled = false;
-    fetchDeckPage(pairSel === "all" ? null : pairSel, page)
+    fetchDeckPage(pairSel === "all" ? null : pairSel, page, langSel)
       .then((fetched) => {
         if (!cancelled) setPageCache((c) => ({ ...c, [cacheKey]: fetched }));
       })
@@ -162,22 +239,26 @@ export default function DeckClient({
     return () => {
       cancelled = true;
     };
-  }, [cacheKey, isPreloadedPage, cards, pageCache, pairSel, page]);
+  }, [cacheKey, isPreloadedPage, cards, pageCache, pairSel, page, langSel]);
 
   const loading = cards !== null && !isPreloadedPage && cached === undefined;
 
   // The cards this page shows: the SSR preload for "all" page 1, the fetched
-  // page once cached, or — only for page 1 of a pair while loading / on error —
-  // a client-side filter of the preloaded cross-pair deck. Later pages have
-  // nothing to fall back to.
+  // page once cached, or — only for page 1 of a pair or language while loading
+  // / on error — a client-side filter of the preloaded cross-pair deck (for a
+  // language, this is also the graceful degradation while the server's `lang`
+  // filter, VocabCards#314, isn't deployed). Later pages have nothing to fall
+  // back to.
   const activeCards = useMemo(() => {
     if (cards === null) return null;
     if (isPreloadedPage) return cards;
     if (cached && cached !== "error") return cached;
+    if (page === 1 && langSel)
+      return cards.filter((c) => c.pair.startsWith(`${langSel}-`));
     if (page === 1 && pairSel !== "all")
       return cards.filter((c) => c.pair === pairSel);
     return [];
-  }, [cards, isPreloadedPage, cached, page, pairSel]);
+  }, [cards, isPreloadedPage, cached, page, pairSel, langSel]);
 
   const shown = useMemo(
     () =>
@@ -190,7 +271,9 @@ export default function DeckClient({
     return words
       .filter(
         (w) =>
-          (pairSel === "all" || w.pair === pairSel) &&
+          (langSel
+            ? w.pair.startsWith(`${langSel}-`)
+            : pairSel === "all" || w.pair === pairSel) &&
           w.word.toLowerCase().includes(q),
       )
       .sort((a, b) => b.association_count - a.association_count)
@@ -299,6 +382,9 @@ export default function DeckClient({
 
   return (
     <>
+      <Suspense fallback={null}>
+        <LangSync onLang={setLangParam} />
+      </Suspense>
       <div className="topbar">
         <Link className="brand" href="/">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -390,44 +476,83 @@ export default function DeckClient({
       <div className="shell">
         <aside>
           <div className="panel">
-            <h3>Language pairs</h3>
-            <div className="pair-filter">
-              {cards === null ? (
-                pairsView.map((p) => (
-                  <Link key={p.pair} href={`/${p.pair}`}>
-                    <span>
-                      {languageName(p.source_language)} →{" "}
-                      {languageName(p.target_language)}
-                    </span>
-                    <span className="cnt">{p.association_count}</span>
-                  </Link>
-                ))
-              ) : (
-                <>
+            <h3>What are you learning?</h3>
+            {/* Flag chips: "All" plus one per studied language. The active
+                chip IS the language-level filter (no "All ⟨language⟩"
+                sub-row); "All" restores the full grouped view. Omitted in the
+                degraded cards === null mode, where the groups below are plain
+                links to the pair pages. prefetch={false} on every chip: their
+                middleware outcome depends on the pair cookie written onClick,
+                and a prefetch runs the middleware with the OLD cookie — for
+                "All" that would cache the sticky pair's deck under "/"
+                (prod-only: prefetch is off in dev); the ?lang= URLs are also
+                shielded by the middleware's lang bail. */}
+            {cards !== null && (
+              <nav className="lang-chips" aria-label="Studied languages">
+                <Link
+                  className="lang-chip-all"
+                  href="/"
+                  prefetch={false}
+                  onClick={() => rememberPair("all")}
+                  aria-current={
+                    pairSel === "all" && !langSel ? "true" : undefined
+                  }
+                >
+                  All
+                </Link>
+                {langGroups.map((g) => (
                   <Link
-                    href="/"
+                    key={g.code}
+                    href={`/?lang=${g.code}`}
+                    prefetch={false}
                     onClick={() => rememberPair("all")}
-                    aria-current={pairSel === "all" ? "true" : undefined}
+                    aria-current={langSel === g.code ? "true" : undefined}
+                    aria-label={`Only ${languageName(g.name)}`}
+                    title={languageName(g.name)}
                   >
-                    <span>All pairs</span>
-                    <span className="cnt">{totalCardsView}</span>
+                    {languageFlag(g.name) ?? g.code.toUpperCase()}
                   </Link>
-                  {pairsView.map((p) => (
+                ))}
+              </nav>
+            )}
+            {/* Pairs grouped by studied language: a header row (flag + name +
+                per-language total), then indented "in ⟨target⟩" rows linking
+                to the pair routes. The title + "in ⟨language⟩" phrasing is
+                what makes the study direction self-decoding. A selected flag
+                hides the other groups. */}
+            <div className="pair-filter">
+              {(langGroup ? [langGroup] : langGroups).map((g) => (
+                <div key={g.code} className="lang-group">
+                  <div className="lang-group-head">
+                    <span>
+                      <span className="lang-group-flag" aria-hidden="true">
+                        {languageFlag(g.name)}
+                      </span>
+                      {languageName(g.name)}
+                    </span>
+                    <span className="cnt">{g.total}</span>
+                  </div>
+                  {g.pairs.map((p) => (
                     <Link
                       key={p.pair}
                       href={`/${p.pair}`}
-                      onClick={() => rememberPair(p.pair)}
-                      aria-current={pairSel === p.pair ? "true" : undefined}
+                      onClick={
+                        cards === null
+                          ? undefined
+                          : () => rememberPair(p.pair)
+                      }
+                      aria-current={
+                        cards !== null && pairSel === p.pair
+                          ? "true"
+                          : undefined
+                      }
                     >
-                      <span>
-                        {languageName(p.source_language)} →{" "}
-                        {languageName(p.target_language)}
-                      </span>
+                      <span>in {languageName(p.target_language)}</span>
                       <span className="cnt">{p.association_count}</span>
                     </Link>
                   ))}
-                </>
-              )}
+                </div>
+              ))}
             </div>
           </div>
           <div className="panel side-stats">
