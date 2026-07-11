@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { AUTH_COOKIE, communityAllowed, VIEW_COOKIE } from "@/lib/preview";
 
 // The sticky selection slugs the deck sidebar writes to the `pair` cookie
 // that rewrite "/": a pair ("it-en"), a studied-language code ("it",
@@ -8,7 +7,7 @@ import { AUTH_COOKIE, communityAllowed, VIEW_COOKIE } from "@/lib/preview";
 // deliberately fails this test and falls through to the real "/".
 const STICKY_SEL = /^([a-z]{2}(?:-[a-z]{2})?)(\+all)?$/;
 
-export async function middleware(req: NextRequest) {
+export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Home-route stickiness (no flash). When the visitor has picked a deck
@@ -29,27 +28,16 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Sticky view choice on classic word and card pages. ViewToggle records the
-  // visitor's classic-vs-community pick in VIEW_COOKIE client-side, on click
-  // (never here: middleware Set-Cookie on GET paths also fires on <Link>
-  // prefetches, which would stamp and race the choice without a click). This
-  // branch only honors it: plain word links — and card permalinks, which is
-  // what the home deck's tiles are — redirect to the word's community thread
-  // for browsers that chose it AND still pass the exact auth gate the /c
-  // route enforces — gating on the cosmetic marker cookie instead would
-  // dead-end every word page in /c's 404 whenever the marker outlives the
-  // auth cookie (secret rotation, cookie eviction). A redirect, not a
-  // rewrite: the URL must say /c so the community page's toggle state and
-  // links stay coherent. Threads are per-word, so a card path drops its id.
-  const word = pathname.match(/^(\/[a-z]{2}-[a-z]{2}\/[^/]+?)(?:\/\d+)?$/);
-  if (
-    word &&
-    req.cookies.get(VIEW_COOKIE)?.value === "community" &&
-    (await communityAllowed(req.cookies.get(AUTH_COOKIE)?.value))
-  ) {
+  // Legacy classic word and card URLs → the word's community thread. The
+  // classic read-only view is gone; every old external link (and any cached
+  // /{pair}/{word}/{id} permalink) lands on the community page for the same
+  // word. Threads are per-word, so a card path drops its id. Permanent: the
+  // classic routes are deleted, not gated.
+  const word = pathname.match(/^\/([a-z]{2}-[a-z]{2}\/[^/]+?)(?:\/\d+)?$/);
+  if (word) {
     const url = req.nextUrl.clone();
-    url.pathname = `/c${word[1]}`;
-    return NextResponse.redirect(url);
+    url.pathname = `/c/${word[1]}`;
+    return NextResponse.redirect(url, 308);
   }
 
   return NextResponse.next();

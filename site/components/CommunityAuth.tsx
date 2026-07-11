@@ -29,7 +29,6 @@ import {
   subscribeAuth,
 } from "@/lib/auth";
 import { profilePath } from "@/lib/community";
-import { MARKER_COOKIE } from "@/lib/preview";
 import Avatar from "./Avatar";
 
 // The Google OAuth client id is a public identifier (it ships in every page
@@ -150,21 +149,13 @@ export function useMe(): Me | null {
 // Site-wide nav identity (VocabCards #337): the top-right slot on every page.
 // Signed in: the visitor's handle chip linking to their profile (once
 // /auth/me resolves — the profile URL needs the account id). Signed out: a
-// Log in button revealing the Google button in a small popover. Gated like
-// ClassicCommunityToggle: first paint renders nothing (matches the server
-// HTML, keeps ISR pages static), then the effect reveals it during an owner
-// preview. On public launch, drop the marker-cookie check.
+// Log in button revealing the Google button in a small popover. First paint
+// renders the signed-out state (the auth store's server snapshot), matching
+// the server HTML on ISR pages; the chip appears after hydration.
 export function NavIdentity() {
-  const [show, setShow] = useState(false);
   const [popOpen, setPopOpen] = useState(false);
   const me = useMe();
   const { token } = useAuth();
-  useEffect(() => {
-    setShow(
-      document.cookie.split("; ").some((c) => c === `${MARKER_COOKIE}=1`),
-    );
-  }, []);
-  if (!show) return null;
   if (me) {
     return (
       <Link className="id-chip" href={profilePath(me.id, me.handle)}>
