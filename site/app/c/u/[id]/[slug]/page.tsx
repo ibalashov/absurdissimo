@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import Avatar from "@/components/Avatar";
 import { IdentityChip } from "@/components/CommunityAuth";
 import ProfileOwnPanel from "@/components/CommunityProfile";
 import { SiteFooter, SiteNav } from "@/components/chrome";
-import { formatDate } from "@/lib/api";
+import { formatDate, imageUrl } from "@/lib/api";
 import { fetchProfileServer, profilePath } from "@/lib/community";
 import { communityVisible } from "@/lib/flags";
 import "../../../../cards.css";
@@ -73,7 +74,10 @@ export default async function CommunityProfilePage({
       <main className="cards-main community-main profile-main">
         <header className="word-header">
           <p className="profile-kicker">Community profile</p>
-          <h1>{profile.handle}</h1>
+          <div className="profile-id">
+            <Avatar emoji={profile.avatar} accountId={profile.id} size="lg" />
+            <h1>{profile.handle}</h1>
+          </div>
           <div className="statline">
             <span>
               member since <b>{formatMonthYear(profile.created_at)}</b>
@@ -99,6 +103,15 @@ export default async function CommunityProfilePage({
                   className="profile-entry"
                   href={`/c/${e.pair}/${encodeURIComponent(e.word)}`}
                 >
+                  {e.image_id && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      className="pthumb"
+                      src={imageUrl(e.image_id)}
+                      alt=""
+                      loading="lazy"
+                    />
+                  )}
                   <span className="pscore" aria-label={`Score ${e.score}`}>
                     {e.score}
                   </span>

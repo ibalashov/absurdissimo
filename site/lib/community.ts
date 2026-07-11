@@ -15,6 +15,9 @@ export interface CommunityComment {
   body: string;
   author_handle: string;
   author_id: number | null; // profile link (#317); null for legacy anonymous
+  // Avatar emoji (#330) — null for legacy anonymous, same rule as author_id;
+  // optional until the server side is deployed.
+  avatar?: string | null;
   created_at: string;
 }
 
@@ -28,6 +31,9 @@ export interface CommunityEntry {
   absurdity: string | null;
   author_handle: string | null; // null for AI entries
   author_id: number | null; // profile link (#317); null for AI + legacy anonymous
+  // Avatar emoji (#330) — null for AI + legacy anonymous, same rule as
+  // author_id; optional until the server side is deployed.
+  avatar?: string | null;
   score: number;
   your_vote: number; // -1 | 0 | 1
   is_pick: boolean;
@@ -101,6 +107,9 @@ export interface ProfileEntry {
   pair: string;
   word: string; // normalized thread key — links as /c/{pair}/{word}
   mnemonic: string;
+  // The association's image (#330) for a thumbnail via imageUrl(); null when
+  // the entry has none, optional until the server side is deployed.
+  image_id?: string | null;
   score: number;
   created_at: string;
 }
@@ -108,6 +117,8 @@ export interface ProfileEntry {
 export interface CommunityProfile {
   id: number;
   handle: string;
+  // Avatar emoji (#330); optional until the server side is deployed.
+  avatar?: string;
   created_at: string;
   entries: ProfileEntry[];
   comment_count: number;

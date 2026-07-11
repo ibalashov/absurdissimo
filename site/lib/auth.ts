@@ -104,6 +104,11 @@ export interface Me {
   email: string | null;
   created_at: string;
   needs_handle: boolean;
+  // Avatar emoji + the full allowed set for the picker (VocabCards #330).
+  // Optional until the server side is deployed: consumers must treat a
+  // missing field as "no avatar yet", never crash.
+  avatar?: string;
+  avatars?: string[];
 }
 
 // Fetched at most once per page load (and once more after a fresh sign-in):
@@ -215,6 +220,60 @@ export async function chooseHandle(handle: string): Promise<void> {
   localStorage.setItem(NEEDS_HANDLE_KEY, "0");
   if (me) me = { ...me, handle, needs_handle: false };
   notify();
+}
+
+// Pick an avatar from the server's curated set (VocabCards #330/#331).
+// Optimistic: the store's Me flips immediately so every consumer (nav chip,
+// picker highlight) updates without waiting on the network, and rolls back if
+// the request fails. Throws with the server's message (400 out-of-set) so the
+// picker can surface it inline.
+export async function chooseAvatar(avatar: string): Promise<void> {
+  const token = getToken();
+  if (!token) throw new Error("Please sign in again.");
+  const prevAvatar = me?.avatar;
+  if (me) {
+    me = { ...me, avatar };
+    notify();
+  }
+  function rollback(): void {
+    if (me) {
+      me = { ...me, avatar: prevAvatar };
+      notify();
+    }
+  }
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}/auth/avatar`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ avatar }),
+    });
+  } catch (err) {
+    rollback();
+    throw err instanceof Error ? err : new Error("Could not change avatar.");
+  }
+  if (res.status === 401) {
+    clearAuth();
+    throw new Error("Your session expired — please sign in again.");
+  }
+  if (!res.ok) {
+    rollback();
+    const detail = (await res.json().catch(() => null))?.detail;
+    throw new Error(
+      typeof detail === "string"
+        ? detail
+        : `Could not change avatar (${res.status})`,
+    );
+  }
+  // Adopt the server's echo (normally the same value we sent).
+  const data = (await res.json()) as { avatar: string };
+  if (me) {
+    me = { ...me, avatar: data.avatar };
+    notify();
+  }
 }
 
 // The handle prompt is skippable — contributions then carry the anon

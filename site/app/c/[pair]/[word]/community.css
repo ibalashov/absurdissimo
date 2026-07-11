@@ -604,6 +604,7 @@
 .id-chip {
   display: inline-flex;
   align-items: center;
+  gap: 0.45rem;
   max-width: 12rem;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -622,10 +623,40 @@
   border-color: var(--accent-line);
 }
 
+/* avatars: emoji on a colored disc (#330/#331); the disc color is inline,
+   derived from the account id (components/Avatar.tsx) */
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid #ffffff1f;
+  flex: 0 0 auto;
+  line-height: 1;
+  user-select: none;
+}
+.avatar.sm {
+  width: 20px;
+  height: 20px;
+  font-size: 12px;
+}
+.avatar.md {
+  width: 36px;
+  height: 36px;
+  font-size: 20px;
+}
+.avatar.lg {
+  width: 56px;
+  height: 56px;
+  font-size: 30px;
+}
+
 /* author handles as profile links (#317); plain spans keep the old look */
 .assoc-meta a.who,
 .comment a.cwho {
   text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 .assoc-meta a.who:hover,
 .comment a.cwho:hover {
@@ -644,6 +675,11 @@
   text-transform: uppercase;
   color: var(--muted);
   margin-bottom: 0.4rem;
+}
+.profile-id {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
 }
 .profile-entries {
   list-style: none;
@@ -667,6 +703,14 @@
 }
 .profile-entry:hover {
   border-color: var(--accent-line);
+}
+.profile-entry .pthumb {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  object-fit: cover;
 }
 .profile-entry .pscore {
   flex: 0 0 auto;
@@ -732,6 +776,39 @@
 }
 .rename-form .field input {
   max-width: 20rem;
+}
+
+/* avatar picker in the own-view panel (#330/#331) */
+.avatar-picker {
+  margin-top: 0.9rem;
+}
+.avatar-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+.avatar-option {
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  padding: 2px;
+  cursor: pointer;
+  display: inline-grid;
+  place-items: center;
+  transition: border-color 0.14s;
+}
+.avatar-option:hover:not(:disabled) {
+  border-color: var(--accent-line);
+}
+.avatar-option.on {
+  border-color: var(--accent);
+}
+.avatar-option:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.avatar-picker .handle-actions {
+  margin-top: 0.9rem;
 }
 
 /* related tiles: image preview / emoji */

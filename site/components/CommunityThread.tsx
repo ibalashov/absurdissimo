@@ -4,6 +4,7 @@ import Link from "next/link";
 import { type FormEvent, useEffect, useState } from "react";
 import { absurdityLabel, formatDate, imageUrl } from "@/lib/api";
 import { clearAuth } from "@/lib/auth";
+import Avatar from "./Avatar";
 import MnemonicText from "./MnemonicText";
 import { GoogleSignInButton, HandlePrompt, useAuth } from "./CommunityAuth";
 import {
@@ -18,18 +19,25 @@ import {
 
 // Author handle, as a profile link when the author is an account (#317);
 // plain text for AI entries and legacy anonymous authors (author_id null).
+// Account authors also get their avatar disc (#330/#331) — rendered only when
+// the payload actually carries one, so pre-#330 responses stay avatar-free.
 function AuthorHandle({
   handle,
   authorId,
+  avatar,
   className,
 }: {
   handle: string;
   authorId: number | null;
+  avatar?: string | null;
   className: string;
 }) {
   if (authorId === null) return <span className={className}>{handle}</span>;
   return (
     <Link className={className} href={profilePath(authorId, handle)}>
+      {typeof avatar === "string" && (
+        <Avatar emoji={avatar} accountId={authorId} size="sm" />
+      )}
       {handle}
     </Link>
   );
@@ -118,6 +126,7 @@ function CommentList({
             className="cwho"
             handle={c.author_handle}
             authorId={c.author_id}
+            avatar={c.avatar}
           />
           <span>{c.body}</span>
         </div>
@@ -214,6 +223,7 @@ function EntryCard({
               className="who"
               handle={entry.author_handle}
               authorId={entry.author_id}
+              avatar={entry.avatar}
             />
           )}
           <span className="dot">·</span>

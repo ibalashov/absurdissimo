@@ -29,6 +29,7 @@ import {
   subscribeAuth,
 } from "@/lib/auth";
 import { profilePath } from "@/lib/community";
+import Avatar from "./Avatar";
 
 // The Google OAuth client id is a public identifier (it ships in every page
 // that renders the button), safe to commit; the env var exists only for
@@ -153,6 +154,7 @@ export function IdentityChip() {
   if (!me) return null;
   return (
     <Link className="id-chip" href={profilePath(me.id, me.handle)}>
+      <Avatar emoji={me.avatar} accountId={me.id} size="sm" />
       {me.handle}
     </Link>
   );
