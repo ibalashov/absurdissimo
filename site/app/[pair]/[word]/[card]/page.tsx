@@ -101,8 +101,6 @@ export default async function CardPage({ params }: { params: Params }) {
       <main className="card-detail-main">
         <div className="page-topbar">
           <nav className="crumbs" aria-label="Breadcrumb">
-            <Link href="/">deck</Link>
-            <span className="sep">/</span>
             <Link href={`/${data.pair}`}>{data.pair}</Link>
             <span className="sep">/</span>
             <Link href={wordPath} dir="auto">
