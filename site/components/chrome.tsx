@@ -31,7 +31,11 @@ export function AppStoreButton() {
 export function SiteNav() {
   return (
     <nav className="cards-nav">
-      <Link className="nav-brand" href="/">
+      {/* prefetch={false}: "/" is cookie-varied by the middleware's sticky
+          rewrite, so prefetching it pins the prefetch-time cookie's deck in
+          the session-wide router cache and stale-serves it after the cookie
+          changes (see the deck topbar's brand link in DeckClient). */}
+      <Link className="nav-brand" href="/" prefetch={false}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/icon.png" alt="Absurdissimo icon" />
         Absurdissimo

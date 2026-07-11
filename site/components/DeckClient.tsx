@@ -354,7 +354,16 @@ export default function DeckClient({
   return (
     <>
       <div className="topbar">
-        <Link className="brand" href="/">
+        {/* prefetch={false}, like EVERY link to "/" in the app: "/"'s content
+            is cookie-varied (the middleware rewrites it to the sticky
+            selection's deck), but the router cache is URL-keyed and
+            session-wide — a prefetch of "/" runs the middleware with the
+            cookie as of prefetch time and pins that deck under "/" for
+            minutes. Clicking "All" (or the logo) after the cookie changed
+            then silently serves the stale deck: the URL flips to "/" but the
+            content stays the old pair's (the #328 "flag filter stops working"
+            regression; prod-only, prefetch is off in dev). */}
+        <Link className="brand" href="/" prefetch={false}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/icon.png" alt="Absurdissimo icon" />
           Absurdissimo
