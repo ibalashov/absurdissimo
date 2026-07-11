@@ -297,6 +297,32 @@ export function formatDate(isoDate: string): string {
   }).format(new Date(isoDate));
 }
 
+// Full timestamp for tooltips (fixed UTC so SSR and client render the same).
+export function formatDateTime(isoDate: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+    timeZone: "UTC",
+  }).format(new Date(isoDate)) + " UTC";
+}
+
+// Coarse relative time for recent moments ("just now" … "6d ago"), falling
+// back to the absolute date beyond a week. Coarse on purpose: it renders
+// server-side and hydrates later, so finer precision would routinely
+// mismatch (callers still suppressHydrationWarning for the minute edges).
+export function timeAgo(isoDate: string): string {
+  const seconds = Math.max(0, (Date.now() - new Date(isoDate).getTime()) / 1000);
+  if (seconds < 60) return "just now";
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  if (seconds < 7 * 86400) return `${Math.floor(seconds / 86400)}d ago`;
+  return formatDate(isoDate);
+}
+
 export function provenanceLabel(provenance: string): string {
   return provenance === "generated" ? "AI-generated" : provenance;
 }
