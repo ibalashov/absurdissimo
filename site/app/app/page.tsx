@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { APP_STORE_URL } from "@/components/chrome";
+import { NavIdentity } from "@/components/CommunityAuth";
 import "../home.css";
 
 // The marketing page (former home page content, moved unchanged when the home
@@ -29,6 +30,7 @@ export default function AppPage() {
         <Link className="nav-link" href="/feedback">
           Feedback
         </Link>
+        <NavIdentity />
       </nav>
 
       <section className="hero">
@@ -102,7 +104,7 @@ export default function AppPage() {
       </section>
 
       <footer>
-        <p>Absurdissimo &copy; 2026 Ivan Balashov</p>
+        <p>Absurdissimo &copy; 2026</p>
         <div className="footer-links">
           <Link href="/feedback">Feedback</Link>
           <Link href="/privacy">Privacy Policy</Link>

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import Avatar from "@/components/Avatar";
-import { IdentityChip } from "@/components/CommunityAuth";
 import ProfileOwnPanel from "@/components/CommunityProfile";
 import { SiteFooter, SiteNav } from "@/components/chrome";
 import { formatDate, imageUrl } from "@/lib/api";
@@ -70,7 +69,7 @@ export default async function CommunityProfilePage({
   const { entries } = profile;
   return (
     <>
-      <SiteNav identity={<IdentityChip />} />
+      <SiteNav />
       <main className="cards-main community-main profile-main">
         <header className="word-header">
           <p className="profile-kicker">Community profile</p>

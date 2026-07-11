@@ -607,16 +607,6 @@
 
 /* sign-in gate (#307): the GIS button replaces the composer / comment forms
    when signed out; voting stays anonymous and unaffected */
-.signin {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-.signin-button {
-  min-height: 44px; /* reserve the async GIS button's slot: no layout shift */
-  display: flex;
-  align-items: center;
-}
 .comment-signin {
   display: flex;
   flex-direction: column;
@@ -654,60 +644,8 @@
   margin-top: 1.2rem;
 }
 
-/* signed-in identity chip in the site nav (#317) — only /c/* pages mount it */
-.nav-side {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-}
-.id-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  max-width: 12rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface);
-  padding: 0.35rem 0.85rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text);
-  text-decoration: none;
-  transition: border-color 0.2s;
-}
-.id-chip:hover {
-  border-color: var(--accent-line);
-}
-
-/* avatars: emoji on a colored disc (#330/#331); the disc color is inline,
-   derived from the account id (components/Avatar.tsx) */
-.avatar {
-  display: inline-grid;
-  place-items: center;
-  border-radius: 50%;
-  border: 1px solid #ffffff1f;
-  flex: 0 0 auto;
-  line-height: 1;
-  user-select: none;
-}
-.avatar.sm {
-  width: 20px;
-  height: 20px;
-  font-size: 12px;
-}
-.avatar.md {
-  width: 36px;
-  height: 36px;
-  font-size: 20px;
-}
-.avatar.lg {
-  width: 56px;
-  height: 56px;
-  font-size: 30px;
-}
+/* nav identity chip + avatar styles moved to globals.css (#337): the chip
+   now renders on every page, not just /c/*. */
 
 /* author handles as profile links (#317); plain spans keep the old look */
 .assoc-meta a.who,

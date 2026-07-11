@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { NavIdentity } from "./CommunityAuth";
 
 // The app is not on the App Store yet — it ships as a TestFlight beta while the
 // first release is prepared. Every "get the app" link across the site points at
@@ -29,15 +29,11 @@ export function AppStoreButton() {
   );
 }
 
-// `identity` is the community view's signed-in chip (VocabCards #317): only
-// /c/* pages pass it, so the classic pages' nav markup stays exactly as-is
-// (and never pulls in the client-side auth code).
-export function SiteNav({ identity }: { identity?: ReactNode }) {
-  const cta = (
-    <a className="nav-cta" href={APP_STORE_URL}>
-      Get the app
-    </a>
-  );
+// The top-right nav slot is the user's (VocabCards #337): the community
+// identity chip / Log in button renders on every page (it self-gates behind
+// the community launch preview, so the public sees nothing until launch).
+// The "Get the app" CTA lives at the bottom of the page (SiteFooter).
+export function SiteNav() {
   return (
     <nav className="cards-nav">
       {/* prefetch={false}: "/" is cookie-varied by the middleware's sticky
@@ -49,14 +45,9 @@ export function SiteNav({ identity }: { identity?: ReactNode }) {
         <img src="/icon.png" alt="Absurdissimo icon" />
         Absurdissimo
       </Link>
-      {identity ? (
-        <div className="nav-side">
-          {identity}
-          {cta}
-        </div>
-      ) : (
-        cta
-      )}
+      <div className="nav-side">
+        <NavIdentity />
+      </div>
     </nav>
   );
 }
@@ -85,7 +76,10 @@ export function GetAppSection() {
 export function SiteFooter() {
   return (
     <footer className="cards-footer">
-      <p>Absurdissimo &copy; 2026 Ivan Balashov</p>
+      <Link className="footer-cta" href="/app">
+        Get the app
+      </Link>
+      <p>Absurdissimo &copy; 2026</p>
       <div className="footer-links">
         <Link href="/feedback">Feedback</Link>
         <Link href="/privacy">Privacy Policy</Link>

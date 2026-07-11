@@ -29,6 +29,7 @@ import {
   subscribeAuth,
 } from "@/lib/auth";
 import { profilePath } from "@/lib/community";
+import { MARKER_COOKIE } from "@/lib/preview";
 import Avatar from "./Avatar";
 
 // The Google OAuth client id is a public identifier (it ships in every page
@@ -146,17 +147,49 @@ export function useMe(): Me | null {
   return me;
 }
 
-// Nav chip on /c/* pages: the visitor's handle, linking to their own profile.
-// Renders nothing signed out — and nothing until /auth/me resolves, since the
-// profile URL needs the account id (the sign-in response doesn't carry it).
-export function IdentityChip() {
+// Site-wide nav identity (VocabCards #337): the top-right slot on every page.
+// Signed in: the visitor's handle chip linking to their profile (once
+// /auth/me resolves — the profile URL needs the account id). Signed out: a
+// Log in button revealing the Google button in a small popover. Gated like
+// ClassicCommunityToggle: first paint renders nothing (matches the server
+// HTML, keeps ISR pages static), then the effect reveals it during an owner
+// preview. On public launch, drop the marker-cookie check.
+export function NavIdentity() {
+  const [show, setShow] = useState(false);
+  const [popOpen, setPopOpen] = useState(false);
   const me = useMe();
-  if (!me) return null;
+  const { token } = useAuth();
+  useEffect(() => {
+    setShow(
+      document.cookie.split("; ").some((c) => c === `${MARKER_COOKIE}=1`),
+    );
+  }, []);
+  if (!show) return null;
+  if (me) {
+    return (
+      <Link className="id-chip" href={profilePath(me.id, me.handle)}>
+        <Avatar emoji={me.avatar} accountId={me.id} size="sm" />
+        {me.handle}
+      </Link>
+    );
+  }
+  if (token) return null; // signed in; chip appears when /auth/me resolves
   return (
-    <Link className="id-chip" href={profilePath(me.id, me.handle)}>
-      <Avatar emoji={me.avatar} accountId={me.id} size="sm" />
-      {me.handle}
-    </Link>
+    <div className="nav-login">
+      <button
+        className="nav-login-btn"
+        onClick={() => setPopOpen((v) => !v)}
+        aria-expanded={popOpen}
+        aria-haspopup="dialog"
+      >
+        Log in
+      </button>
+      {popOpen && (
+        <div className="nav-login-pop">
+          <GoogleSignInButton />
+        </div>
+      )}
+    </div>
   );
 }
 

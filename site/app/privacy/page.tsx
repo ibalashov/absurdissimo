@@ -19,7 +19,8 @@ export default function Privacy() {
         <p className="updated">Last updated: July 2026</p>
 
         <p>
-          Absurdissimo (&quot;the app&quot;) is operated by Ivan Balashov. This
+          Absurdissimo (&quot;the app&quot;) is independently operated by its
+          developer. This
           policy explains what data the app collects and how it is used.
         </p>
 
