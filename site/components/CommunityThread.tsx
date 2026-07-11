@@ -155,7 +155,7 @@ function EntryCard({
           )}
           <div className="assoc-text">
             <p className="mnemonic" dir="auto">
-              <MnemonicText text={entry.mnemonic} />
+              <MnemonicText text={entry.mnemonic} keyword={entry.keyword} />
             </p>
             {entry.explanation && <p className="explanation">{entry.explanation}</p>}
             <div className="chips">
