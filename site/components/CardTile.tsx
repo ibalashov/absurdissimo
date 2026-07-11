@@ -1,7 +1,9 @@
 import Link from "next/link";
 
-// One tile in a card grid (home deck feed, card-page sibling strip).
+// One tile in a card grid (home deck feed).
 // Plain markup, no handlers: renders on the server and inside client trees.
+// prefetch={false}: tiles link to force-dynamic community threads, and a
+// grid of them prefetching on viewport entry would hammer the backend.
 export default function CardTile({
   href,
   imageSrc,
@@ -14,7 +16,7 @@ export default function CardTile({
   sub: string;
 }) {
   return (
-    <Link className="card" href={href}>
+    <Link className="card" href={href} prefetch={false}>
       {imageSrc && (
         // eslint-disable-next-line @next/next/no-img-element
         <img

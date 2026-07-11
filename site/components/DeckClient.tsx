@@ -67,9 +67,10 @@ function shortDate(isoDate: string): string {
   }).format(new Date(isoDate));
 }
 
+// Tiles open the word's community thread; threads are per-word, so the card
+// id plays no part in the URL.
 function cardHref(card: FeedCard): string {
-  const wordPage = `/${card.pair}/${encodeURIComponent(card.word)}`;
-  return card.id != null ? `${wordPage}/${card.id}` : wordPage;
+  return `/c/${card.pair}/${encodeURIComponent(card.word)}`;
 }
 
 // Windowed page list for the numbered pager: always the first and last page,
@@ -589,7 +590,8 @@ export default function DeckClient({
               {wordMatches.map((w) => (
                 <Link
                   key={`${w.pair}/${w.word}`}
-                  href={`/${w.pair}/${encodeURIComponent(w.word)}`}
+                  href={`/c/${w.pair}/${encodeURIComponent(w.word)}`}
+                  prefetch={false}
                 >
                   <span dir="auto">{w.word}</span>
                   <span className="cnt">

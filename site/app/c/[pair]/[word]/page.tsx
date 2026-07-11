@@ -3,7 +3,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import CommunityThread from "@/components/CommunityThread";
 import PronounceButton from "@/components/PronounceButton";
-import { ViewToggle } from "@/components/ViewToggle";
 import { SiteFooter, SiteNav } from "@/components/chrome";
 import {
   formatDate,
@@ -16,12 +15,10 @@ import {
   speechLanguageCode,
 } from "@/lib/api";
 import { fetchThreadServer } from "@/lib/community";
-import { communityVisible } from "@/lib/flags";
 import "../../../cards.css";
 import "./community.css";
 
-// Dynamic, not ISR: the thread changes on every vote/comment/submission, so
-// the hourly-cached classic page (/[pair]/[word]) is the wrong model here.
+// Dynamic, not ISR: the thread changes on every vote/comment/submission.
 export const dynamic = "force-dynamic";
 
 type Params = Promise<{ pair: string; word: string }>;
@@ -43,14 +40,11 @@ export async function generateMetadata({
 export default async function CommunityWordPage({ params }: { params: Params }) {
   const { pair, word } = await params;
   if (!PAIR_PATTERN.test(pair)) notFound();
-  // Owner-preview / launch gate: hidden from the public until COMMUNITY_ENABLED
-  // (or a Draft Mode preview) turns it on. Safe here — /c is force-dynamic.
-  if (!(await communityVisible())) notFound();
   const decoded = decodeURIComponent(word);
 
   // Distinguish "no such word" (API 404 → notFound) from "API unreachable"
   // (throws → soft unavailable state), so a transient backend blip / cold
-  // start doesn't hard-404 a valid community page. The classic word page
+  // start doesn't hard-404 a valid community page. The public word page
   // (word_info for the identity header) and the pair index (related words)
   // ride along in parallel as optional garnish — both hourly-cached, and
   // either failing must never break the thread.
@@ -74,8 +68,7 @@ export default async function CommunityWordPage({ params }: { params: Params }) 
   const target = languageName(thread.target_language);
   const speechLang = speechLanguageCode(thread.source_language);
 
-  // word_info describes the word itself, not one card; take the newest (same
-  // rule as the classic page).
+  // word_info describes the word itself, not one card; take the newest.
   const info = wordPage?.associations.find((c) => c.word_info)?.word_info;
   const commentCount = thread.entries.reduce(
     (n, e) => n + e.comments.length,
@@ -116,7 +109,6 @@ export default async function CommunityWordPage({ params }: { params: Params }) 
               {thread.display_word}
             </span>
           </nav>
-          <ViewToggle pair={pair} word={decoded} active="community" />
         </div>
         <header className="word-header">
           <h1>
@@ -168,14 +160,14 @@ export default async function CommunityWordPage({ params }: { params: Params }) 
               More {source} → {target} <span>· from this deck</span>
             </h3>
             <div className="word-strip">
-              {/* Plain word links: the sticky-view middleware routes them to
-                  the visitor's chosen view, so community-mode readers land on
-                  the next thread. */}
+              {/* prefetch={false}: eight links to a force-dynamic route would
+                  otherwise fire eight thread fetches on viewport entry. */}
               {related.map((c) => (
                 <Link
                   className="wchip"
                   key={c.word}
-                  href={`/${pair}/${encodeURIComponent(c.word)}`}
+                  href={`/c/${pair}/${encodeURIComponent(c.word)}`}
+                  prefetch={false}
                   dir="auto"
                 >
                   {c.image_id ? (

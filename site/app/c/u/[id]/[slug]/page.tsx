@@ -6,13 +6,12 @@ import ProfileOwnPanel from "@/components/CommunityProfile";
 import { SiteFooter, SiteNav } from "@/components/chrome";
 import { formatDate, imageUrl } from "@/lib/api";
 import { fetchProfileServer, profilePath } from "@/lib/community";
-import { communityVisible } from "@/lib/flags";
 import "../../../../cards.css";
 import "../../../[pair]/[word]/community.css";
 
-// Public community profile (VocabCards #317), inside the same launch gate as
-// the rest of /c/*. Dynamic like the thread page: the profile changes with
-// every submission/vote/rename. The URL is /c/u/{id}/{slug} where the id is
+// Public community profile (VocabCards #317). Dynamic like the thread page:
+// the profile changes with every submission/vote/rename. The URL is
+// /c/u/{id}/{slug} where the id is
 // authoritative and the slug is the handle purely for readability — a stale
 // slug (rename) redirects to the canonical URL, so links never break.
 export const dynamic = "force-dynamic";
@@ -48,8 +47,6 @@ export default async function CommunityProfilePage({
 }) {
   const { id, slug } = await params;
   if (!/^\d+$/.test(id)) notFound();
-  // Owner-preview / launch gate, exactly as on /c/[pair]/[word].
-  if (!(await communityVisible())) notFound();
 
   // 404 (unknown account / device actor) → notFound; anything else (5xx,
   // network, cold start) → soft unavailable state, never a hard 404.
