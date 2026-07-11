@@ -225,8 +225,57 @@
   margin-bottom: 0.7rem;
 }
 
-/* Pair filter (buttons when the feed is live, links when degraded) */
+/* Flag chip row: "All" + one emoji chip per studied language (VocabCards#315).
+   The active chip is the language-level filter. */
+.lang-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+.lang-chips a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.95rem;
+  line-height: 1.3;
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  text-decoration: none;
+  transition: border-color 0.2s;
+}
+.lang-chips a:hover { border-color: var(--accent); color: var(--text); }
+.lang-chips a[aria-current="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--text);
+}
+.lang-chips .lang-chip-all { font-size: 0.78rem; font-weight: 600; }
+
+/* Pair filter: pairs grouped by studied language — a header row per language
+   (flag + name + total), then indented "in ⟨target⟩" pair links */
 .pair-filter { display: flex; flex-direction: column; }
+.lang-group { display: flex; flex-direction: column; }
+.lang-group + .lang-group { margin-top: 0.55rem; }
+.lang-group-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.3rem 0.55rem 0.2rem;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.lang-group-head .cnt { color: var(--muted); }
+.lang-group-flag { margin-right: 0.4rem; }
+/* Indent the pair rows under their group's flag */
+.pair-filter .lang-group a { padding-left: 1.65rem; }
 .pair-filter button,
 .pair-filter a {
   font: inherit;
