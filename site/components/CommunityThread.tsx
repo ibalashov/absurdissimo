@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { type FormEvent, useEffect, useState } from "react";
-import { absurdityLabel, formatDate, imageUrl } from "@/lib/api";
+import { absurdityLabel, formatDate, formatDateTime, imageUrl, timeAgo } from "@/lib/api";
 import { clearAuth } from "@/lib/auth";
 import Avatar from "./Avatar";
+import InlineMarkup from "./InlineMarkup";
 import MnemonicText from "./MnemonicText";
 import { GoogleSignInButton, HandlePrompt, useAuth, useMe } from "./CommunityAuth";
 import {
@@ -181,11 +182,15 @@ function CommentItem({
         avatar={comment.avatar}
       />
       <span>
-        {comment.body}
+        <InlineMarkup text={comment.body} />
         {comment.updated_at && (
-          <span className="edited" title={`Edited ${formatDate(comment.updated_at)}`}>
+          <span
+            className="edited"
+            title={`Edited ${formatDateTime(comment.updated_at)}`}
+            suppressHydrationWarning
+          >
             {" "}
-            (edited)
+            (edited {timeAgo(comment.updated_at)})
           </span>
         )}
         {error && <span className="submit-error"> {error}</span>}
@@ -446,7 +451,11 @@ function EntryCard({
               <p className="mnemonic" dir="auto">
                 <MnemonicText text={entry.mnemonic} keyword={entry.keyword} />
               </p>
-              {entry.explanation && <p className="explanation">{entry.explanation}</p>}
+              {entry.explanation && (
+                <p className="explanation">
+                  <InlineMarkup text={entry.explanation} />
+                </p>
+              )}
               <div className="chips">
                 {entry.is_pick && <span className="chip pick">✓ Community pick</span>}
                 {entry.keyword && <span className="chip key">keyword · {entry.keyword}</span>}
@@ -469,8 +478,12 @@ function EntryCard({
           <span className="dot">·</span>
           <span>{formatDate(entry.created_at)}</span>
           {entry.updated_at && (
-            <span className="edited" title={`Edited ${formatDate(entry.updated_at)}`}>
-              (edited)
+            <span
+              className="edited"
+              title={`Edited ${formatDateTime(entry.updated_at)}`}
+              suppressHydrationWarning
+            >
+              (edited {timeAgo(entry.updated_at)})
             </span>
           )}
           {mine && entry.kind === "user" && !editing && (

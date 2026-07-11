@@ -385,6 +385,16 @@
   color: var(--muted);
   font-size: 0.72rem;
 }
+/* Inline-basics markup in comments/explanations (#336): `code` chips; bold
+   and italic ride the browser defaults. */
+.md-code {
+  font-family: var(--mono);
+  font-size: 0.85em;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 0.05em 0.35em;
+}
 /* A comment row in edit mode drops the flex layout so the form spans it. */
 .comment.editing {
   display: block;
