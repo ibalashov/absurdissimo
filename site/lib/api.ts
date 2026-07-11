@@ -14,6 +14,11 @@ export const REVALIDATE_SECONDS = 3600;
 // (the catch-all /[pair] route also matches /favicon.ico and friends).
 export const PAIR_PATTERN = /^[a-z]{2}-[a-z]{2}$/;
 
+// Bare studied-language slugs ("it", ISO 639-1 as in pair slugs) select all
+// of that language's pairs combined (VocabCards#328). Together with "all" and
+// pair slugs these are the three shapes of the deck's selection slug.
+export const LANG_PATTERN = /^[a-z]{2}$/;
+
 // Cards per deck page. The deck browses the full corpus via numbered pages
 // (offset paging on GET /public/cards); this is both the SSR preload size and
 // the client page size. Must stay <= the server's per-request cap (50).
@@ -191,25 +196,24 @@ export async function getPairCards(
 }
 
 // Client-side fetch of one page of the deck feed (VocabCards#208/#209 + the
-// full-deck browse). `pair` null is the cross-pair feed; a slug filters to one
-// pair; `lang` (ISO 639-1 source-language code, VocabCards#314) filters to all
-// of that language's pairs combined — pass at most one of the two. `page` is
-// 1-based and paginates the *whole* corpus via offset — the preloaded feed is
-// only page 1, so later pages must come from the API. Runs in the browser, so
-// no ISR revalidate hint. Unlike getFeedCards this *throws* on failure:
+// full-deck browse). `sel` is the deck's selection slug, mapped by shape onto
+// the API's filters: "all" → the cross-pair feed, a pair slug → `pair=`, a
+// studied-language slug → `lang=` (VocabCards#314). `page` is 1-based and
+// paginates the *whole* corpus via offset — the preloaded feed is only
+// page 1, so later pages must come from the API. Runs in the browser, so no
+// ISR revalidate hint. Unlike getFeedCards this *throws* on failure:
 // DeckClient catches and, for page 1, falls back to client-side filtering of
-// the preloaded deck (which also covers #314 not being deployed yet).
+// the preloaded deck.
 export async function fetchDeckPage(
-  pair: string | null,
+  sel: string,
   page: number,
-  lang?: string | null,
 ): Promise<FeedCard[]> {
   const params = new URLSearchParams({
     limit: String(PAGE_SIZE),
     offset: String((Math.max(1, page) - 1) * PAGE_SIZE),
   });
-  if (pair) params.set("pair", pair);
-  else if (lang) params.set("lang", lang);
+  if (PAIR_PATTERN.test(sel)) params.set("pair", sel);
+  else if (LANG_PATTERN.test(sel)) params.set("lang", sel);
   const path = `/public/cards?${params.toString()}`;
   const res = await fetch(`${API_BASE}${path}`);
   if (!res.ok) throw new Error(`API ${path} responded ${res.status}`);
