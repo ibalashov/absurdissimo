@@ -123,16 +123,20 @@ function CommentList({
 function EntryCard({
   entry,
   word,
+  hero,
   onVote,
   onComment,
 }: {
   entry: CommunityEntry;
   word: string;
+  // The first entry of the current sort renders SO-answer style: full-size
+  // image and story instead of a thumbnail row.
+  hero: boolean;
   onVote: (entry: CommunityEntry, dir: 1 | -1) => void;
   onComment: (entryId: number, body: string) => Promise<void>;
 }) {
   return (
-    <li className={`assoc${entry.is_pick ? " picked" : ""}`}>
+    <li className={`assoc${entry.is_pick ? " picked" : ""}${hero ? " hero" : ""}`}>
       <VoteRail entry={entry} onVote={onVote} />
       <div className="assoc-body">
         <div className="assoc-top">
@@ -142,7 +146,7 @@ function EntryCard({
               className="thumb"
               src={imageUrl(entry.image_id)}
               alt={`Illustration of the mnemonic for ${word}`}
-              loading="lazy"
+              loading={hero ? "eager" : "lazy"}
             />
           ) : (
             <div className="thumb placeholder" aria-hidden="true">
@@ -293,11 +297,12 @@ export default function CommunityThread({
 
       {ordered.length > 0 ? (
         <ul className="assoc-list">
-          {ordered.map((entry) => (
+          {ordered.map((entry, i) => (
             <EntryCard
               key={entry.id}
               entry={entry}
               word={word}
+              hero={i === 0}
               onVote={onVote}
               onComment={onComment}
             />

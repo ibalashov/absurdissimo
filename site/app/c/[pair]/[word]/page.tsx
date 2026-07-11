@@ -4,7 +4,13 @@ import { notFound } from "next/navigation";
 import CommunityThread from "@/components/CommunityThread";
 import { ViewToggle } from "@/components/ViewToggle";
 import { SiteFooter, SiteNav } from "@/components/chrome";
-import { languageName, PAIR_PATTERN } from "@/lib/api";
+import {
+  formatDate,
+  getPairIndex,
+  getWordPage,
+  languageName,
+  PAIR_PATTERN,
+} from "@/lib/api";
 import { fetchThreadServer } from "@/lib/community";
 import { communityVisible } from "@/lib/flags";
 import "../../../cards.css";
@@ -40,10 +46,19 @@ export default async function CommunityWordPage({ params }: { params: Params }) 
 
   // Distinguish "no such word" (API 404 → notFound) from "API unreachable"
   // (throws → soft unavailable state), so a transient backend blip / cold
-  // start doesn't hard-404 a valid community page.
+  // start doesn't hard-404 a valid community page. The classic word page
+  // (word_info for the identity header) and the pair index (related words)
+  // ride along in parallel as optional garnish — both hourly-cached, and
+  // either failing must never break the thread.
   let thread: Awaited<ReturnType<typeof fetchThreadServer>>;
+  let wordPage: Awaited<ReturnType<typeof getWordPage>> = null;
+  let pairIndex: Awaited<ReturnType<typeof getPairIndex>> = null;
   try {
-    thread = await fetchThreadServer(pair, decoded);
+    [thread, wordPage, pairIndex] = await Promise.all([
+      fetchThreadServer(pair, decoded),
+      getWordPage(pair, decoded).catch(() => null),
+      getPairIndex(pair).catch(() => null),
+    ]);
   } catch {
     return <CommunityUnavailable pair={pair} />;
   }
@@ -51,6 +66,23 @@ export default async function CommunityWordPage({ params }: { params: Params }) 
 
   const source = languageName(thread.source_language);
   const target = languageName(thread.target_language);
+
+  // word_info describes the word itself, not one card; take the newest (same
+  // rule as the classic page).
+  const info = wordPage?.associations.find((c) => c.word_info)?.word_info;
+  const commentCount = thread.entries.reduce(
+    (n, e) => n + e.comments.length,
+    0,
+  );
+  const hasPick = thread.entries.some((e) => e.is_pick);
+  const latest = thread.entries
+    .map((e) => e.created_at)
+    .sort()
+    .at(-1);
+  const related = (pairIndex?.words ?? [])
+    .filter((w) => w.word !== thread.word)
+    .sort((a, b) => b.association_count - a.association_count)
+    .slice(0, 8);
 
   return (
     <>
@@ -71,7 +103,38 @@ export default async function CommunityWordPage({ params }: { params: Params }) 
           <ViewToggle pair={pair} word={decoded} active="community" />
         </div>
         <header className="word-header">
-          <h1>{thread.display_word}</h1>
+          <h1>
+            {info?.emoji && <span className="word-emoji">{info.emoji}</span>}
+            {thread.display_word}
+          </h1>
+          <div className="word-meta">
+            {info?.transcription && <span>{info.transcription}</span>}
+            {info?.part_of_speech && (
+              <span>
+                {info.part_of_speech.toLowerCase()}
+                {info.gender ? `, ${info.gender}` : ""}
+              </span>
+            )}
+          </div>
+          {info?.definition && (
+            <p className="word-definition">{info.definition}</p>
+          )}
+          <div className="statline">
+            <span>
+              <b>{thread.entries.length}</b>{" "}
+              {thread.entries.length === 1 ? "mnemonic" : "mnemonics"}
+            </span>
+            <span>
+              <b>{commentCount}</b>{" "}
+              {commentCount === 1 ? "comment" : "comments"}
+            </span>
+            {hasPick && <span className="pickmark">✓ community pick decided</span>}
+            {latest && (
+              <span>
+                latest activity <b>{formatDate(latest)}</b>
+              </span>
+            )}
+          </div>
         </header>
 
         <CommunityThread
@@ -80,6 +143,29 @@ export default async function CommunityWordPage({ params }: { params: Params }) 
           initialEntries={thread.entries}
         />
 
+        {related.length > 0 && (
+          <section className="related">
+            <h3>
+              More {source} → {target} <span>· from this deck</span>
+            </h3>
+            <div className="word-strip">
+              {/* Plain word links: the sticky-view middleware routes them to
+                  the visitor's chosen view, so community-mode readers land on
+                  the next thread. */}
+              {related.map((w) => (
+                <Link
+                  className="wchip"
+                  key={w.word}
+                  href={`/${pair}/${encodeURIComponent(w.word)}`}
+                  dir="auto"
+                >
+                  {w.word}
+                  <span className="cnt">{w.association_count}</span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
       </main>
       <SiteFooter />
     </>

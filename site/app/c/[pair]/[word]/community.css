@@ -177,6 +177,33 @@
 .assoc-text {
   min-width: 0;
 }
+/* First entry of the current sort renders answer-style: the image at full
+   card size next to the full story, instead of a thumbnail row. */
+.assoc.hero .assoc-top {
+  display: grid;
+  grid-template-columns: minmax(0, 300px) 1fr;
+  gap: 1.2rem;
+}
+.assoc.hero .thumb {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  flex: none;
+}
+.assoc.hero .thumb.placeholder {
+  font-size: 4rem;
+}
+.assoc.hero .mnemonic {
+  font-size: 1.12rem;
+}
+@media (max-width: 720px) {
+  .assoc.hero .assoc-top {
+    grid-template-columns: 1fr;
+  }
+  .assoc.hero .thumb {
+    max-width: 300px;
+  }
+}
 .mnemonic {
   font-size: 1.05rem;
   line-height: 1.5;
@@ -424,4 +451,61 @@
   .vote {
     transition: none;
   }
+}
+
+/* word-identity stat line (under the classic word-header block) */
+.statline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.1rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 0.7rem;
+}
+.statline b {
+  color: var(--text);
+  font-weight: 600;
+}
+.statline .pickmark {
+  color: var(--pick);
+}
+
+/* related words from the same deck, so the thread never dead-ends */
+.related {
+  margin-top: 2.4rem;
+}
+.related h3 {
+  font-size: 0.95rem;
+  margin: 0 0 0.7rem;
+}
+.related h3 span {
+  color: var(--muted);
+  font-weight: 400;
+}
+.word-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.wchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  padding: 0.4rem 0.8rem;
+  font-size: 0.88rem;
+  color: var(--text);
+  text-decoration: none;
+  transition: border-color 0.2s;
+}
+.wchip:hover {
+  border-color: var(--accent-line);
+}
+.wchip .cnt {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  color: var(--muted);
 }
