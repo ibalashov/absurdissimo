@@ -48,9 +48,11 @@ export default function Privacy() {
           website requires signing in with Google. When you sign in, our
           server receives and stores your Google account identifier and email
           address, used only to recognize your account. The display handle
-          you choose is shown publicly next to your contributions. Voting
-          stays anonymous: votes remain keyed to the random device identifier,
-          not to your account. Browsing and voting never require an account.
+          you choose is shown publicly next to your contributions, and your
+          contributions are collected on a public profile page under that
+          handle. Voting stays anonymous: votes remain keyed to the random
+          device identifier, not to your account. Browsing and voting never
+          require an account.
         </p>
 
         <h2>What we do not collect</h2>

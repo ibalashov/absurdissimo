@@ -7,6 +7,7 @@
 // for the server's own bearer token (lib/auth.ts); nothing Google-issued is
 // stored.
 
+import Link from "next/link";
 import {
   type FormEvent,
   useEffect,
@@ -16,13 +17,18 @@ import {
 } from "react";
 import {
   type AuthState,
+  type Me,
   chooseHandle,
+  ensureMe,
   getAuthState,
+  getMe,
   getServerAuthState,
+  getServerMe,
   signInWithGoogle,
   skipHandlePrompt,
   subscribeAuth,
 } from "@/lib/auth";
+import { profilePath } from "@/lib/community";
 
 // The Google OAuth client id is a public identifier (it ships in every page
 // that renders the button), safe to commit; the env var exists only for
@@ -127,6 +133,31 @@ export function useAuth(): AuthState {
   return useSyncExternalStore(subscribeAuth, getAuthState, getServerAuthState);
 }
 
+// The signed-in account from /auth/me (id, handle, email — VocabCards #317).
+// null while signed out, and briefly on first render while the once-per-page
+// fetch is in flight. Mounting any consumer kicks the fetch off.
+export function useMe(): Me | null {
+  const { token } = useAuth();
+  const me = useSyncExternalStore(subscribeAuth, getMe, getServerMe);
+  useEffect(() => {
+    if (token) ensureMe();
+  }, [token]);
+  return me;
+}
+
+// Nav chip on /c/* pages: the visitor's handle, linking to their own profile.
+// Renders nothing signed out — and nothing until /auth/me resolves, since the
+// profile URL needs the account id (the sign-in response doesn't carry it).
+export function IdentityChip() {
+  const me = useMe();
+  if (!me) return null;
+  return (
+    <Link className="id-chip" href={profilePath(me.id, me.handle)}>
+      {me.handle}
+    </Link>
+  );
+}
+
 function useSignInError(): string | null {
   return useSyncExternalStore(
     (listener) => {
@@ -184,9 +215,10 @@ export function GoogleSignInButton() {
   );
 }
 
-// First-sign-in handle prompt: one-shot on the server, skippable here (posts
-// then carry the anon placeholder handle). 409 "taken" and 400 validation
-// errors surface inline and the user can retry.
+// First-sign-in handle prompt, skippable (posts then carry the anon
+// placeholder handle; the handle can be changed later from the profile page —
+// #317). 409 "taken" and 400 validation errors surface inline and the user
+// can retry.
 export function HandlePrompt({ placeholder }: { placeholder: string | null }) {
   const [handle, setHandle] = useState("");
   const [busy, setBusy] = useState(false);
@@ -215,8 +247,9 @@ export function HandlePrompt({ placeholder }: { placeholder: string | null }) {
     <form className="composer handle-prompt" onSubmit={onSubmit}>
       <h3>Pick your public handle</h3>
       <p className="lead">
-        Shown next to your associations and comments. This is a one-time
-        choice{placeholder ? <> — skip to keep posting as {placeholder}</> : null}.
+        Shown next to your associations and comments. You can change it later
+        from your profile page
+        {placeholder ? <> — skip to keep posting as {placeholder}</> : null}.
       </p>
       <div className="field">
         <label htmlFor="handle">Handle</label>

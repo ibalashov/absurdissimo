@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { type FormEvent, useEffect, useState } from "react";
 import { absurdityLabel, formatDate, imageUrl } from "@/lib/api";
 import { clearAuth } from "@/lib/auth";
@@ -10,9 +11,29 @@ import {
   castVote,
   CommunityEntry,
   fetchThread,
+  profilePath,
   sortEntries,
   submitEntry,
 } from "@/lib/community";
+
+// Author handle, as a profile link when the author is an account (#317);
+// plain text for AI entries and legacy anonymous authors (author_id null).
+function AuthorHandle({
+  handle,
+  authorId,
+  className,
+}: {
+  handle: string;
+  authorId: number | null;
+  className: string;
+}) {
+  if (authorId === null) return <span className={className}>{handle}</span>;
+  return (
+    <Link className={className} href={profilePath(authorId, handle)}>
+      {handle}
+    </Link>
+  );
+}
 
 function VoteRail({
   entry,
@@ -93,7 +114,11 @@ function CommentList({
     <div className="comments">
       {entry.comments.map((c) => (
         <div className="comment" key={c.id}>
-          <span className="cwho">{c.author_handle}</span>
+          <AuthorHandle
+            className="cwho"
+            handle={c.author_handle}
+            authorId={c.author_id}
+          />
           <span>{c.body}</span>
         </div>
       ))}
@@ -182,10 +207,14 @@ function EntryCard({
           </div>
         </div>
         <div className="assoc-meta">
-          {entry.kind === "ai" ? (
+          {entry.kind === "ai" || entry.author_handle === null ? (
             <span className="badge-ai">AI-generated</span>
           ) : (
-            <span className="who">{entry.author_handle}</span>
+            <AuthorHandle
+              className="who"
+              handle={entry.author_handle}
+              authorId={entry.author_id}
+            />
           )}
           <span className="dot">·</span>
           <span>{formatDate(entry.created_at)}</span>

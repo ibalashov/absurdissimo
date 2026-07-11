@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 // The app is not on the App Store yet — it ships as a TestFlight beta while the
 // first release is prepared. Every "get the app" link across the site points at
@@ -28,7 +29,15 @@ export function AppStoreButton() {
   );
 }
 
-export function SiteNav() {
+// `identity` is the community view's signed-in chip (VocabCards #317): only
+// /c/* pages pass it, so the classic pages' nav markup stays exactly as-is
+// (and never pulls in the client-side auth code).
+export function SiteNav({ identity }: { identity?: ReactNode }) {
+  const cta = (
+    <a className="nav-cta" href={APP_STORE_URL}>
+      Get the app
+    </a>
+  );
   return (
     <nav className="cards-nav">
       <Link className="nav-brand" href="/">
@@ -36,9 +45,14 @@ export function SiteNav() {
         <img src="/icon.png" alt="Absurdissimo icon" />
         Absurdissimo
       </Link>
-      <a className="nav-cta" href={APP_STORE_URL}>
-        Get the app
-      </a>
+      {identity ? (
+        <div className="nav-side">
+          {identity}
+          {cta}
+        </div>
+      ) : (
+        cta
+      )}
     </nav>
   );
 }
