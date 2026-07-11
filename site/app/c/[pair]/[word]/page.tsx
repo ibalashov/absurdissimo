@@ -6,8 +6,10 @@ import { ViewToggle } from "@/components/ViewToggle";
 import { SiteFooter, SiteNav } from "@/components/chrome";
 import {
   formatDate,
+  getPairCards,
   getPairIndex,
   getWordPage,
+  imageUrl,
   languageName,
   PAIR_PATTERN,
 } from "@/lib/api";
@@ -53,11 +55,13 @@ export default async function CommunityWordPage({ params }: { params: Params }) 
   let thread: Awaited<ReturnType<typeof fetchThreadServer>>;
   let wordPage: Awaited<ReturnType<typeof getWordPage>> = null;
   let pairIndex: Awaited<ReturnType<typeof getPairIndex>> = null;
+  let pairCards: Awaited<ReturnType<typeof getPairCards>> = [];
   try {
-    [thread, wordPage, pairIndex] = await Promise.all([
+    [thread, wordPage, pairIndex, pairCards] = await Promise.all([
       fetchThreadServer(pair, decoded),
       getWordPage(pair, decoded).catch(() => null),
       getPairIndex(pair).catch(() => null),
+      getPairCards(pair),
     ]);
   } catch {
     return <CommunityUnavailable pair={pair} />;
@@ -79,9 +83,18 @@ export default async function CommunityWordPage({ params }: { params: Params }) 
     .map((e) => e.created_at)
     .sort()
     .at(-1);
-  const related = (pairIndex?.words ?? [])
-    .filter((w) => w.word !== thread.word)
-    .sort((a, b) => b.association_count - a.association_count)
+  // Related tiles come from the pair's feed sample (it carries emoji and an
+  // image id per card, which the pair index doesn't); counts join in from the
+  // index. One card per word, ranked by association count.
+  const counts = new Map(
+    (pairIndex?.words ?? []).map((w) => [w.word, w.association_count]),
+  );
+  const byWord = new Map<string, (typeof pairCards)[number]>();
+  for (const c of pairCards) {
+    if (c.word !== thread.word && !byWord.has(c.word)) byWord.set(c.word, c);
+  }
+  const related = [...byWord.values()]
+    .sort((a, b) => (counts.get(b.word) ?? 0) - (counts.get(a.word) ?? 0))
     .slice(0, 8);
 
   return (
@@ -152,15 +165,35 @@ export default async function CommunityWordPage({ params }: { params: Params }) 
               {/* Plain word links: the sticky-view middleware routes them to
                   the visitor's chosen view, so community-mode readers land on
                   the next thread. */}
-              {related.map((w) => (
+              {related.map((c) => (
                 <Link
                   className="wchip"
-                  key={w.word}
-                  href={`/${pair}/${encodeURIComponent(w.word)}`}
+                  key={c.word}
+                  href={`/${pair}/${encodeURIComponent(c.word)}`}
                   dir="auto"
                 >
-                  {w.word}
-                  <span className="cnt">{w.association_count}</span>
+                  {c.image_id ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      className="wthumb"
+                      src={imageUrl(c.image_id)}
+                      alt=""
+                      loading="lazy"
+                    />
+                  ) : (
+                    c.word_info?.emoji && (
+                      <span className="wemoji">{c.word_info.emoji}</span>
+                    )
+                  )}
+                  <span className="wlabel">
+                    {c.word_info?.emoji && c.image_id && (
+                      <span className="wemoji">{c.word_info.emoji} </span>
+                    )}
+                    {c.word}
+                  </span>
+                  {counts.has(c.word) && (
+                    <span className="cnt">{counts.get(c.word)}</span>
+                  )}
                 </Link>
               ))}
             </div>

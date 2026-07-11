@@ -174,6 +174,22 @@ export async function getFeedCards(limit = PAGE_SIZE): Promise<FeedCard[] | null
   }
 }
 
+// Server-side sample of one pair's feed, for the community page's related
+// strip (emoji + image previews). Garnish only — swallows all failures.
+export async function getPairCards(
+  pair: string,
+  limit = 48,
+): Promise<FeedCard[]> {
+  try {
+    const data = await getJson<FeedData>(
+      `/public/cards?pair=${encodeURIComponent(pair)}&limit=${limit}`,
+    );
+    return data?.cards ?? [];
+  } catch {
+    return [];
+  }
+}
+
 // Client-side fetch of one page of the deck feed (VocabCards#208/#209 + the
 // full-deck browse). `pair` null is the cross-pair feed; a slug filters to one
 // pair. `page` is 1-based and paginates the *whole* corpus via offset — the
