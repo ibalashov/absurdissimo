@@ -118,6 +118,7 @@ export default function DeckClient({
   totalCards,
   totalWords,
   initialSel,
+  allView = false,
 }: {
   pairs: PairSummary[];
   cards: FeedCard[] | null;
@@ -128,13 +129,19 @@ export default function DeckClient({
   // pair slug on "/it-en" (see the header comment). The route is the source
   // of truth: everything below derives from this one value.
   initialSel: string;
+  // Pair route reached from the All view (`?all=1`): the flag filter is its
+  // own axis and picking a pair must not move it, so the chips stay on "All"
+  // and every group stays listed (see [pair]/page.tsx).
+  allView?: boolean;
 }) {
   const router = useRouter();
   const sel = initialSel;
-  // The flag chip carrying the accent outline: exactly one always does —
-  // "All" (null) on "/", the language chip on "/it", and on a pair route the
-  // pair's studied-language chip. Pure render-time derivation from the slug.
-  const activeChip = sel === "all" ? null : sel.split("-")[0];
+  // The flag chip carrying the accent outline: exactly one always does — it
+  // reflects exactly which language groups are listed below. "All" (null) on
+  // "/" and on All-view pair routes; the language chip on "/it" and on a pair
+  // picked from its language's view. Pure render-time derivation, so the SSR
+  // HTML is already correct and the outline never jumps.
+  const activeChip = sel === "all" || allView ? null : sel.split("-")[0];
   // Does a pair belong to the current selection? This one predicate serves
   // the pager total, the search matches, and the client-side feed fallback,
   // across all three slug shapes.
@@ -288,9 +295,10 @@ export default function DeckClient({
 
   // Record the sidebar choice for the session before navigating away, so
   // middleware.ts can rewrite "/" to it — any selection slug shape: "all"
-  // (falls through to the real "/"), a language code, or a pair. A session
-  // cookie (no Max-Age): the selection sticks until the browser/tab closes or
-  // the user picks something else.
+  // (falls through to the real "/"), a language code, a pair, or a pair with
+  // its All-view filter context ("fr-ru+all" → rewrite to /fr-ru?all=1). A
+  // session cookie (no Max-Age): the selection sticks until the browser/tab
+  // closes or the user picks something else.
   function rememberSel(slug: string) {
     if (typeof document !== "undefined") {
       document.cookie = `${SEL_COOKIE}=${slug}; path=/; SameSite=Lax`;
@@ -493,8 +501,10 @@ export default function DeckClient({
             {/* Pairs grouped by studied language: a header row (flag + name +
                 per-language total), then indented "in ⟨target⟩" rows linking
                 to the pair routes. The title + "in ⟨language⟩" phrasing is
-                what makes the study direction self-decoding. A language route
-                hides the other groups. */}
+                what makes the study direction self-decoding. Rows preserve the
+                flag-filter context they're clicked in: from an All view they
+                carry ?all=1 (and the sticky cookie the matching "+all"), so
+                picking a pair never moves the flag filter. */}
             <div className="pair-filter">
               {visibleGroups.map((g) => (
                 <div key={g.code} className="lang-group">
@@ -510,11 +520,20 @@ export default function DeckClient({
                   {g.pairs.map((p) => (
                     <Link
                       key={p.pair}
-                      href={`/${p.pair}`}
+                      href={
+                        activeChip === null && cards !== null
+                          ? `/${p.pair}?all=1`
+                          : `/${p.pair}`
+                      }
                       onClick={
                         cards === null
                           ? undefined
-                          : () => rememberSel(p.pair)
+                          : () =>
+                              rememberSel(
+                                activeChip === null
+                                  ? `${p.pair}+all`
+                                  : p.pair,
+                              )
                       }
                       aria-current={
                         cards !== null && sel === p.pair

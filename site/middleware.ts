@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { AUTH_COOKIE, communityAllowed, VIEW_COOKIE } from "@/lib/preview";
 
 // The sticky selection slugs the deck sidebar writes to the `pair` cookie
-// that rewrite "/": a pair ("it-en") or a studied-language code ("it",
-// VocabCards#328). "all" deliberately fails this test and falls through to
-// the real "/".
-const STICKY_SEL = /^[a-z]{2}(?:-[a-z]{2})?$/;
+// that rewrite "/": a pair ("it-en"), a studied-language code ("it",
+// VocabCards#328), or a pair picked from the All view ("it-en+all" →
+// /it-en?all=1, so the flag filter is restored along with the pair). "all"
+// deliberately fails this test and falls through to the real "/".
+const STICKY_SEL = /^([a-z]{2}(?:-[a-z]{2})?)(\+all)?$/;
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -18,9 +19,11 @@ export async function middleware(req: NextRequest) {
   // the one indexable page, so its static rendering and SEO are untouched.
   if (pathname === "/") {
     const sel = req.cookies.get("pair")?.value;
-    if (sel && STICKY_SEL.test(sel)) {
+    const m = sel ? STICKY_SEL.exec(sel) : null;
+    if (m) {
       const url = req.nextUrl.clone();
-      url.pathname = `/${sel}`;
+      url.pathname = `/${m[1]}`;
+      if (m[2]) url.searchParams.set("all", "1");
       return NextResponse.rewrite(url);
     }
     return NextResponse.next();
