@@ -9,7 +9,6 @@ import {
   fetchDeckPage,
   fetchPairsLive,
   imageUrl,
-  LANG_PATTERN,
   languageFlag,
   languageName,
   PAGE_SIZE,
@@ -132,7 +131,6 @@ export default function DeckClient({
 }) {
   const router = useRouter();
   const sel = initialSel;
-  const isLangSel = LANG_PATTERN.test(sel);
   // The flag chip carrying the accent outline: exactly one always does —
   // "All" (null) on "/", the language chip on "/it", and on a pair route the
   // pair's studied-language chip. Pure render-time derivation from the slug.
@@ -163,10 +161,12 @@ export default function DeckClient({
   }, []);
   const pairsView = livePairs ?? pairs;
   const langGroups = useMemo(() => groupBySource(pairsView), [pairsView]);
-  // A language route shows only its own group; "all" and pair routes show
-  // every group (on a pair route the pair's row carries aria-current).
-  const visibleGroups = isLangSel
-    ? langGroups.filter((g) => g.code === sel)
+  // The outline and the narrowing must never disagree: whenever a chip is
+  // outlined (a language OR a pair route), only that language's group is
+  // listed — a pair route showing every group read as "the filter stopped
+  // working". "All" shows everything.
+  const visibleGroups = activeChip
+    ? langGroups.filter((g) => g.code === activeChip)
     : langGroups;
   const totalCardsView = livePairs
     ? livePairs.reduce((n, p) => n + p.association_count, 0)
