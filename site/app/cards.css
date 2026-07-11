@@ -9,11 +9,8 @@
   justify-content: space-between;
   padding: 1.25rem 2rem;
   border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
-  background: rgba(10,10,10,0.85);
-  backdrop-filter: blur(12px);
-  z-index: 10;
+  /* Scrolls away with the page — deliberately not sticky (2026-07-11). */
+  background: var(--bg);
 }
 .nav-brand {
   display: flex;

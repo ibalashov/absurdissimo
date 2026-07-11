@@ -2,11 +2,8 @@
    Ported from the settled mockup; phase-2 slots (Top sort, score pills, duel
    widget) are deliberately absent. Card tile styles live in globals.css. */
 
-/* STICKY TOOLBAR */
+/* TOOLBAR (scrolls away with the page — deliberately not sticky, 2026-07-11) */
 .topbar {
-  position: sticky;
-  top: 0;
-  z-index: 10;
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -207,7 +204,7 @@
 }
 .shell aside {
   position: sticky;
-  top: 4.2rem;
+  top: 1.2rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
