@@ -28,7 +28,10 @@ export default function DeckShell({
         allView={allView}
       />
       <footer className="deck-footer">
-        <p>Absurdissimo &copy; 2026 Ivan Balashov</p>
+        <Link className="footer-cta" href="/app">
+          Get the app
+        </Link>
+        <p>Absurdissimo &copy; 2026</p>
         <div className="footer-links">
           <Link href="/feedback">Feedback</Link>
           <Link href="/privacy">Privacy Policy</Link>

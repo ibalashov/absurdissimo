@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { NavIdentity } from "@/components/CommunityAuth";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import CardTile from "@/components/CardTile";
@@ -405,9 +406,7 @@ export default function DeckClient({
           >
             +<span className="new-card-label"> New card</span>
           </button>
-          <Link className="top-cta" href="/app">
-            Get the app
-          </Link>
+          <NavIdentity />
         </div>
       </div>
 

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { IdentityChip } from "@/components/CommunityAuth";
 import CommunityThread from "@/components/CommunityThread";
 import PronounceButton from "@/components/PronounceButton";
 import { ViewToggle } from "@/components/ViewToggle";
@@ -105,7 +104,7 @@ export default async function CommunityWordPage({ params }: { params: Params }) 
     <>
       {/* Signed-in visitors get their handle as a chip linking to their own
           profile (#317); signed out, the nav is unchanged. */}
-      <SiteNav identity={<IdentityChip />} />
+      <SiteNav />
       <main className="cards-main community-main">
         <div className="page-topbar">
           <nav className="crumbs" aria-label="Breadcrumb">
