@@ -103,8 +103,6 @@ export default async function CommunityWordPage({ params }: { params: Params }) 
       <main className="cards-main community-main">
         <div className="page-topbar">
           <nav className="crumbs" aria-label="Breadcrumb">
-            <Link href="/">deck</Link>
-            <span className="sep">/</span>
             <Link href={`/${pair}`}>
               {source} → {target}
             </Link>
