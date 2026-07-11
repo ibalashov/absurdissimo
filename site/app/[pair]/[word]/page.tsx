@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import CardImage from "@/components/CardImage";
 import { ClassicCommunityToggle } from "@/components/ClassicCommunityToggle";
 import MnemonicText from "@/components/MnemonicText";
+import PronounceButton from "@/components/PronounceButton";
 import { SiteFooter, SiteNav } from "@/components/chrome";
 import {
   Association,
@@ -13,6 +14,7 @@ import {
   languageName,
   PAIR_PATTERN,
   provenanceLabel,
+  speechLanguageCode,
   WordPageData,
 } from "@/lib/api";
 import "../../cards.css";
@@ -86,6 +88,7 @@ export default async function WordPairPage({ params }: { params: Params }) {
   const target = languageName(data.target_language);
   // word_info describes the word itself, not one card; take the newest.
   const info = cards.find((c) => c.word_info)?.word_info;
+  const speechLang = speechLanguageCode(data.source_language);
 
   return (
     <>
@@ -101,6 +104,9 @@ export default async function WordPairPage({ params }: { params: Params }) {
           <h1>
             {info?.emoji && <span className="word-emoji">{info.emoji}</span>}
             {data.word}
+            {speechLang && (
+              <PronounceButton word={data.word} lang={speechLang} />
+            )}
           </h1>
           <div className="word-meta">
             {info?.transcription && <span>{info.transcription}</span>}
