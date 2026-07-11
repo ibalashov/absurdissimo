@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import CardImage from "@/components/CardImage";
 import CardTile from "@/components/CardTile";
+import { ClassicCommunityToggle } from "@/components/ClassicCommunityToggle";
 import MnemonicText from "@/components/MnemonicText";
 import PronounceButton from "@/components/PronounceButton";
 import { SiteFooter, SiteNav } from "@/components/chrome";
@@ -98,17 +99,22 @@ export default async function CardPage({ params }: { params: Params }) {
     <>
       <SiteNav />
       <main className="card-detail-main">
-        <nav className="crumbs" aria-label="Breadcrumb">
-          <Link href="/">deck</Link>
-          <span className="sep">/</span>
-          <Link href={`/${data.pair}`}>{data.pair}</Link>
-          <span className="sep">/</span>
-          <Link href={wordPath} dir="auto">
-            {data.word}
-          </Link>
-          <span className="sep">/</span>
-          <span className="here">card {card.id}</span>
-        </nav>
+        <div className="page-topbar">
+          <nav className="crumbs" aria-label="Breadcrumb">
+            <Link href="/">deck</Link>
+            <span className="sep">/</span>
+            <Link href={`/${data.pair}`}>{data.pair}</Link>
+            <span className="sep">/</span>
+            <Link href={wordPath} dir="auto">
+              {data.word}
+            </Link>
+            <span className="sep">/</span>
+            <span className="here">card {card.id}</span>
+          </nav>
+          {/* Community links to the word's thread — threads are per-word, so
+              this card's entry lives there. */}
+          <ClassicCommunityToggle pair={data.pair} word={data.word} />
+        </div>
 
         <div className="detail-grid">
           {card.image_id && (

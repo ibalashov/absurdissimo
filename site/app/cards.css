@@ -187,6 +187,10 @@
   color: var(--muted);
   margin-bottom: 1rem;
 }
+/* On the card page the crumbs sit inside the topbar next to the community
+   toggle; the spacing moves to the wrapper so the two stay center-aligned. */
+.page-topbar .crumbs { margin-bottom: 0; }
+.card-detail-main .page-topbar { margin-bottom: 1rem; }
 .crumbs a { color: var(--muted); text-decoration: none; }
 .crumbs a:hover { color: var(--accent); }
 .crumbs .sep { margin: 0 0.35rem; }
