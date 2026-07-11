@@ -255,6 +255,9 @@
 }
 .pronounce-btn:hover { color: var(--accent); border-color: var(--accent); }
 .pronounce-btn.speaking { color: var(--accent); border-color: var(--accent); }
+/* Inside the word-header h1 the button sits next to 3rem type: lift it off
+   the baseline and give it breathing room from the word. */
+.word-header h1 .pronounce-btn { margin-left: 0.6rem; vertical-align: 0.35em; }
 .siblings h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.8rem; }
 .siblings .tile-grid {
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));

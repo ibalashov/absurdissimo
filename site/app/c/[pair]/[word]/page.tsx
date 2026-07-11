@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import CommunityThread from "@/components/CommunityThread";
+import PronounceButton from "@/components/PronounceButton";
 import { ViewToggle } from "@/components/ViewToggle";
 import { SiteFooter, SiteNav } from "@/components/chrome";
 import {
@@ -12,6 +13,7 @@ import {
   imageUrl,
   languageName,
   PAIR_PATTERN,
+  speechLanguageCode,
 } from "@/lib/api";
 import { fetchThreadServer } from "@/lib/community";
 import { communityVisible } from "@/lib/flags";
@@ -70,6 +72,7 @@ export default async function CommunityWordPage({ params }: { params: Params }) 
 
   const source = languageName(thread.source_language);
   const target = languageName(thread.target_language);
+  const speechLang = speechLanguageCode(thread.source_language);
 
   // word_info describes the word itself, not one card; take the newest (same
   // rule as the classic page).
@@ -117,6 +120,9 @@ export default async function CommunityWordPage({ params }: { params: Params }) 
           <h1>
             {info?.emoji && <span className="word-emoji">{info.emoji}</span>}
             {thread.display_word}
+            {speechLang && (
+              <PronounceButton word={thread.display_word} lang={speechLang} />
+            )}
           </h1>
           <div className="word-meta">
             {info?.transcription && <span>{info.transcription}</span>}
