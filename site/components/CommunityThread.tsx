@@ -2,7 +2,9 @@
 
 import { type FormEvent, useEffect, useState } from "react";
 import { absurdityLabel, formatDate, imageUrl } from "@/lib/api";
+import { clearAuth } from "@/lib/auth";
 import MnemonicText from "./MnemonicText";
+import { GoogleSignInButton, HandlePrompt, useAuth } from "./CommunityAuth";
 import {
   addComment,
   castVote,
@@ -64,6 +66,10 @@ function CommentList({
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Comments require sign-in (#307); when signed out the opened panel shows
+  // the sign-in affordance instead of the textarea, and flips to the form the
+  // moment the exchange succeeds. Voting stays anonymous and untouched.
+  const { token } = useAuth();
 
   async function submit() {
     const body = text.trim();
@@ -91,7 +97,17 @@ function CommentList({
           <span>{c.body}</span>
         </div>
       ))}
-      {open ? (
+      {open && !token ? (
+        <div className="comment-form comment-signin">
+          <p className="signin-hint">Sign in with Google to contribute a comment.</p>
+          <GoogleSignInButton />
+          <div className="comment-form-actions">
+            <button className="btn-ghost" onClick={() => setOpen(false)}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : open ? (
         <div className="comment-form">
           <textarea
             rows={2}
@@ -191,6 +207,13 @@ export default function CommunityThread({
 }) {
   const [entries, setEntries] = useState<CommunityEntry[]>(initialEntries);
   const [sort, setSort] = useState<"top" | "newest">("top");
+
+  // Submissions require sign-in (#307): signed out, the composer is replaced
+  // by the Google sign-in affordance. Votes stay anonymous (device-id only).
+  // Composer drafts live here in the parent, so a mid-draft 401 (token
+  // expired → clearAuth) swaps the form for the sign-in gate without losing
+  // the text — it comes back after re-sign-in.
+  const auth = useAuth();
 
   // Composer state.
   const [composerOpen, setComposerOpen] = useState(false);
@@ -316,20 +339,37 @@ export default function CommunityThread({
         </p>
       )}
 
-      {!composerOpen ? (
-        <div className="composer-cta">
+      {!auth.token ? (
+        <div className="composer-cta signin-gate">
           <p>
             <strong>Know a better one?</strong>{" "}
             <span className="hint">
-              Post your own mnemonic — the community votes, and the best
-              becomes the pick.
+              Sign in with Google to contribute your own mnemonic — the
+              community votes, and the best becomes the pick. Voting stays
+              anonymous.
             </span>
           </p>
-          <button className="submit" onClick={() => setComposerOpen(true)}>
-            Suggest your own association
-          </button>
+          <GoogleSignInButton />
         </div>
+      ) : !composerOpen ? (
+        <>
+          {auth.needsHandle && <HandlePrompt placeholder={auth.handle} />}
+          <div className="composer-cta">
+            <p>
+              <strong>Know a better one?</strong>{" "}
+              <span className="hint">
+                Post your own mnemonic — the community votes, and the best
+                becomes the pick.
+              </span>
+            </p>
+            <button className="submit" onClick={() => setComposerOpen(true)}>
+              Suggest your own association
+            </button>
+          </div>
+        </>
       ) : (
+        <>
+          {auth.needsHandle && <HandlePrompt placeholder={auth.handle} />}
       <form className="composer" onSubmit={onSubmit}>
         <h3>Suggest your own association</h3>
         <div className="field">
@@ -368,7 +408,18 @@ export default function CommunityThread({
         </div>
         {submitError && <p className="submit-error">{submitError}</p>}
         <div className="composer-foot">
-          <p className="guideline">Keep it about this word. Be kind and constructive.</p>
+          <p className="guideline">
+            Keep it about this word. Be kind and constructive.
+            {auth.handle && (
+              <>
+                {" "}
+                Posting as <b>{auth.handle}</b> ·{" "}
+                <button type="button" className="signout" onClick={clearAuth}>
+                  sign out
+                </button>
+              </>
+            )}
+          </p>
           <div className="composer-actions">
             <button
               className="btn-ghost"
@@ -384,6 +435,7 @@ export default function CommunityThread({
           </div>
         </div>
       </form>
+        </>
       )}
     </>
   );
