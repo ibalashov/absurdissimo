@@ -19,7 +19,9 @@ export default function AppPage() {
   return (
     <div className="home">
       <nav>
-        <Link className="nav-brand" href="/">
+        {/* prefetch={false}: "/" is cookie-varied by the sticky middleware
+            rewrite — never prefetch it (see DeckClient's brand link). */}
+        <Link className="nav-brand" href="/" prefetch={false}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/icon.png" alt="Absurdissimo icon" />
           Absurdissimo

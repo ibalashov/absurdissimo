@@ -10,7 +10,9 @@ export default function Privacy() {
   return (
     <div className="privacy">
       <div className="wrap">
-        <Link className="back" href="/">
+        {/* prefetch={false}: "/" is cookie-varied by the sticky middleware
+            rewrite — never prefetch it (see DeckClient's brand link). */}
+        <Link className="back" href="/" prefetch={false}>
           ← Back
         </Link>
         <h1>Privacy Policy</h1>

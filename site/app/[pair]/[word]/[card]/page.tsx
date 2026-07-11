@@ -192,7 +192,9 @@ export default async function CardPage({ params }: { params: Params }) {
                 </p>
               )}
             </div>
-            <Link className="back" href="/">
+            {/* prefetch={false}: "/" is cookie-varied by the sticky middleware
+                rewrite — never prefetch it (see DeckClient's brand link). */}
+            <Link className="back" href="/" prefetch={false}>
               ← Back to the deck
             </Link>
           </div>
