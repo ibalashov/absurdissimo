@@ -1,14 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import CardTile from "@/components/CardTile";
 import {
   FeedCard,
   fetchDeckPage,
   fetchPairsLive,
   imageUrl,
+  LANG_PATTERN,
   languageFlag,
   languageName,
   PAGE_SIZE,
@@ -26,33 +27,33 @@ import {
 // becomes plain links to the pair pages.
 //
 // The full deck is browsable by numbered pages: the SSR preload is only page 1
-// (the 48 newest, cross-pair or per-pair), and every other page — plus every
-// page of a pair outside that newest window — is fetched from the API by
-// offset. Pages are cached for the session; a fetch in flight shows a loading
-// note, and page 1 of a pair falls back to client-side filtering of the
-// preloaded deck on failure (never worse than the pre-pagination behavior).
+// (the 48 newest), and every other page — plus every page of a narrowed
+// selection — is fetched from the API by offset (`pair=` or `lang=` on
+// /public/cards, mapped from the slug shape by fetchDeckPage). Pages are
+// cached for the session; a fetch in flight shows a loading note, and page 1
+// of a narrowed selection falls back to client-side filtering of the preloaded
+// deck on failure (never worse than the pre-pagination behavior).
 //
-// The selected pair sticks for the session via the `pair` cookie: picking a
-// pair or "All pairs" in the sidebar writes it (rememberPair below), and
-// `middleware.ts` reads it to rewrite "/" to that pair's deck at the edge — so
-// navigating home (the logo, the back button) keeps the pair with no flash and
-// no client redirect. Only those sidebar actions change it; merely viewing
-// a card or a pair deck (arriving by link) never rewrites the cookie.
+// ONE selection system (VocabCards#315 + #328): the deck's selection is a
+// single slug with three shapes — "all" (cross-pair), "it" (all of a studied
+// language's pairs, ISO 639-1 as in pair slugs), "it-en" (one pair) — and that
+// slug IS the route: "/", "/it" and "/it-en" all render this deck with the
+// selection preselected (the `[pair]` catch-all accepts both slug shapes).
+// Selecting anything in the sidebar navigates rather than mutating local
+// state, so the filter lives in the URL, survives the back button, and the
+// active chip/row is knowable at render time — no hydration flip, no highlight
+// jump.
 //
-// The sidebar groups pairs by studied (source) language under a flag-chip row
-// (VocabCards#315): picking a flag narrows the deck to all of that language's
-// pairs combined, at `/?lang=<code>` (ISO 639-1, as in pair slugs). The route
-// stays the source of truth for the filter, but `/` must remain static (ISR),
-// so the server component never reads searchParams — the `lang` param is read
-// client-side by LangSync below (useSearchParams inside its own Suspense
-// boundary, so nothing outside that null-rendering leaf deopts). A flag chip
-// also writes the pair cookie to "all", otherwise the middleware's sticky-pair
-// rewrite of "/" would swallow the lang narrowing. Language-narrowed state is
-// URL-only — deliberately not session-sticky.
+// The selection sticks for the session via the `pair` cookie, one value of any
+// slug shape, written onClick by the sidebar (rememberSel below).
+// `middleware.ts` rewrites "/" to `/${cookie}` for pair and language shapes
+// alike, decided at the edge before any HTML is sent (no flash, no client
+// redirect); "all" falls through to the real "/". Only sidebar clicks change
+// the cookie — arriving at a deck URL by link never rewrites it.
 
-// Session cookie holding the sticky pair slug (or "all" for the cross-pair
-// deck). Name must match the cookie read in middleware.ts.
-const PAIR_COOKIE = "pair";
+// Session cookie holding the sticky selection slug ("all" | "it" | "it-en").
+// Name must match the cookie read in middleware.ts.
+const SEL_COOKIE = "pair";
 
 function pairCode(pair: string): string {
   return pair.toUpperCase().replace("-", " → ");
@@ -86,21 +87,9 @@ function pageList(current: number, count: number): (number | "gap")[] {
   return out;
 }
 
-// Reports the `?lang=` search param up to DeckClient. useSearchParams on a
-// static page must sit under a Suspense boundary; isolating it in this
-// null-rendering leaf keeps the rest of the deck statically prerendered —
-// wrapping DeckClient itself would put the whole deck behind the fallback.
-function LangSync({ onLang }: { onLang: (lang: string | null) => void }) {
-  const lang = useSearchParams().get("lang");
-  useEffect(() => {
-    onLang(lang);
-  }, [lang, onLang]);
-  return null;
-}
-
 // Pairs grouped by studied (source) language, in API order. `code` is the
 // ISO 639-1 code from the pair slug ("it-en" → "it") — the same code the
-// `?lang=` URL param and the server's `lang` filter use.
+// `/it` route and the server's `lang` filter use.
 interface LangGroup {
   code: string;
   name: string;
@@ -129,27 +118,32 @@ export default function DeckClient({
   words,
   totalCards,
   totalWords,
-  initialPair,
+  initialSel,
 }: {
   pairs: PairSummary[];
   cards: FeedCard[] | null;
   words: WordIndexEntry[];
   totalCards: number;
   totalWords: number;
-  // Which pair the sidebar filter starts on: "all" on the home route (`/`) or
-  // a pair slug on `/[pair]`. The route is the source of truth for the pair —
-  // selecting one navigates rather than mutating local state, so the filter
-  // lives in the URL and survives the back button.
-  initialPair: string;
+  // The route's selection slug — "all" on "/", a language code on "/it", a
+  // pair slug on "/it-en" (see the header comment). The route is the source
+  // of truth: everything below derives from this one value.
+  initialSel: string;
 }) {
   const router = useRouter();
-  const pairSel = initialPair;
+  const sel = initialSel;
+  const isLangSel = LANG_PATTERN.test(sel);
+  // The flag chip carrying the accent outline: exactly one always does —
+  // "All" (null) on "/", the language chip on "/it", and on a pair route the
+  // pair's studied-language chip. Pure render-time derivation from the slug.
+  const activeChip = sel === "all" ? null : sel.split("-")[0];
+  // Does a pair belong to the current selection? This one predicate serves
+  // the pager total, the search matches, and the client-side feed fallback,
+  // across all three slug shapes.
+  const inSel = (pairSlug: string) =>
+    sel === "all" || pairSlug === sel || pairSlug.startsWith(`${sel}-`);
   const [query, setQuery] = useState("");
   const q = query.trim().toLowerCase();
-
-  // The `?lang=` param, reported by LangSync after hydration (null while
-  // prerendered, so the static "/" HTML is always the full deck).
-  const [langParam, setLangParam] = useState<string | null>(null);
 
   // The count props (pair chips, corpus stats, pager total) come from the
   // hour-cached SSR render, but the feed's cards are fetched live — so freshly
@@ -169,20 +163,11 @@ export default function DeckClient({
   }, []);
   const pairsView = livePairs ?? pairs;
   const langGroups = useMemo(() => groupBySource(pairsView), [pairsView]);
-  // The active language filter: only meaningful on the home route (a pair
-  // route is already narrower), only for codes that exist in the corpus (an
-  // unknown ?lang= is ignored rather than showing an empty deck), and never
-  // in the degraded cards === null mode (no chips there to undo it).
-  const langSel =
-    cards !== null &&
-    pairSel === "all" &&
-    langParam &&
-    langGroups.some((g) => g.code === langParam)
-      ? langParam
-      : null;
-  const langGroup = langSel
-    ? langGroups.find((g) => g.code === langSel)!
-    : null;
+  // A language route shows only its own group; "all" and pair routes show
+  // every group (on a pair route the pair's row carries aria-current).
+  const visibleGroups = isLangSel
+    ? langGroups.filter((g) => g.code === sel)
+    : langGroups;
   const totalCardsView = livePairs
     ? livePairs.reduce((n, p) => n + p.association_count, 0)
     : totalCards;
@@ -191,45 +176,38 @@ export default function DeckClient({
     : totalWords;
 
   // Current page (1-based). Client state, not a URL param: reading it via
-  // useSearchParams would deopt the indexable "/" out of static SSR. A pair
-  // change is a full navigation, which remounts this and resets to page 1.
-  // A lang-chip change is same-route (`/` → `/?lang=…`) and does NOT remount,
-  // so the effect below resets the page instead.
+  // useSearchParams would deopt the indexable "/" out of static SSR. Any
+  // selection change is a full navigation, which remounts this and resets to
+  // page 1.
   const [page, setPage] = useState(1);
-  useEffect(() => {
-    setPage(1);
-  }, [langSel]);
 
-  // Session cache of fetched pages, keyed `${pairSel}#${page}`; "error" pins
-  // the fallback so a failed page isn't refetched on every re-render.
+  // Session cache of fetched pages, keyed `${sel}#${page}` (slug shapes are
+  // distinct strings, so one scheme covers all three); "error" pins the
+  // fallback so a failed page isn't refetched on every re-render.
   const [pageCache, setPageCache] = useState<
     Record<string, FeedCard[] | "error">
   >({});
 
-  // Total cards for the current selection: site-wide for "all", the language's
-  // pairs combined for a flag chip, else the pair's own corpus. Drives the
-  // numbered pager. (The count includes the few image-less rows the feed drops
-  // server-side, so the last page can come back short — handled by clamping
-  // the pager to what the API returns.)
-  const total = langGroup
-    ? langGroup.total
-    : pairSel === "all"
-      ? totalCardsView
-      : (pairsView.find((p) => p.pair === pairSel)?.association_count ?? 0);
+  // Total cards for the current selection, driving the numbered pager. (The
+  // count includes the few image-less rows the feed drops server-side, so the
+  // last page can come back short — handled by clamping the pager to what the
+  // API returns.)
+  const total = pairsView
+    .filter((p) => inSel(p.pair))
+    .reduce((n, p) => n + p.association_count, 0);
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  // "lang=" can't collide with pair slugs (always "xx-yy"), so one cache holds
-  // both kinds of selection.
-  const cacheKey = langSel ? `lang=${langSel}#${page}` : `${pairSel}#${page}`;
-  // Page 1 of the cross-pair deck is the SSR preload; never refetch it.
-  const isPreloadedPage = pairSel === "all" && !langSel && page === 1;
+  const cacheKey = `${sel}#${page}`;
+  // The one selection asymmetry: page 1 of the cross-pair deck is the SSR
+  // preload; never refetch it.
+  const isPreloadedPage = sel === "all" && page === 1;
   const cached = pageCache[cacheKey];
 
   // Fetch the current page unless it's the SSR preload or already cached.
   useEffect(() => {
     if (cards === null || isPreloadedPage || pageCache[cacheKey]) return;
     let cancelled = false;
-    fetchDeckPage(pairSel === "all" ? null : pairSel, page, langSel)
+    fetchDeckPage(sel, page)
       .then((fetched) => {
         if (!cancelled) setPageCache((c) => ({ ...c, [cacheKey]: fetched }));
       })
@@ -239,26 +217,23 @@ export default function DeckClient({
     return () => {
       cancelled = true;
     };
-  }, [cacheKey, isPreloadedPage, cards, pageCache, pairSel, page, langSel]);
+  }, [cacheKey, isPreloadedPage, cards, pageCache, sel, page]);
 
   const loading = cards !== null && !isPreloadedPage && cached === undefined;
 
   // The cards this page shows: the SSR preload for "all" page 1, the fetched
-  // page once cached, or — only for page 1 of a pair or language while loading
-  // / on error — a client-side filter of the preloaded cross-pair deck (for a
-  // language, this is also the graceful degradation while the server's `lang`
-  // filter, VocabCards#314, isn't deployed). Later pages have nothing to fall
-  // back to.
+  // page once cached, or — only for page 1 of a narrowed selection while
+  // loading / on error — a client-side filter of the preloaded cross-pair
+  // deck. Later pages have nothing to fall back to.
   const activeCards = useMemo(() => {
     if (cards === null) return null;
     if (isPreloadedPage) return cards;
     if (cached && cached !== "error") return cached;
-    if (page === 1 && langSel)
-      return cards.filter((c) => c.pair.startsWith(`${langSel}-`));
-    if (page === 1 && pairSel !== "all")
-      return cards.filter((c) => c.pair === pairSel);
+    if (page === 1 && sel !== "all")
+      return cards.filter((c) => inSel(c.pair));
     return [];
-  }, [cards, isPreloadedPage, cached, page, pairSel, langSel]);
+    // inSel is a render-scoped closure over sel, which is in the deps.
+  }, [cards, isPreloadedPage, cached, page, sel]);
 
   const shown = useMemo(
     () =>
@@ -269,16 +244,11 @@ export default function DeckClient({
   const wordMatches = useMemo(() => {
     if (!q) return [];
     return words
-      .filter(
-        (w) =>
-          (langSel
-            ? w.pair.startsWith(`${langSel}-`)
-            : pairSel === "all" || w.pair === pairSel) &&
-          w.word.toLowerCase().includes(q),
-      )
+      .filter((w) => inSel(w.pair) && w.word.toLowerCase().includes(q))
       .sort((a, b) => b.association_count - a.association_count)
       .slice(0, 12);
-  }, [words, pairSel, q]);
+    // inSel is a render-scoped closure over sel, which is in the deps.
+  }, [words, sel, q]);
 
   function randomCard() {
     if (!shown.length) return;
@@ -317,12 +287,13 @@ export default function DeckClient({
   }, [newCardOpen]);
 
   // Record the sidebar choice for the session before navigating away, so
-  // middleware.ts can rewrite "/" to it. A session cookie (no Max-Age): the
-  // pair sticks until the browser/tab closes or the user picks another pair or
-  // "All pairs" (which writes "all", falling through to the real "/").
-  function rememberPair(slug: string) {
+  // middleware.ts can rewrite "/" to it — any selection slug shape: "all"
+  // (falls through to the real "/"), a language code, or a pair. A session
+  // cookie (no Max-Age): the selection sticks until the browser/tab closes or
+  // the user picks something else.
+  function rememberSel(slug: string) {
     if (typeof document !== "undefined") {
-      document.cookie = `${PAIR_COOKIE}=${slug}; path=/; SameSite=Lax`;
+      document.cookie = `${SEL_COOKIE}=${slug}; path=/; SameSite=Lax`;
     }
   }
 
@@ -382,9 +353,6 @@ export default function DeckClient({
 
   return (
     <>
-      <Suspense fallback={null}>
-        <LangSync onLang={setLangParam} />
-      </Suspense>
       <div className="topbar">
         <Link className="brand" href="/">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -477,36 +445,34 @@ export default function DeckClient({
         <aside>
           <div className="panel">
             <h3>What are you learning?</h3>
-            {/* Flag chips: "All" plus one per studied language. The active
-                chip IS the language-level filter (no "All ⟨language⟩"
-                sub-row); "All" restores the full grouped view. Omitted in the
-                degraded cards === null mode, where the groups below are plain
-                links to the pair pages. prefetch={false} on every chip: their
-                middleware outcome depends on the pair cookie written onClick,
-                and a prefetch runs the middleware with the OLD cookie — for
-                "All" that would cache the sticky pair's deck under "/"
-                (prod-only: prefetch is off in dev); the ?lang= URLs are also
-                shielded by the middleware's lang bail. */}
+            {/* Flag chips: "All" plus one per studied language, linking to
+                "/" and "/xx". Exactly one always carries the accent outline
+                (activeChip): the language chip on its own route AND on its
+                pairs' routes. Omitted in the degraded cards === null mode,
+                where the groups below are plain links to the pair pages.
+                Prefetch: the language chips are plain path links whose target
+                never depends on the cookie, so default prefetch is safe; "All"
+                keeps prefetch={false} because the middleware rewrites "/" by
+                the cookie, and a prefetch runs it with the OLD cookie — the
+                stale payload would be cached under "/" (prod-only: prefetch
+                is off in dev). */}
             {cards !== null && (
               <nav className="lang-chips" aria-label="Studied languages">
                 <Link
                   className="lang-chip-all"
                   href="/"
                   prefetch={false}
-                  onClick={() => rememberPair("all")}
-                  aria-current={
-                    pairSel === "all" && !langSel ? "true" : undefined
-                  }
+                  onClick={() => rememberSel("all")}
+                  aria-current={activeChip === null ? "true" : undefined}
                 >
                   All
                 </Link>
                 {langGroups.map((g) => (
                   <Link
                     key={g.code}
-                    href={`/?lang=${g.code}`}
-                    prefetch={false}
-                    onClick={() => rememberPair("all")}
-                    aria-current={langSel === g.code ? "true" : undefined}
+                    href={`/${g.code}`}
+                    onClick={() => rememberSel(g.code)}
+                    aria-current={activeChip === g.code ? "true" : undefined}
                     aria-label={`Only ${languageName(g.name)}`}
                     title={languageName(g.name)}
                   >
@@ -518,10 +484,10 @@ export default function DeckClient({
             {/* Pairs grouped by studied language: a header row (flag + name +
                 per-language total), then indented "in ⟨target⟩" rows linking
                 to the pair routes. The title + "in ⟨language⟩" phrasing is
-                what makes the study direction self-decoding. A selected flag
+                what makes the study direction self-decoding. A language route
                 hides the other groups. */}
             <div className="pair-filter">
-              {(langGroup ? [langGroup] : langGroups).map((g) => (
+              {visibleGroups.map((g) => (
                 <div key={g.code} className="lang-group">
                   <div className="lang-group-head">
                     <span>
@@ -539,10 +505,10 @@ export default function DeckClient({
                       onClick={
                         cards === null
                           ? undefined
-                          : () => rememberPair(p.pair)
+                          : () => rememberSel(p.pair)
                       }
                       aria-current={
-                        cards !== null && pairSel === p.pair
+                        cards !== null && sel === p.pair
                           ? "true"
                           : undefined
                       }

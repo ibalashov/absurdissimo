@@ -5,8 +5,9 @@ import "./deck.css";
 
 // The home page is the product surface: a cross-pair deck of recent mnemonic
 // cards (ranked-deck layout, design B — VocabCards#194). The marketing page
-// lives at /app. This stays the site's one indexable page. The per-pair route
-// /[pair] renders the same deck filtered to that pair.
+// lives at /app. This stays the site's one indexable page. The [pair]
+// catch-all renders the same deck narrowed to a pair (/it-en) or a studied
+// language (/it).
 
 // Must match REVALIDATE_SECONDS in lib/api.ts (Next requires a literal here).
 export const revalidate = 3600;
@@ -19,5 +20,5 @@ export const metadata: Metadata = {
 
 export default async function Home() {
   const data = await loadDeckData();
-  return <DeckShell data={data} initialPair="all" />;
+  return <DeckShell data={data} initialSel="all" />;
 }

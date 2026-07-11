@@ -2,15 +2,16 @@ import Link from "next/link";
 import DeckClient from "@/components/DeckClient";
 import { DeckData } from "@/lib/api";
 
-// The full deck surface shared by the home page and the per-pair route.
-// `initialPair` is "all" on `/` and the pair slug on `/[pair]`, selecting the
-// sidebar filter so both URLs render the same deck.
+// The full deck surface shared by the deck routes. `initialSel` is the
+// route's selection slug — "all" on `/`, a studied-language code on `/it`, a
+// pair slug on `/it-en` — so every URL renders the same deck with its
+// selection preselected.
 export default function DeckShell({
   data,
-  initialPair,
+  initialSel,
 }: {
   data: DeckData;
-  initialPair: string;
+  initialSel: string;
 }) {
   return (
     <>
@@ -20,7 +21,7 @@ export default function DeckShell({
         words={data.words}
         totalCards={data.totalCards}
         totalWords={data.totalWords}
-        initialPair={initialPair}
+        initialSel={initialSel}
       />
       <footer className="deck-footer">
         <p>Absurdissimo &copy; 2026 Ivan Balashov</p>

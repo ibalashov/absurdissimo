@@ -1,30 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AUTH_COOKIE, communityAllowed, VIEW_COOKIE } from "@/lib/preview";
 
-const PAIR = /^[a-z]{2}-[a-z]{2}$/;
+// The sticky selection slugs the deck sidebar writes to the `pair` cookie
+// that rewrite "/": a pair ("it-en") or a studied-language code ("it",
+// VocabCards#328). "all" deliberately fails this test and falls through to
+// the real "/".
+const STICKY_SEL = /^[a-z]{2}(?:-[a-z]{2})?$/;
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Home-route stickiness (no flash). When the visitor has picked a language
-  // pair this session — the `pair` cookie, written by the deck sidebar —
-  // rewrite "/" to that pair's deck, decided at the edge before any HTML is
-  // sent. Cookieless requests (crawlers, first-time visitors) fall through to
-  // the real all-pairs "/", the one indexable page, so its static rendering
-  // and SEO are untouched.
-  //
-  // An explicit `?lang=` in the URL (a sidebar flag chip, VocabCards#315) is a
-  // fresh filter choice, and the rewrite must never outrank it — bail before
-  // reading the cookie. This also makes prefetched `/?lang=…` payloads correct
-  // regardless of cookie timing: prefetch runs this middleware before the
-  // click writes `pair=all`, and a rewrite here would cache the old pair's
-  // deck under the lang URL, silently swallowing the narrowing on click.
+  // Home-route stickiness (no flash). When the visitor has picked a deck
+  // selection this session — the `pair` cookie, written onClick by the deck
+  // sidebar — rewrite "/" to that selection's route (`/it-en` or `/it`),
+  // decided at the edge before any HTML is sent. Cookieless requests
+  // (crawlers, first-time visitors) fall through to the real all-pairs "/",
+  // the one indexable page, so its static rendering and SEO are untouched.
   if (pathname === "/") {
-    if (req.nextUrl.searchParams.has("lang")) return NextResponse.next();
-    const pair = req.cookies.get("pair")?.value;
-    if (pair && PAIR.test(pair)) {
+    const sel = req.cookies.get("pair")?.value;
+    if (sel && STICKY_SEL.test(sel)) {
       const url = req.nextUrl.clone();
-      url.pathname = `/${pair}`;
+      url.pathname = `/${sel}`;
       return NextResponse.rewrite(url);
     }
     return NextResponse.next();
