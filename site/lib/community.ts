@@ -14,6 +14,10 @@ export interface CommunityComment {
   entry_id: number;
   body: string;
   author_handle: string;
+  author_id: number | null; // profile link (#317); null for legacy anonymous
+  // Avatar emoji (#330) — null for legacy anonymous, same rule as author_id;
+  // optional until the server side is deployed.
+  avatar?: string | null;
   created_at: string;
 }
 
@@ -26,6 +30,10 @@ export interface CommunityEntry {
   image_id: string | null;
   absurdity: string | null;
   author_handle: string | null; // null for AI entries
+  author_id: number | null; // profile link (#317); null for AI + legacy anonymous
+  // Avatar emoji (#330) — null for AI + legacy anonymous, same rule as
+  // author_id; optional until the server side is deployed.
+  avatar?: string | null;
   score: number;
   your_vote: number; // -1 | 0 | 1
   is_pick: boolean;
@@ -89,6 +97,52 @@ export async function fetchThreadServer(
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`community thread ${res.status}`);
   return (await res.json()) as CommunityThread;
+}
+
+// Public account profile (VocabCards #317): visible entries newest-first plus
+// a visible-comment count. Keyed by the stable account id — the handle in the
+// URL is a cosmetic slug the page canonicalizes against `handle` here.
+export interface ProfileEntry {
+  id: number;
+  pair: string;
+  word: string; // normalized thread key — links as /c/{pair}/{word}
+  mnemonic: string;
+  // The association's image (#330) for a thumbnail via imageUrl(); null when
+  // the entry has none, optional until the server side is deployed.
+  image_id?: string | null;
+  score: number;
+  created_at: string;
+}
+
+export interface CommunityProfile {
+  id: number;
+  handle: string;
+  // Avatar emoji (#330); optional until the server side is deployed.
+  avatar?: string;
+  created_at: string;
+  entries: ProfileEntry[];
+  comment_count: number;
+}
+
+// Canonical profile path: the id is authoritative; the handle is a cosmetic
+// slug (the profile page redirects to the current one after a rename).
+export function profilePath(id: number, handle: string): string {
+  return `/c/u/${id}/${encodeURIComponent(handle)}`;
+}
+
+// Server-side profile read, same error split as fetchThreadServer: null only
+// on a real 404 (unknown account / device actor) so the route can notFound();
+// throws otherwise so the route can show a soft "unavailable" state.
+export async function fetchProfileServer(
+  id: number,
+): Promise<CommunityProfile | null> {
+  const res = await fetch(`${API_BASE}/community/users/${id}`, {
+    headers: headers(SSR_DEVICE_ID),
+    cache: "no-store",
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`community profile ${res.status}`);
+  return (await res.json()) as CommunityProfile;
 }
 
 // Client read: same thread, but under the visitor's real device id so

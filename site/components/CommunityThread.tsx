@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { type FormEvent, useEffect, useState } from "react";
 import { absurdityLabel, formatDate, imageUrl } from "@/lib/api";
 import { clearAuth } from "@/lib/auth";
+import Avatar from "./Avatar";
 import MnemonicText from "./MnemonicText";
 import { GoogleSignInButton, HandlePrompt, useAuth } from "./CommunityAuth";
 import {
@@ -10,9 +12,36 @@ import {
   castVote,
   CommunityEntry,
   fetchThread,
+  profilePath,
   sortEntries,
   submitEntry,
 } from "@/lib/community";
+
+// Author handle, as a profile link when the author is an account (#317);
+// plain text for AI entries and legacy anonymous authors (author_id null).
+// Account authors also get their avatar disc (#330/#331) — rendered only when
+// the payload actually carries one, so pre-#330 responses stay avatar-free.
+function AuthorHandle({
+  handle,
+  authorId,
+  avatar,
+  className,
+}: {
+  handle: string;
+  authorId: number | null;
+  avatar?: string | null;
+  className: string;
+}) {
+  if (authorId === null) return <span className={className}>{handle}</span>;
+  return (
+    <Link className={className} href={profilePath(authorId, handle)}>
+      {typeof avatar === "string" && (
+        <Avatar emoji={avatar} accountId={authorId} size="sm" />
+      )}
+      {handle}
+    </Link>
+  );
+}
 
 function VoteRail({
   entry,
@@ -93,7 +122,12 @@ function CommentList({
     <div className="comments">
       {entry.comments.map((c) => (
         <div className="comment" key={c.id}>
-          <span className="cwho">{c.author_handle}</span>
+          <AuthorHandle
+            className="cwho"
+            handle={c.author_handle}
+            authorId={c.author_id}
+            avatar={c.avatar}
+          />
           <span>{c.body}</span>
         </div>
       ))}
@@ -182,10 +216,15 @@ function EntryCard({
           </div>
         </div>
         <div className="assoc-meta">
-          {entry.kind === "ai" ? (
+          {entry.kind === "ai" || entry.author_handle === null ? (
             <span className="badge-ai">AI-generated</span>
           ) : (
-            <span className="who">{entry.author_handle}</span>
+            <AuthorHandle
+              className="who"
+              handle={entry.author_handle}
+              authorId={entry.author_id}
+              avatar={entry.avatar}
+            />
           )}
           <span className="dot">·</span>
           <span>{formatDate(entry.created_at)}</span>

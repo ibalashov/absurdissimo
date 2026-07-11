@@ -91,7 +91,70 @@ export function clearAuth(): void {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(HANDLE_KEY);
   localStorage.removeItem(NEEDS_HANDLE_KEY);
+  me = null;
+  mePromise = null;
   notify();
+}
+
+// ---- /auth/me — the signed-in account (VocabCards #317) ---------------------
+
+export interface Me {
+  id: number;
+  handle: string;
+  email: string | null;
+  created_at: string;
+  needs_handle: boolean;
+  // Avatar emoji + the full allowed set for the picker (VocabCards #330).
+  // Optional until the server side is deployed: consumers must treat a
+  // missing field as "no avatar yet", never crash.
+  avatar?: string;
+  avatars?: string[];
+}
+
+// Fetched at most once per page load (and once more after a fresh sign-in):
+// the account id is only known server-side, and a rename from another
+// tab/device may have changed the stored handle. Same store/notify wiring as
+// AuthState, so useSyncExternalStore consumers see updates.
+let me: Me | null = null;
+let mePromise: Promise<void> | null = null;
+
+export function getMe(): Me | null {
+  return me;
+}
+
+export function getServerMe(): null {
+  return null;
+}
+
+// Kick off the once-per-page-load /auth/me fetch. No-op when signed out or
+// already fetched/in flight; a failed fetch clears the latch so a later mount
+// can retry. 401 signs out (expired/revoked token).
+export function ensureMe(): void {
+  if (me || mePromise) return;
+  const token = getToken();
+  if (!token) return;
+  mePromise = (async () => {
+    const res = await fetch(`${API_BASE}/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (getToken() !== token) return; // signed out / re-signed-in meanwhile
+    if (res.status === 401) {
+      clearAuth();
+      return;
+    }
+    if (!res.ok) throw new Error(`auth/me ${res.status}`);
+    const data = (await res.json()) as Me;
+    me = data;
+    // The server is the source of truth for the handle: adopt it (a rename
+    // from another tab/device may have changed it). needs_handle only clears —
+    // a local "0" can mean "skipped this sign-in" (see skipHandlePrompt), and
+    // the /auth/me sync must not resurrect the prompt.
+    localStorage.setItem(HANDLE_KEY, data.handle);
+    if (!data.needs_handle) localStorage.setItem(NEEDS_HANDLE_KEY, "0");
+    notify();
+  })().catch(() => {
+    mePromise = null;
+  });
 }
 
 interface SignInResponse {
@@ -122,12 +185,16 @@ export async function signInWithGoogle(idToken: string): Promise<void> {
   localStorage.setItem(TOKEN_KEY, data.token);
   localStorage.setItem(HANDLE_KEY, data.handle);
   localStorage.setItem(NEEDS_HANDLE_KEY, data.needs_handle ? "1" : "0");
+  // Fresh token → refetch /auth/me (the sign-in response has no account id).
+  me = null;
+  mePromise = null;
   notify();
 }
 
-// One-shot display-handle choice at first sign-in. Throws with the server's
-// message on rejection (400 malformed/profane, 409 taken) so the prompt can
-// surface it inline and let the user retry.
+// Set or rename the display handle (renames allowed since VocabCards #316 —
+// profile URLs are keyed by the account id, so they survive). Throws with the
+// server's message on rejection (400 malformed/profane, 409 taken) so the
+// prompt / rename form can surface it inline and let the user retry.
 export async function chooseHandle(handle: string): Promise<void> {
   const token = getToken();
   if (!token) throw new Error("Please sign in again.");
@@ -145,19 +212,68 @@ export async function chooseHandle(handle: string): Promise<void> {
   }
   if (!res.ok) {
     const detail = (await res.json().catch(() => null))?.detail;
-    if (res.status === 409 && detail === "Handle is already set") {
-      // Chosen from another tab/device meanwhile; nothing left to do here.
-      localStorage.setItem(NEEDS_HANDLE_KEY, "0");
-      notify();
-      return;
-    }
     throw new Error(
       typeof detail === "string" ? detail : `Could not set handle (${res.status})`,
     );
   }
   localStorage.setItem(HANDLE_KEY, handle);
   localStorage.setItem(NEEDS_HANDLE_KEY, "0");
+  if (me) me = { ...me, handle, needs_handle: false };
   notify();
+}
+
+// Pick an avatar from the server's curated set (VocabCards #330/#331).
+// Optimistic: the store's Me flips immediately so every consumer (nav chip,
+// picker highlight) updates without waiting on the network, and rolls back if
+// the request fails. Throws with the server's message (400 out-of-set) so the
+// picker can surface it inline.
+export async function chooseAvatar(avatar: string): Promise<void> {
+  const token = getToken();
+  if (!token) throw new Error("Please sign in again.");
+  const prevAvatar = me?.avatar;
+  if (me) {
+    me = { ...me, avatar };
+    notify();
+  }
+  function rollback(): void {
+    if (me) {
+      me = { ...me, avatar: prevAvatar };
+      notify();
+    }
+  }
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}/auth/avatar`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ avatar }),
+    });
+  } catch (err) {
+    rollback();
+    throw err instanceof Error ? err : new Error("Could not change avatar.");
+  }
+  if (res.status === 401) {
+    clearAuth();
+    throw new Error("Your session expired — please sign in again.");
+  }
+  if (!res.ok) {
+    rollback();
+    const detail = (await res.json().catch(() => null))?.detail;
+    throw new Error(
+      typeof detail === "string"
+        ? detail
+        : `Could not change avatar (${res.status})`,
+    );
+  }
+  // Adopt the server's echo (normally the same value we sent).
+  const data = (await res.json()) as { avatar: string };
+  if (me) {
+    me = { ...me, avatar: data.avatar };
+    notify();
+  }
 }
 
 // The handle prompt is skippable — contributions then carry the anon
