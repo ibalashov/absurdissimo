@@ -193,6 +193,7 @@ export default function CommunityThread({
   const [sort, setSort] = useState<"top" | "newest">("top");
 
   // Composer state.
+  const [composerOpen, setComposerOpen] = useState(false);
   const [keyword, setKeyword] = useState("");
   const [mnemonic, setMnemonic] = useState("");
   const [explanation, setExplanation] = useState("");
@@ -259,6 +260,7 @@ export default function CommunityThread({
       setKeyword("");
       setMnemonic("");
       setExplanation("");
+      setComposerOpen(false);
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "Could not post — try again.");
     } finally {
@@ -314,12 +316,22 @@ export default function CommunityThread({
         </p>
       )}
 
+      {!composerOpen ? (
+        <div className="composer-cta">
+          <p>
+            <strong>Know a better one?</strong>{" "}
+            <span className="hint">
+              Post your own mnemonic — the community votes, and the best
+              becomes the pick.
+            </span>
+          </p>
+          <button className="submit" onClick={() => setComposerOpen(true)}>
+            Suggest your own association
+          </button>
+        </div>
+      ) : (
       <form className="composer" onSubmit={onSubmit}>
         <h3>Suggest your own association</h3>
-        <p className="lead">
-          Got a sound-alike or picture that works better? Post it — the community
-          votes, and the highest-scoring one becomes the pick shown first.
-        </p>
         <div className="field">
           <label htmlFor="kw">Sound-alike keyword</label>
           <input
@@ -357,11 +369,22 @@ export default function CommunityThread({
         {submitError && <p className="submit-error">{submitError}</p>}
         <div className="composer-foot">
           <p className="guideline">Keep it about this word. Be kind and constructive.</p>
-          <button className="submit" type="submit" disabled={submitting || !mnemonic.trim()}>
-            {submitting ? "Posting…" : "Post association"}
-          </button>
+          <div className="composer-actions">
+            <button
+              className="btn-ghost"
+              type="button"
+              onClick={() => setComposerOpen(false)}
+              disabled={submitting}
+            >
+              Cancel
+            </button>
+            <button className="submit" type="submit" disabled={submitting || !mnemonic.trim()}>
+              {submitting ? "Posting…" : "Post association"}
+            </button>
+          </div>
         </div>
       </form>
+      )}
     </>
   );
 }

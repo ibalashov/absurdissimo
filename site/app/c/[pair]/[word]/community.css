@@ -4,6 +4,11 @@
    distinct from the gold accent. */
 
 .community-main {
+  /* Wider than the classic 720px column: the thread's hero grid, compact
+     rows, and related strip all use the width; running text is capped at
+     ~62ch below so lines stay readable. */
+  max-width: 1140px;
+
   --pick: #4ac07a;
   --pick-soft: #4ac07a1f;
   --accent-line: #f5c54259;
@@ -508,4 +513,50 @@
   font-family: var(--mono);
   font-size: 0.66rem;
   color: var(--muted);
+}
+
+/* keep prose lines readable at the wider page width */
+.assoc .mnemonic,
+.assoc .explanation {
+  max-width: 62ch;
+}
+
+/* collapsed-composer CTA card */
+.composer-cta {
+  border: 1px dashed var(--border);
+  border-radius: 13px;
+  padding: 1rem 1.2rem;
+  margin-top: 1.4rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
+  align-items: center;
+  justify-content: space-between;
+}
+.composer-cta p {
+  margin: 0;
+}
+.composer-cta .hint {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+.composer-actions {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+/* related tiles: image preview / emoji */
+.wchip .wthumb {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  object-fit: cover;
+}
+.wchip .wemoji {
+  font-size: 1rem;
+}
+.wchip .wlabel {
+  white-space: nowrap;
 }
