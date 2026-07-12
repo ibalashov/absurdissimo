@@ -216,6 +216,27 @@
   color: var(--muted);
 }
 
+/* Current pack: drag-to-reorder tiles. The whole tile is the drag handle;
+   the inner image would otherwise hijack the drag as its own source. */
+.pack-tile-drag {
+  cursor: grab;
+}
+
+.pack-tile-drag img {
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+.pack-tile-drag.dragging {
+  cursor: grabbing;
+  opacity: 0.4;
+}
+
+.pack-tile-drag.drop-target {
+  outline: 2px dashed var(--accent);
+  outline-offset: 3px;
+}
+
 /* Generate pane: a single result tile, deck-tile sized. */
 .gen-result {
   max-width: 280px;

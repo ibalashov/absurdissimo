@@ -4,23 +4,45 @@
 // classes + MnemonicText/CardImage), plus an actions row instead of a link.
 // Shared by all three starter-pack sub-pages (current pack, browse, generate).
 
-import { type ReactNode } from "react";
+import { type DragEventHandler, type ReactNode } from "react";
 import CardImage from "@/components/CardImage";
 import MnemonicText from "@/components/MnemonicText";
 import { adminImageUrl, type AdminCard } from "@/lib/admin";
+
+// Optional drag wiring — used by the current-pack sub-page to reorder tiles
+// via native HTML5 drag-and-drop; the other panes leave these unset.
+export interface AdminTileDrag {
+  className?: string;
+  draggable?: boolean;
+  onDragStart?: DragEventHandler;
+  onDragOver?: DragEventHandler;
+  onDragLeave?: DragEventHandler;
+  onDrop?: DragEventHandler;
+  onDragEnd?: DragEventHandler;
+}
 
 export default function AdminTile({
   card,
   corner,
   children,
+  drag,
 }: {
   card: AdminCard;
   corner?: ReactNode;
   children?: ReactNode;
+  drag?: AdminTileDrag;
 }) {
   const img = card.image_url ? adminImageUrl(card.image_url) : null;
   return (
-    <div className="card admin-tile">
+    <div
+      className={`card admin-tile${drag?.className ? ` ${drag.className}` : ""}`}
+      draggable={drag?.draggable}
+      onDragStart={drag?.onDragStart}
+      onDragOver={drag?.onDragOver}
+      onDragLeave={drag?.onDragLeave}
+      onDrop={drag?.onDrop}
+      onDragEnd={drag?.onDragEnd}
+    >
       <span className="card-media">
         {img ? (
           <CardImage
