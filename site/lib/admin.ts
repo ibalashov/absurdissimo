@@ -177,6 +177,7 @@ export function generateAdminCard(
   word: string,
   pair: string,
   avoidAssociationId?: number,
+  absurdityLevel?: string,
 ): Promise<AdminCard> {
   return adminFetch<AdminCard>(`/admin/cards/generate`, {
     method: "POST",
@@ -186,8 +187,29 @@ export function generateAdminCard(
       ...(avoidAssociationId !== undefined
         ? { avoid_association_id: avoidAssociationId }
         : {}),
+      ...(absurdityLevel ? { absurdity_level: absurdityLevel } : {}),
     },
   });
+}
+
+export interface StarterBatch {
+  pair: string;
+  scene: string;
+  words: string[];
+}
+
+// Themed batch to seed an empty pack (#366): the server invents one coherent,
+// positive scene and returns up to `count` medium-hard, verb-leaning source
+// words that populate it (deduped, real dictionary lemmas). The caller then
+// generates a card per word via generateAdminCard.
+export function suggestStarterBatch(
+  pair: string,
+  count: number,
+): Promise<StarterBatch> {
+  return adminFetch<StarterBatch>(
+    `/admin/starter-pack/${encodeURIComponent(pair)}/suggest`,
+    { method: "POST", json: { count } },
+  );
 }
 
 // Card detail with image_status — polled (~3 s) after generation until the

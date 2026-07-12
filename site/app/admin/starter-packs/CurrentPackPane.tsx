@@ -9,12 +9,16 @@
 
 import { useState } from "react";
 import AdminTile from "./AdminTile";
+import BatchSeed from "./BatchSeed";
 import { useStarterPack } from "./StarterPackContext";
 
 export default function CurrentPackPane() {
   const { pack, packError, packBusy, reorderPack, remove } = useStarterPack();
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
+  // A seeding batch stays open once started, so adding a card (which fills the
+  // pack) doesn't yank the batch out from under the review.
+  const [batchActive, setBatchActive] = useState(false);
 
   function handleDrop(target: number) {
     if (dragIndex !== null) void reorderPack(dragIndex, target);
@@ -23,23 +27,24 @@ export default function CurrentPackPane() {
   }
 
   return (
-    <section className="admin-pane">
-      <h2>Current pack</h2>
-      <p className="admin-pane-hint">
-        The order here is the order new users see the deck in. Drag a card onto
-        another to reorder; every move saves immediately.
-      </p>
-      {packError ? (
-        <p className="admin-error">{packError}</p>
-      ) : pack === null ? (
-        <p className="admin-muted">Loading…</p>
-      ) : pack.length === 0 ? (
-        <p className="admin-muted">
-          No cards in this pack yet — add some from Browse &amp; select or
-          Generate.
+    <>
+      <section className="admin-pane">
+        <h2>Current pack</h2>
+        <p className="admin-pane-hint">
+          The order here is the order new users see the deck in. Drag a card
+          onto another to reorder; every move saves immediately.
         </p>
-      ) : (
-        <div className="tile-grid">
+        {packError ? (
+          <p className="admin-error">{packError}</p>
+        ) : pack === null ? (
+          <p className="admin-muted">Loading…</p>
+        ) : pack.length === 0 ? (
+          <p className="admin-muted">
+            No cards in this pack yet — seed it with a themed batch below, or
+            add some from Browse &amp; select / Generate.
+          </p>
+        ) : (
+          <div className="tile-grid">
           {pack.map((card, i) => (
             <AdminTile
               key={card.association_id}
@@ -89,7 +94,11 @@ export default function CurrentPackPane() {
             </AdminTile>
           ))}
         </div>
+        )}
+      </section>
+      {pack !== null && !packError && (pack.length === 0 || batchActive) && (
+        <BatchSeed onActiveChange={setBatchActive} />
       )}
-    </section>
+    </>
   );
 }
