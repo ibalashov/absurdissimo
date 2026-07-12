@@ -26,13 +26,13 @@ import {
 // deployed): the feed area degrades to a pair navigator and the pair filter
 // becomes plain links to the pair pages.
 //
-// The full deck is browsable by numbered pages: the SSR preload is only page 1
-// (the 48 newest), and every other page — plus every page of a narrowed
-// selection — is fetched from the API by offset (`pair=` or `lang=` on
-// /public/cards, mapped from the slug shape by fetchDeckPage). Pages are
-// cached for the session; a fetch in flight shows a loading note, and page 1
-// of a narrowed selection falls back to client-side filtering of the preloaded
-// deck on failure (never worse than the pre-pagination behavior).
+// The full deck is browsable by numbered pages. Page 1 of whatever selection
+// the route carries is the SSR preload (`cards`, loaded by getSelectionCards
+// for that slug), so the first paint already shows this deck's own cards —
+// "/", "/it-en" and "/it" all ship a populated feed, no "Loading cards…"
+// placeholder for the browser to replace after hydrating. Pages 2+ are fetched
+// from the API by offset (fetchDeckPage) and cached for the session; a fetch in
+// flight shows a loading note, and a failed page shows a retry note.
 //
 // ONE selection system (VocabCards#315 + #328): the deck's selection is a
 // single slug with three shapes — "all" (cross-pair), "it" (all of a studied
@@ -207,9 +207,10 @@ export default function DeckClient({
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const cacheKey = `${sel}#${page}`;
-  // The one selection asymmetry: page 1 of the cross-pair deck is the SSR
-  // preload; never refetch it.
-  const isPreloadedPage = sel === "all" && page === 1;
+  // Page 1 of every selection is the SSR preload (`cards` is this route's own
+  // page-1 feed — see loadDeckData/getSelectionCards), so it renders straight
+  // from the server HTML and is never refetched. Only pages 2+ hit the API.
+  const isPreloadedPage = page === 1;
   const cached = pageCache[cacheKey];
 
   // Fetch the current page unless it's the SSR preload or already cached.
@@ -230,19 +231,16 @@ export default function DeckClient({
 
   const loading = cards !== null && !isPreloadedPage && cached === undefined;
 
-  // The cards this page shows: the SSR preload for "all" page 1, the fetched
-  // page once cached, or — only for page 1 of a narrowed selection while
-  // loading / on error — a client-side filter of the preloaded cross-pair
-  // deck. Later pages have nothing to fall back to.
+  // The cards this page shows: the SSR preload for page 1 of any selection,
+  // or the fetched page once cached. Pages 2+ have nothing to fall back to
+  // while loading / on error (the empty array pairs with the loading and
+  // retry-note render branches below).
   const activeCards = useMemo(() => {
     if (cards === null) return null;
     if (isPreloadedPage) return cards;
     if (cached && cached !== "error") return cached;
-    if (page === 1 && sel !== "all")
-      return cards.filter((c) => inSel(c.pair));
     return [];
-    // inSel is a render-scoped closure over sel, which is in the deps.
-  }, [cards, isPreloadedPage, cached, page, sel]);
+  }, [cards, isPreloadedPage, cached]);
 
   const shown = useMemo(
     () =>

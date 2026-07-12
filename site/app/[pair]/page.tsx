@@ -82,7 +82,7 @@ export default async function NarrowedDeckPage({
   // cookie-independent so prefetching stays safe. Meaningless on a language
   // route (its chip IS the filter) — ignored there.
   const allView = PAIR_PATTERN.test(sel) && (await searchParams).all === "1";
-  const data = await loadDeckData();
+  const data = await loadDeckData(sel);
   if (!selExists(data.pairs, sel)) notFound();
 
   return <DeckShell data={data} initialSel={sel} allView={allView} />;
