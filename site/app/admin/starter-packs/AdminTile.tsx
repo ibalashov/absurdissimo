@@ -16,7 +16,6 @@ export interface AdminTileDrag {
   draggable?: boolean;
   onDragStart?: DragEventHandler;
   onDragOver?: DragEventHandler;
-  onDragLeave?: DragEventHandler;
   onDrop?: DragEventHandler;
   onDragEnd?: DragEventHandler;
 }
@@ -39,7 +38,6 @@ export default function AdminTile({
       draggable={drag?.draggable}
       onDragStart={drag?.onDragStart}
       onDragOver={drag?.onDragOver}
-      onDragLeave={drag?.onDragLeave}
       onDrop={drag?.onDrop}
       onDragEnd={drag?.onDragEnd}
     >

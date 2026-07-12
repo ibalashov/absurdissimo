@@ -56,14 +56,18 @@ export default function CurrentPackPane() {
                   // Firefox needs a payload for the drag to initiate.
                   e.dataTransfer.setData("text/plain", String(i));
                 },
+                // Only dragover manages the target: it fires continuously on
+                // whichever tile is under the pointer, so it tracks the drop
+                // target without a cleared frame. Clearing on dragleave would
+                // flicker — dragleave fires each time the pointer crosses an
+                // inner element (image/word/mnemonic/button). overIndex is
+                // reset on drop and dragend instead.
                 onDragOver: (e) => {
                   if (dragIndex === null) return;
                   e.preventDefault();
                   e.dataTransfer.dropEffect = "move";
                   if (overIndex !== i) setOverIndex(i);
                 },
-                onDragLeave: () =>
-                  setOverIndex((cur) => (cur === i ? null : cur)),
                 onDrop: (e) => {
                   e.preventDefault();
                   handleDrop(i);
