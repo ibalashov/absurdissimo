@@ -28,9 +28,17 @@ import {
 } from "@/lib/admin";
 import StarterPackChrome from "./StarterPackChrome";
 
-// Advisory pack size (the app's starter deck aims for 12) — never enforced.
-export const PACK_TARGET = 12;
+// Advisory pack size (the app's starter deck aims for 12) — never enforced,
+// and now adjustable in the toolbar. This is the default for a fresh browser;
+// the chosen value persists in localStorage (admin-only, client-side).
+export const DEFAULT_PACK_TARGET = 12;
+const PACK_TARGET_KEY = "admin.starterPackTarget";
 export const IMAGE_POLL_MS = 3000;
+
+function clampTarget(n: number): number {
+  if (!Number.isFinite(n)) return DEFAULT_PACK_TARGET;
+  return Math.max(1, Math.min(99, Math.floor(n)));
+}
 
 export function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : "Something went wrong.";
@@ -40,6 +48,8 @@ export interface StarterPackValue {
   pairs: PairSummary[] | null;
   pair: string;
   setPair: (pair: string) => void;
+  packTarget: number;
+  setPackTarget: (target: number) => void;
   selected: PairSummary | null;
   pack: AdminCard[] | null;
   packIds: Set<number> | null;
@@ -65,6 +75,7 @@ export function useStarterPack(): StarterPackValue {
 export function StarterPackProvider({ children }: { children: ReactNode }) {
   const [pairs, setPairs] = useState<PairSummary[] | null>(null);
   const [pair, setPair] = useState("");
+  const [packTarget, setPackTargetState] = useState(DEFAULT_PACK_TARGET);
   const [pack, setPack] = useState<AdminCard[] | null>(null);
   const [packError, setPackError] = useState<string | null>(null);
   const [packNotice, setPackNotice] = useState<string | null>(null);
@@ -80,6 +91,23 @@ export function StarterPackProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  // Restore the saved target after mount (localStorage is client-only, so this
+  // can't run during render without an SSR mismatch).
+  useEffect(() => {
+    const raw = localStorage.getItem(PACK_TARGET_KEY);
+    if (raw !== null) setPackTargetState(clampTarget(Number(raw)));
+  }, []);
+
+  const setPackTarget = useCallback((target: number) => {
+    const clamped = clampTarget(target);
+    setPackTargetState(clamped);
+    try {
+      localStorage.setItem(PACK_TARGET_KEY, String(clamped));
+    } catch {
+      // Private-mode / storage-disabled: keep the in-memory value.
+    }
   }, []);
 
   const refreshPack = useCallback(async () => {
@@ -177,6 +205,8 @@ export function StarterPackProvider({ children }: { children: ReactNode }) {
     pairs,
     pair,
     setPair,
+    packTarget,
+    setPackTarget,
     selected,
     pack,
     packIds,

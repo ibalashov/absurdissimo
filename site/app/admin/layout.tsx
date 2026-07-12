@@ -48,7 +48,6 @@ export default async function AdminLayout({
         <aside className="admin-sidebar">
           <div className="admin-sidebar-title">Admin</div>
           <nav className="admin-sidebar-nav">
-            <Link href="/admin">Overview</Link>
             {ADMIN_SECTIONS.map((s) => (
               <Link key={s.href} href={s.href}>
                 {s.title}

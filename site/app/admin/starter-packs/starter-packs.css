@@ -19,6 +19,10 @@
   color: var(--muted);
 }
 
+.pack-target-input {
+  width: 4.5rem;
+}
+
 .pack-badge {
   font-family: var(--mono);
   font-size: 0.72rem;

@@ -8,7 +8,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { languageFlag, languageName } from "@/lib/api";
-import { PACK_TARGET, useStarterPack } from "./StarterPackContext";
+import { useStarterPack } from "./StarterPackContext";
 
 const SUB_PAGES = [
   { href: "/admin/starter-packs", label: "Current pack" },
@@ -22,14 +22,15 @@ export default function StarterPackChrome({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { pairs, pair, setPair, pack, packNotice } = useStarterPack();
+  const { pairs, pair, setPair, packTarget, setPackTarget, pack, packNotice } =
+    useStarterPack();
 
   return (
     <>
       <h1>Starter packs</h1>
       <p className="admin-intro">
         Pick, order, and generate the cards each pair ships with. Aim for
-        about {PACK_TARGET} cards — the target is advisory, not enforced.
+        about {packTarget} cards — the target is advisory, not enforced.
       </p>
 
       <div className="pack-toolbar">
@@ -52,11 +53,27 @@ export default function StarterPackChrome({
             </option>
           ))}
         </select>
+        <label className="pack-toolbar-label" htmlFor="target-input">
+          Target
+        </label>
+        <input
+          id="target-input"
+          className="admin-input pack-target-input"
+          type="number"
+          min={1}
+          max={99}
+          value={packTarget}
+          onChange={(e) => {
+            const n = Number(e.target.value);
+            if (e.target.value !== "" && Number.isFinite(n)) setPackTarget(n);
+          }}
+          aria-label="Target number of cards per pack"
+        />
         {pack && (
           <span
-            className={`pack-badge${pack.length >= PACK_TARGET ? " full" : ""}`}
+            className={`pack-badge${pack.length >= packTarget ? " full" : ""}`}
           >
-            {pack.length} / {PACK_TARGET} target
+            {pack.length} / {packTarget} target
           </span>
         )}
       </div>
