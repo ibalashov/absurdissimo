@@ -1,16 +1,10 @@
-import type { Metadata } from "next";
-import PackManager from "./PackManager";
-import "./starter-packs.css";
+"use client";
 
-export const metadata: Metadata = {
-  title: "Starter packs — Admin — Absurdissimo",
-};
+// Starter packs · Current pack sub-page. Chrome (heading, pair switcher,
+// sub-nav) and shared state come from the section layout's provider.
 
-// Starter pack manager (VocabCards #366). Everything is client-side (the
-// admin API authenticates with the localStorage bearer, which never reaches
-// the server render); this page just mounts the manager. Access control and
-// noindex live in the layout gate (../layout.tsx).
+import CurrentPackPane from "./CurrentPackPane";
 
-export default function StarterPacksPage() {
-  return <PackManager />;
+export default function StarterPacksCurrentPage() {
+  return <CurrentPackPane />;
 }

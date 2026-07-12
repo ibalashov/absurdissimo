@@ -1,0 +1,197 @@
+"use client";
+
+// Shared state for the starter-pack manager (VocabCards #366), split across
+// sub-pages (current pack / browse & select / generate). This provider lives
+// in the section layout, so the App Router keeps it mounted while you move
+// between the sub-pages: the selected pair and the loaded pack survive
+// navigation and are the single source of truth. Membership marks in the
+// browse/generate panes derive from `pack`, and every mutation resyncs it from
+// the server. Access is enforced server-side; the /admin layout gate only
+// hides the shell.
+
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
+import { fetchPairsLive, type PairSummary } from "@/lib/api";
+import {
+  addToStarterPack,
+  fetchStarterPack,
+  isAdminStatus,
+  removeFromStarterPack,
+  reorderStarterPack,
+  type AdminCard,
+} from "@/lib/admin";
+import StarterPackChrome from "./StarterPackChrome";
+
+// Advisory pack size (the app's starter deck aims for 12) — never enforced.
+export const PACK_TARGET = 12;
+export const IMAGE_POLL_MS = 3000;
+
+export function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : "Something went wrong.";
+}
+
+export interface StarterPackValue {
+  pairs: PairSummary[] | null;
+  pair: string;
+  setPair: (pair: string) => void;
+  selected: PairSummary | null;
+  pack: AdminCard[] | null;
+  packIds: Set<number> | null;
+  packError: string | null;
+  packNotice: string | null;
+  packBusy: boolean;
+  refreshPack: () => Promise<void>;
+  addCard: (associationId: number) => Promise<boolean>;
+  move: (index: number, delta: number) => Promise<void>;
+  remove: (associationId: number) => Promise<void>;
+}
+
+const StarterPackCtx = createContext<StarterPackValue | null>(null);
+
+export function useStarterPack(): StarterPackValue {
+  const ctx = useContext(StarterPackCtx);
+  if (!ctx) {
+    throw new Error("useStarterPack must be used within StarterPackProvider");
+  }
+  return ctx;
+}
+
+export function StarterPackProvider({ children }: { children: ReactNode }) {
+  const [pairs, setPairs] = useState<PairSummary[] | null>(null);
+  const [pair, setPair] = useState("");
+  const [pack, setPack] = useState<AdminCard[] | null>(null);
+  const [packError, setPackError] = useState<string | null>(null);
+  const [packNotice, setPackNotice] = useState<string | null>(null);
+  const [packBusy, setPackBusy] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchPairsLive().then((ps) => {
+      if (cancelled) return;
+      setPairs(ps);
+      if (ps.length > 0) setPair((cur) => cur || ps[0].pair);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const refreshPack = useCallback(async () => {
+    if (!pair) return;
+    try {
+      const data = await fetchStarterPack(pair);
+      setPack(
+        [...data.cards].sort((a, b) => (a.position ?? 0) - (b.position ?? 0)),
+      );
+      setPackError(null);
+    } catch (err) {
+      setPackError(errorMessage(err));
+    }
+  }, [pair]);
+
+  useEffect(() => {
+    setPack(null);
+    setPackError(null);
+    setPackNotice(null);
+    void refreshPack();
+  }, [refreshPack]);
+
+  // Shared by the browse and generate panes. 409 (already a member) counts as
+  // success — the pack resync below marks the tile either way.
+  const addCard = useCallback(
+    async (associationId: number): Promise<boolean> => {
+      try {
+        await addToStarterPack(pair, associationId);
+      } catch (err) {
+        if (!isAdminStatus(err, 409)) {
+          setPackNotice(errorMessage(err));
+          void refreshPack();
+          return false;
+        }
+      }
+      setPackNotice(null);
+      await refreshPack();
+      return true;
+    },
+    [pair, refreshPack],
+  );
+
+  const move = useCallback(
+    async (index: number, delta: number) => {
+      if (!pack) return;
+      const to = index + delta;
+      if (to < 0 || to >= pack.length) return;
+      const next = [...pack];
+      const [moved] = next.splice(index, 1);
+      next.splice(to, 0, moved);
+      setPack(next); // optimistic; the PUT carries the full new order
+      setPackBusy(true);
+      try {
+        await reorderStarterPack(
+          pair,
+          next.map((c) => c.association_id),
+        );
+        setPackNotice(null);
+      } catch (err) {
+        // 409 = the membership changed under us (stale view): reload and say so.
+        setPackNotice(
+          isAdminStatus(err, 409)
+            ? "The pack changed elsewhere — reloaded the current version."
+            : errorMessage(err),
+        );
+        await refreshPack();
+      } finally {
+        setPackBusy(false);
+      }
+    },
+    [pack, pair, refreshPack],
+  );
+
+  const remove = useCallback(
+    async (associationId: number) => {
+      setPackBusy(true);
+      try {
+        await removeFromStarterPack(pair, associationId);
+        setPackNotice(null);
+      } catch (err) {
+        // 404 = already gone; the resync below settles it either way.
+        if (!isAdminStatus(err, 404)) setPackNotice(errorMessage(err));
+      } finally {
+        await refreshPack();
+        setPackBusy(false);
+      }
+    },
+    [pair, refreshPack],
+  );
+
+  const selected = pairs?.find((p) => p.pair === pair) ?? null;
+  const packIds = pack ? new Set(pack.map((c) => c.association_id)) : null;
+
+  const value: StarterPackValue = {
+    pairs,
+    pair,
+    setPair,
+    selected,
+    pack,
+    packIds,
+    packError,
+    packNotice,
+    packBusy,
+    refreshPack,
+    addCard,
+    move,
+    remove,
+  };
+
+  return (
+    <StarterPackCtx.Provider value={value}>
+      <StarterPackChrome>{children}</StarterPackChrome>
+    </StarterPackCtx.Provider>
+  );
+}

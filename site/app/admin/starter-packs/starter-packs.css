@@ -34,6 +34,37 @@
   border-color: #f5c54259;
 }
 
+/* Sub-page nav: the three starter-pack sub-pages (current pack / browse /
+   generate) as a tab strip under the shared toolbar. */
+.pack-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2rem;
+}
+
+.pack-tab {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.5rem 0.85rem;
+  border-radius: 8px 8px 0 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.pack-tab:hover {
+  color: var(--text);
+}
+
+.pack-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
 .admin-pane { margin-bottom: 3rem; }
 
 .admin-pane h2 {
