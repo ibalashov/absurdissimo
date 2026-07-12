@@ -31,7 +31,15 @@ export default function AdminTile({
   children?: ReactNode;
   drag?: AdminTileDrag;
 }) {
-  const img = card.image_url ? adminImageUrl(card.image_url) : null;
+  // While the illustration is still rendering server-side the image URL
+  // 404s, and CardImage latches onError into "hidden" — so a premature
+  // request would blank the tile forever, even after the generate pane's
+  // poll flips the status to ready. Hold the placeholder until then; the
+  // status change mounts a fresh CardImage, which fetches the real PNG.
+  const img =
+    card.image_url && card.image_status !== "pending"
+      ? adminImageUrl(card.image_url)
+      : null;
   return (
     <div
       className={`card admin-tile${drag?.className ? ` ${drag.className}` : ""}`}
