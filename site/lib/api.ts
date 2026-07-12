@@ -93,6 +93,9 @@ export interface FeedCard {
   word_info: WordInfo | null;
   image_id: string | null;
   provenance: string;
+  // Sound-alike keyword(s) behind the mnemonic, overlaid on grid tiles;
+  // null for cards published before the server stored it (VocabCards#261).
+  keyword?: string | null;
   created_at: string;
 }
 

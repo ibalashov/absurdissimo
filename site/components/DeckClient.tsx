@@ -644,6 +644,7 @@ export default function DeckClient({
                   href={cardHref(c)}
                   imageSrc={c.image_id ? imageUrl(c.image_id) : null}
                   word={c.word}
+                  keyword={c.keyword}
                   sub={`${pairCode(c.pair)} · ${shortDate(c.created_at)}`}
                 />
               ))}
