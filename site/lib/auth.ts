@@ -4,9 +4,11 @@
 // together with the anonymous device id, so the visitor's pre-sign-in actor
 // merges into the account — and from then on sends the server's own opaque
 // bearer token on entry/comment writes. The token lives in localStorage and
-// travels as an Authorization header: explicitly NO cookies and NO middleware
-// involvement (Set-Cookie in middleware on GET paths is a known prod-only
-// prefetch trap in this site — see middleware.ts).
+// travels as an Authorization header: NO middleware involvement (Set-Cookie in
+// middleware on GET paths is a known prod-only prefetch trap in this site —
+// see middleware.ts), and no cookies except the client-written /admin-scoped
+// mirror below (ADMIN_TOKEN_COOKIE), which exists solely so the /admin server
+// layout can gate itself.
 //
 // Everything here is client-only (localStorage); no function below may run
 // during SSR except the snapshot getters wired for useSyncExternalStore.
@@ -29,6 +31,25 @@ export function getDeviceId(): string {
 const TOKEN_KEY = "vc_auth_token";
 const HANDLE_KEY = "vc_auth_handle";
 const NEEDS_HANDLE_KEY = "vc_auth_needs_handle";
+
+// The one exception to "no cookies": the /admin gate (VocabCards #363). Its
+// layout is a *server* component that must send the session bearer to
+// GET /admin/me, and localStorage never reaches the server — so the token is
+// mirrored into a plain cookie, written HERE on the client (document.cookie),
+// never by middleware (middleware Set-Cookie on GET paths is the known
+// prefetch trap — see middleware.ts). Scoped to path=/admin so it rides along
+// only on admin requests and no public route ever varies on it.
+export const ADMIN_TOKEN_COOKIE = "vc_admin_token";
+
+function mirrorAdminCookie(token: string | null): void {
+  if (token) {
+    document.cookie =
+      `${ADMIN_TOKEN_COOKIE}=${encodeURIComponent(token)}; path=/admin; ` +
+      "max-age=31536000; SameSite=Lax; Secure";
+  } else {
+    document.cookie = `${ADMIN_TOKEN_COOKIE}=; path=/admin; max-age=0; SameSite=Lax; Secure`;
+  }
+}
 
 export interface AuthState {
   token: string | null;
@@ -91,6 +112,7 @@ export function clearAuth(): void {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(HANDLE_KEY);
   localStorage.removeItem(NEEDS_HANDLE_KEY);
+  mirrorAdminCookie(null);
   me = null;
   mePromise = null;
   notify();
@@ -145,6 +167,9 @@ export function ensureMe(): void {
     if (!res.ok) throw new Error(`auth/me ${res.status}`);
     const data = (await res.json()) as Me;
     me = data;
+    // Re-mirror on every page load so sessions signed in before the admin
+    // cookie existed (VocabCards #363) pick it up without a fresh sign-in.
+    mirrorAdminCookie(token);
     // The server is the source of truth for the handle: adopt it (a rename
     // from another tab/device may have changed it). needs_handle only clears —
     // a local "0" can mean "skipped this sign-in" (see skipHandlePrompt), and
@@ -183,6 +208,7 @@ export async function signInWithGoogle(idToken: string): Promise<void> {
   }
   const data = (await res.json()) as SignInResponse;
   localStorage.setItem(TOKEN_KEY, data.token);
+  mirrorAdminCookie(data.token);
   localStorage.setItem(HANDLE_KEY, data.handle);
   localStorage.setItem(NEEDS_HANDLE_KEY, data.needs_handle ? "1" : "0");
   // Fresh token → refetch /auth/me (the sign-in response has no account id).

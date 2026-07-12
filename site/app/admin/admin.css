@@ -1,0 +1,125 @@
+/* Admin shell (VocabCards #363) — reuses the design tokens from globals.css
+   and the nav from cards.css. */
+
+.admin-shell {
+  display: flex;
+  gap: 2rem;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+  align-items: flex-start;
+}
+
+.admin-sidebar {
+  flex: 0 0 190px;
+  position: sticky;
+  top: 1.5rem;
+}
+
+.admin-sidebar-title {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 0.6rem;
+}
+
+.admin-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.admin-sidebar-nav a {
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.4rem 0.6rem;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.admin-sidebar-nav a:hover {
+  background: var(--surface-2);
+}
+
+.admin-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-main h1 {
+  font-size: clamp(1.6rem, 4vw, 2.1rem);
+  font-weight: 800;
+  margin-bottom: 0.75rem;
+}
+
+.admin-intro {
+  color: var(--muted);
+  line-height: 1.6;
+  margin-bottom: 2rem;
+  max-width: 560px;
+}
+
+.admin-section-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0.9rem;
+}
+
+.admin-section-card {
+  display: block;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: var(--surface);
+  padding: 1.1rem 1.25rem;
+  color: var(--text);
+  text-decoration: none;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.admin-section-card:hover {
+  transform: translateY(-3px);
+  border-color: #f5c54259;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-section-card,
+  .admin-section-card:hover {
+    transform: none;
+    transition: none;
+  }
+}
+
+.admin-section-card h2 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+}
+
+.admin-section-card p {
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+/* Sidebar collapses above the content on narrow screens. */
+@media (max-width: 640px) {
+  .admin-shell {
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+  .admin-sidebar {
+    position: static;
+    flex: none;
+    width: 100%;
+  }
+  .admin-sidebar-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+}
