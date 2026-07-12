@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { NavIdentity } from "@/components/CommunityAuth";
+import { AdminNavLink, NavIdentity } from "@/components/CommunityAuth";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import CardTile from "@/components/CardTile";
@@ -407,6 +407,7 @@ export default function DeckClient({
           >
             +<span className="new-card-label"> New card</span>
           </button>
+          <AdminNavLink />
           <NavIdentity />
         </div>
       </div>

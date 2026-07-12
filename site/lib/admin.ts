@@ -98,6 +98,27 @@ async function adminFetch<T>(
   return (text ? JSON.parse(text) : undefined) as T;
 }
 
+// Whether the current session is an allowlisted admin (GET /admin/me → 200).
+// Memoized per token, so the nav probe costs at most one request per session;
+// anonymous visitors never hit the network. A non-admin's 403 resolves false
+// without touching the stored session (the gate is a uniform 403, never 401).
+let adminProbe: { token: string; result: Promise<boolean> } | null = null;
+
+export function checkIsAdmin(): Promise<boolean> {
+  const token = getToken();
+  if (!token) return Promise.resolve(false);
+  if (adminProbe?.token !== token) {
+    adminProbe = {
+      token,
+      result: adminFetch<{ email: string }>("/admin/me").then(
+        () => true,
+        () => false,
+      ),
+    };
+  }
+  return adminProbe.result;
+}
+
 export function fetchStarterPack(pair: string): Promise<StarterPack> {
   return adminFetch<StarterPack>(
     `/admin/starter-pack/${encodeURIComponent(pair)}`,

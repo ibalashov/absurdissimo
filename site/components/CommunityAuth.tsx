@@ -28,6 +28,7 @@ import {
   skipHandlePrompt,
   subscribeAuth,
 } from "@/lib/auth";
+import { checkIsAdmin } from "@/lib/admin";
 import { profilePath } from "@/lib/community";
 import Avatar from "./Avatar";
 
@@ -144,6 +145,35 @@ export function useMe(): Me | null {
     if (token) ensureMe();
   }, [token]);
   return me;
+}
+
+// Admin-only nav chip (VocabCards #363 follow-up): probes /admin/me once per
+// session (memoized in lib/admin.ts) and links allowlisted admins to the
+// dashboard. Renders nothing for everyone else — signed-out visitors skip the
+// probe entirely, non-admins see their probe resolve false. prefetch={false}:
+// the target is a gated dynamic route; there's nothing useful to prefetch.
+export function AdminNavLink() {
+  const { token } = useAuth();
+  const [admin, setAdmin] = useState(false);
+  useEffect(() => {
+    if (!token) {
+      setAdmin(false);
+      return;
+    }
+    let cancelled = false;
+    checkIsAdmin().then((ok) => {
+      if (!cancelled) setAdmin(ok);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+  if (!admin) return null;
+  return (
+    <Link className="nav-admin-btn" href="/admin" prefetch={false}>
+      Admin
+    </Link>
+  );
 }
 
 // Site-wide nav identity (VocabCards #337): the top-right slot on every page.
