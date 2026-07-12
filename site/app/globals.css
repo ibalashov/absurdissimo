@@ -42,6 +42,27 @@ body {
   .card, .card:hover { transform: none; transition: none; }
 }
 .card img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+.card-media { position: relative; display: block; }
+/* Sound-alike keyword overlaid on the image, as in the app's home grid: a
+   scrim fading in over the lower part of the picture (carried by the top
+   padding of the same element) with the keyword in accent yellow at the
+   bottom edge. */
+.card-keyword {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 2.2rem 0.75rem 0.5rem;
+  background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.6));
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.78rem;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+}
 .card-foot {
   display: flex;
   justify-content: space-between;
