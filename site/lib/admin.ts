@@ -192,6 +192,25 @@ export function generateAdminCard(
   });
 }
 
+// What the delete cascade cleared, for a confirmation message. The card is
+// soft-retired (append-only corpus, reversible server-side), unpinned from the
+// starter pack, and its community entry hidden.
+export interface DeletedCard {
+  association_id: number;
+  retired: boolean;
+  unpinned_from_starter_pack: boolean;
+  community_entry_hidden: boolean;
+}
+
+// Force-delete an inappropriate/broken card (VocabCards #390): soft-retire the
+// corpus row and cascade (starter pack + community). 404 = unknown id;
+// idempotent for an already-deleted card.
+export function deleteAdminCard(associationId: number): Promise<DeletedCard> {
+  return adminFetch<DeletedCard>(`/admin/cards/${associationId}`, {
+    method: "DELETE",
+  });
+}
+
 export interface StarterBatch {
   pair: string;
   scene: string;

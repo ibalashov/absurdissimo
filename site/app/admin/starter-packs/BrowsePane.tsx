@@ -9,7 +9,11 @@
 import { useEffect, useState } from "react";
 import AdminTile from "./AdminTile";
 import { errorMessage, useStarterPack } from "./StarterPackContext";
-import { searchAdminCards, type AdminCardsPage } from "@/lib/admin";
+import {
+  deleteAdminCard,
+  searchAdminCards,
+  type AdminCardsPage,
+} from "@/lib/admin";
 
 export default function BrowsePane() {
   const { pair, packIds, addCard } = useStarterPack();
@@ -20,6 +24,11 @@ export default function BrowsePane() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [addingId, setAddingId] = useState<number | null>(null);
+  // Force-delete (VocabCards #390) is destructive, so it's a two-step inline
+  // confirm: `confirmId` is the card showing Confirm/Cancel, `deletingId` the
+  // one whose delete is in flight.
+  const [confirmId, setConfirmId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!pair) return;
@@ -49,6 +58,30 @@ export default function BrowsePane() {
     setAddingId(associationId);
     await addCard(associationId);
     setAddingId(null);
+  }
+
+  // Force-delete: the card is soft-retired + cascaded server-side, so drop it
+  // from the local browse view (and the count) rather than refetching.
+  async function remove(associationId: number) {
+    setDeletingId(associationId);
+    setError(null);
+    try {
+      await deleteAdminCard(associationId);
+      setData((d) =>
+        d
+          ? {
+              ...d,
+              cards: d.cards.filter((c) => c.association_id !== associationId),
+              total: Math.max(0, d.total - 1),
+            }
+          : d,
+      );
+      setConfirmId(null);
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   return (
@@ -105,7 +138,9 @@ export default function BrowsePane() {
                 <button
                   className="admin-btn primary"
                   onClick={() => void add(card.association_id)}
-                  disabled={inPack || addingId !== null}
+                  disabled={
+                    inPack || addingId !== null || deletingId !== null
+                  }
                 >
                   {inPack
                     ? "In pack"
@@ -113,6 +148,35 @@ export default function BrowsePane() {
                       ? "Adding…"
                       : "Add to pack"}
                 </button>
+                {confirmId === card.association_id ? (
+                  <>
+                    <button
+                      className="admin-btn danger"
+                      onClick={() => void remove(card.association_id)}
+                      disabled={deletingId !== null}
+                    >
+                      {deletingId === card.association_id
+                        ? "Deleting…"
+                        : "Confirm delete"}
+                    </button>
+                    <button
+                      className="admin-btn"
+                      onClick={() => setConfirmId(null)}
+                      disabled={deletingId !== null}
+                    >
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    className="admin-btn danger"
+                    onClick={() => setConfirmId(card.association_id)}
+                    disabled={addingId !== null || deletingId !== null}
+                    title="Force-delete this card (inappropriate or broken)"
+                  >
+                    Delete
+                  </button>
+                )}
               </AdminTile>
             );
           })}
