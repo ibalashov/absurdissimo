@@ -170,12 +170,35 @@ export async function getPairIndex(
   return getJson<PairIndexData>(`/public/pairs/${encodeURIComponent(pair)}`);
 }
 
-// null means "feed unavailable" (endpoint not deployed yet, or erroring) —
-// the home page then degrades to the pair navigator (VocabCards#194). This
-// swallows *all* failures on purpose: the page must not break without #193.
-export async function getFeedCards(limit = PAGE_SIZE): Promise<FeedCard[] | null> {
+// Maps a deck selection slug + 1-based page onto the /public/cards query for
+// that page: "all" → the cross-pair feed, a pair slug → `pair=`, a studied-
+// language slug → `lang=` (VocabCards#314). Shared by the SSR preload
+// (getSelectionCards) and the client pager (fetchDeckPage) so the two can
+// never drift apart.
+function deckFeedQuery(sel: string, page: number): string {
+  const params = new URLSearchParams({
+    limit: String(PAGE_SIZE),
+    offset: String((Math.max(1, page) - 1) * PAGE_SIZE),
+  });
+  if (PAIR_PATTERN.test(sel)) params.set("pair", sel);
+  else if (LANG_PATTERN.test(sel)) params.set("lang", sel);
+  return `/public/cards?${params.toString()}`;
+}
+
+// SSR-side page-1 feed for a deck selection slug (see deckFeedQuery for the
+// slug→filter mapping). This is the deck's server preload: every deck route —
+// "/", "/it-en", "/it" — renders its own selection's cards straight into the
+// SSR HTML, so the narrowed routes no longer ship an empty "Loading cards…"
+// the browser has to replace after hydrating. ISR-cached hourly, so most
+// loads serve those tiles from the edge with no per-user fetch. null means
+// the feed endpoint is unavailable — the page degrades to the pair navigator
+// (VocabCards#194); swallows *all* failures on purpose, like getPairs.
+export async function getSelectionCards(
+  sel = "all",
+  page = 1,
+): Promise<FeedCard[] | null> {
   try {
-    const data = await getJson<FeedData>(`/public/cards?limit=${limit}`);
+    const data = await getJson<FeedData>(deckFeedQuery(sel, page));
     return data?.cards ?? null;
   } catch {
     return null;
@@ -199,25 +222,17 @@ export async function getPairCards(
 }
 
 // Client-side fetch of one page of the deck feed (VocabCards#208/#209 + the
-// full-deck browse). `sel` is the deck's selection slug, mapped by shape onto
-// the API's filters: "all" → the cross-pair feed, a pair slug → `pair=`, a
-// studied-language slug → `lang=` (VocabCards#314). `page` is 1-based and
-// paginates the *whole* corpus via offset — the preloaded feed is only
-// page 1, so later pages must come from the API. Runs in the browser, so no
-// ISR revalidate hint. Unlike getFeedCards this *throws* on failure:
-// DeckClient catches and, for page 1, falls back to client-side filtering of
-// the preloaded deck.
+// full-deck browse), for the numbered pager. `sel` is the deck's selection
+// slug and `page` is 1-based; both are mapped onto the /public/cards query by
+// deckFeedQuery. Page 1 of every selection is now the SSR preload
+// (getSelectionCards), so this only runs for pages 2+. Runs in the browser,
+// so no ISR revalidate hint. Unlike getSelectionCards this *throws* on
+// failure: DeckClient catches and shows a retry note for the failed page.
 export async function fetchDeckPage(
   sel: string,
   page: number,
 ): Promise<FeedCard[]> {
-  const params = new URLSearchParams({
-    limit: String(PAGE_SIZE),
-    offset: String((Math.max(1, page) - 1) * PAGE_SIZE),
-  });
-  if (PAIR_PATTERN.test(sel)) params.set("pair", sel);
-  else if (LANG_PATTERN.test(sel)) params.set("lang", sel);
-  const path = `/public/cards?${params.toString()}`;
+  const path = deckFeedQuery(sel, page);
   const res = await fetch(`${API_BASE}${path}`);
   if (!res.ok) throw new Error(`API ${path} responded ${res.status}`);
   const data = (await res.json()) as FeedData;
@@ -245,7 +260,9 @@ export async function getWordIndexEntries(
 // Everything the deck surface needs, loaded once. Shared by the home page
 // (`/`, all pairs) and the per-pair route (`/[pair]`, filtered) so the two
 // render the identical deck — the pair route is just the home page with a
-// pair preselected, not a separate list page.
+// pair preselected, not a separate list page. `cards` is page 1 of the
+// route's own selection (see getSelectionCards), so every route ships its
+// visible feed in the SSR HTML.
 export interface DeckData {
   pairs: PairSummary[];
   cards: FeedCard[] | null;
@@ -254,10 +271,10 @@ export interface DeckData {
   totalWords: number;
 }
 
-export async function loadDeckData(): Promise<DeckData> {
+export async function loadDeckData(sel = "all"): Promise<DeckData> {
   const pairs = await getPairs();
   const [cards, words] = await Promise.all([
-    getFeedCards(),
+    getSelectionCards(sel),
     getWordIndexEntries(pairs),
   ]);
   return {
