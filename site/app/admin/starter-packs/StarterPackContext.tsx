@@ -58,7 +58,7 @@ export interface StarterPackValue {
   packBusy: boolean;
   refreshPack: () => Promise<void>;
   addCard: (associationId: number) => Promise<boolean>;
-  move: (index: number, delta: number) => Promise<void>;
+  reorderPack: (fromIndex: number, toIndex: number) => Promise<void>;
   remove: (associationId: number) => Promise<void>;
 }
 
@@ -150,14 +150,24 @@ export function StarterPackProvider({ children }: { children: ReactNode }) {
     [pair, refreshPack],
   );
 
-  const move = useCallback(
-    async (index: number, delta: number) => {
+  // Drag-and-drop reorder: pull the card out of `fromIndex` and drop it at
+  // `toIndex`. Optimistic — the PUT carries the full membership in the new
+  // order, so the server just rewrites positions.
+  const reorderPack = useCallback(
+    async (fromIndex: number, toIndex: number) => {
       if (!pack) return;
-      const to = index + delta;
-      if (to < 0 || to >= pack.length) return;
+      if (
+        fromIndex === toIndex ||
+        fromIndex < 0 ||
+        fromIndex >= pack.length ||
+        toIndex < 0 ||
+        toIndex >= pack.length
+      ) {
+        return;
+      }
       const next = [...pack];
-      const [moved] = next.splice(index, 1);
-      next.splice(to, 0, moved);
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
       setPack(next); // optimistic; the PUT carries the full new order
       setPackBusy(true);
       try {
@@ -215,7 +225,7 @@ export function StarterPackProvider({ children }: { children: ReactNode }) {
     packBusy,
     refreshPack,
     addCard,
-    move,
+    reorderPack,
     remove,
   };
 
