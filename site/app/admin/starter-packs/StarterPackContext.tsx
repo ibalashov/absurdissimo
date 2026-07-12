@@ -33,6 +33,11 @@ import StarterPackChrome from "./StarterPackChrome";
 // the chosen value persists in localStorage (admin-only, client-side).
 export const DEFAULT_PACK_TARGET = 12;
 const PACK_TARGET_KEY = "admin.starterPackTarget";
+// The chosen pair persists too, so it survives a reload or a deep-link into a
+// sub-page. Across sub-page navigation the provider stays mounted and state
+// already survives; this covers the fresh-load case (otherwise the pair snaps
+// back to the first in the list).
+const PAIR_KEY = "admin.starterPackPair";
 export const IMAGE_POLL_MS = 3000;
 
 function clampTarget(n: number): number {
@@ -74,19 +79,41 @@ export function useStarterPack(): StarterPackValue {
 
 export function StarterPackProvider({ children }: { children: ReactNode }) {
   const [pairs, setPairs] = useState<PairSummary[] | null>(null);
-  const [pair, setPair] = useState("");
+  const [pair, setPairState] = useState("");
   const [packTarget, setPackTargetState] = useState(DEFAULT_PACK_TARGET);
   const [pack, setPack] = useState<AdminCard[] | null>(null);
   const [packError, setPackError] = useState<string | null>(null);
   const [packNotice, setPackNotice] = useState<string | null>(null);
   const [packBusy, setPackBusy] = useState(false);
 
+  // setPair persists so the chosen pair survives reloads and deep-links, the
+  // same way packTarget does.
+  const setPair = useCallback((next: string) => {
+    setPairState(next);
+    try {
+      localStorage.setItem(PAIR_KEY, next);
+    } catch {
+      // Private-mode / storage-disabled: keep the in-memory value.
+    }
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     void fetchPairsLive().then((ps) => {
       if (cancelled) return;
       setPairs(ps);
-      if (ps.length > 0) setPair((cur) => cur || ps[0].pair);
+      if (ps.length === 0) return;
+      // Prefer the saved pair when it's still a live pair; otherwise the first
+      // in the list. localStorage is client-only, so this can't run in render.
+      let saved: string | null = null;
+      try {
+        saved = localStorage.getItem(PAIR_KEY);
+      } catch {
+        saved = null;
+      }
+      const initial =
+        saved && ps.some((p) => p.pair === saved) ? saved : ps[0].pair;
+      setPairState((cur) => cur || initial);
     });
     return () => {
       cancelled = true;
