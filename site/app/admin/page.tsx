@@ -1,25 +1,12 @@
-import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ADMIN_SECTIONS } from "./sections";
 
-// Admin landing page: one card per registered section. Access control and
-// noindex live in the layout gate (layout.tsx).
+// Entering /admin lands straight on the first section (starter packs) rather
+// than a separate overview — there's a single section today, so the overview
+// was just an extra click. Registry-driven, so it follows ADMIN_SECTIONS if the
+// first section changes. Access control and noindex live in the layout gate
+// (layout.tsx), which runs before this redirect.
 
 export default function AdminHome() {
-  return (
-    <>
-      <h1>Admin</h1>
-      <p className="admin-intro">
-        Internal tools for running Absurdissimo. This area is visible only to
-        allowlisted accounts.
-      </p>
-      <div className="admin-section-grid">
-        {ADMIN_SECTIONS.map((s) => (
-          <Link key={s.href} className="admin-section-card" href={s.href}>
-            <h2>{s.title}</h2>
-            <p>{s.description}</p>
-          </Link>
-        ))}
-      </div>
-    </>
-  );
+  redirect(ADMIN_SECTIONS[0]?.href ?? "/admin/starter-packs");
 }
