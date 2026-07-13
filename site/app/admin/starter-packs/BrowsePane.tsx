@@ -66,7 +66,7 @@ export default function BrowsePane() {
     setHidingId(associationId);
     setError(null);
     try {
-      await hideAdminCard(associationId);
+      await hideAdminCard(associationId, pair);
       setData((d) =>
         d
           ? {
