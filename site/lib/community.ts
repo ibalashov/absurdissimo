@@ -26,6 +26,10 @@ export interface CommunityComment {
 export interface CommunityEntry {
   id: number;
   kind: "ai" | "user";
+  // The corpus row this AI entry came from (VocabCards #390) — lets an admin
+  // force-delete the card inline. Null/absent for user entries and pre-#390
+  // responses.
+  association_id?: number | null;
   keyword: string | null;
   mnemonic: string;
   explanation: string;
