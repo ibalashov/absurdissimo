@@ -1,6 +1,7 @@
 /* Home page: the deck feed (ranked-deck layout, design B — VocabCards#194).
-   Ported from the settled mockup; phase-2 slots (Top sort, score pills, duel
-   widget) are deliberately absent. Card tile styles live in globals.css. */
+   Ported from the settled mockup; the Top/New sort control and per-card vote
+   score pills are live (VocabCards#402); the duel widget is still absent.
+   The `.sorts` control and card tile / score styles live in globals.css. */
 
 /* TOOLBAR (scrolls away with the page — deliberately not sticky, 2026-07-11) */
 .topbar {
@@ -328,8 +329,15 @@
   gap: 1rem;
   margin: 0.2rem 0 1rem;
 }
-/* Title + count sit together on the left, baseline-aligned; the top pager (a
-   flex sibling) is pushed to the right edge by space-between. */
+/* Title, count and the sort control group on the left; the top pager (a flex
+   sibling) is pushed to the right edge by space-between. */
+.feed-head-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  min-width: 0;
+}
 .feed-head-info {
   display: flex;
   align-items: baseline;
