@@ -7,7 +7,14 @@ import { clearAuth } from "@/lib/auth";
 import Avatar from "./Avatar";
 import InlineMarkup from "./InlineMarkup";
 import MnemonicText from "./MnemonicText";
-import { GoogleSignInButton, HandlePrompt, useAuth, useMe } from "./CommunityAuth";
+import { deleteAdminCard } from "@/lib/admin";
+import {
+  GoogleSignInButton,
+  HandlePrompt,
+  useAuth,
+  useIsAdmin,
+  useMe,
+} from "./CommunityAuth";
 import {
   addComment,
   castVote,
@@ -324,11 +331,13 @@ function EntryCard({
   word,
   hero,
   mine,
+  isAdmin,
   onVote,
   onComment,
   onEdit,
   onEditComment,
   onDeleteComment,
+  onForceDelete,
   meId,
 }: {
   entry: CommunityEntry;
@@ -339,6 +348,8 @@ function EntryCard({
   // The signed-in account owns this entry (#333) — only then the edit
   // affordance shows (and only user entries carry an owner; AI never).
   mine: boolean;
+  // Allowlisted admin (#390): unlocks the inline force-delete on AI cards.
+  isAdmin: boolean;
   onVote: (entry: CommunityEntry, dir: 1 | -1) => void;
   onComment: (entryId: number, body: string) => Promise<void>;
   onEdit: (
@@ -347,6 +358,7 @@ function EntryCard({
   ) => Promise<void>;
   onEditComment: (entryId: number, commentId: number, body: string) => Promise<void>;
   onDeleteComment: (entryId: number, commentId: number) => Promise<void>;
+  onForceDelete: (entry: CommunityEntry) => Promise<void>;
   meId: number | null;
 }) {
   // Owner edit (#333): the text block swaps for the composer's field trio;
@@ -357,6 +369,28 @@ function EntryCard({
   const [explanation, setExplanation] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Admin force-delete (#390): a two-step inline confirm, matching the
+  // owner-delete affordances elsewhere in the thread. Only AI cards qualify —
+  // they map to a corpus row; user submissions are moderated separately.
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const canForceDelete =
+    isAdmin && entry.kind === "ai" && entry.association_id != null;
+
+  async function doForceDelete() {
+    if (deleting) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await onForceDelete(entry);
+      // Parent drops the row on success — nothing to reset here.
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : "Could not delete — try again.");
+      setDeleting(false);
+      setConfirmingDelete(false);
+    }
+  }
 
   function startEdit() {
     setKeyword(entry.keyword ?? "");
@@ -494,6 +528,38 @@ function EntryCard({
               </button>
             </>
           )}
+          {canForceDelete && !editing && (
+            <>
+              <span className="dot">·</span>
+              {confirmingDelete ? (
+                <>
+                  <button
+                    className="own-action danger"
+                    onClick={doForceDelete}
+                    disabled={deleting}
+                  >
+                    {deleting ? "deleting…" : "confirm delete"}
+                  </button>
+                  <button
+                    className="own-action"
+                    onClick={() => setConfirmingDelete(false)}
+                    disabled={deleting}
+                  >
+                    cancel
+                  </button>
+                </>
+              ) : (
+                <button
+                  className="own-action danger"
+                  onClick={() => setConfirmingDelete(true)}
+                  title="Force-delete this card — inappropriate or broken (admin)"
+                >
+                  delete card
+                </button>
+              )}
+              {deleteError && <span className="submit-error"> {deleteError}</span>}
+            </>
+          )}
         </div>
         <CommentList
           entry={entry}
@@ -530,6 +596,9 @@ export default function CommunityThread({
   // the SSR pass renders none (no hydration mismatch) and they fade in.
   const me = useMe();
   const meId = me?.id ?? null;
+  // Allowlisted admins get an inline force-delete on AI cards (#390). Resolves
+  // client-side after mount, like useMe — SSR renders none.
+  const isAdmin = useIsAdmin();
 
   // Composer state.
   const [composerOpen, setComposerOpen] = useState(false);
@@ -607,6 +676,15 @@ export default function CommunityThread({
     );
   }
 
+  // Admin force-delete (#390): retires the corpus card server-side (and hides
+  // this very entry + unpins it from the starter pack), so drop it from the
+  // thread. Errors surface in the card's inline control.
+  async function onForceDelete(entry: CommunityEntry) {
+    if (entry.association_id == null) return;
+    await deleteAdminCard(entry.association_id);
+    setEntries((prev) => prev.filter((e) => e.id !== entry.id));
+  }
+
   async function onEditEntry(
     entryId: number,
     fields: { keyword?: string; mnemonic: string; explanation?: string },
@@ -679,12 +757,14 @@ export default function CommunityThread({
               word={word}
               hero={i === 0}
               mine={meId !== null && entry.author_id === meId}
+              isAdmin={isAdmin}
               meId={meId}
               onVote={onVote}
               onComment={onComment}
               onEdit={onEditEntry}
               onEditComment={onEditComment}
               onDeleteComment={onDeleteComment}
+              onForceDelete={onForceDelete}
             />
           ))}
         </ul>

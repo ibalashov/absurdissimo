@@ -152,7 +152,10 @@ export function useMe(): Me | null {
 // dashboard. Renders nothing for everyone else — signed-out visitors skip the
 // probe entirely, non-admins see their probe resolve false. prefetch={false}:
 // the target is a gated dynamic route; there's nothing useful to prefetch.
-export function AdminNavLink() {
+// Whether the current session is an allowlisted admin. Probes /admin/me once
+// per session (memoized in lib/admin.ts); false when signed out. Shared by the
+// admin nav chip and the thread's inline force-delete (VocabCards #390).
+export function useIsAdmin(): boolean {
   const { token } = useAuth();
   const [admin, setAdmin] = useState(false);
   useEffect(() => {
@@ -168,6 +171,11 @@ export function AdminNavLink() {
       cancelled = true;
     };
   }, [token]);
+  return admin;
+}
+
+export function AdminNavLink() {
+  const admin = useIsAdmin();
   if (!admin) return null;
   return (
     <Link className="nav-admin-btn" href="/admin" prefetch={false}>
