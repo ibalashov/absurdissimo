@@ -1,12 +1,12 @@
 "use client";
 
-// Seed an empty pack with a themed batch (VocabCards #366). The server invents
-// one coherent, positive everyday scene and returns medium-hard, verb-leaning
-// source words that populate it; each word is then generated into a card here
-// (at "wild" = middle absurdity) and reviewed before it lands in the pack —
-// same Add / Re-roll flow as the Generate sub-page, just fanned out over the
-// batch. The batch stays put while you add cards, so the pane doesn't vanish
-// the moment the pack stops being empty (that's what onActiveChange guards).
+// Seed a pack with a themed batch (VocabCards #366). Available whether the pack
+// is empty or already has cards — the admin can keep topping it up. The server
+// invents one coherent, positive everyday scene and returns medium-hard,
+// verb-leaning source words that populate it; each word is then generated into a
+// card here (at "wild" = middle absurdity) and reviewed before it lands in the
+// pack — same Add / Re-roll flow as the Generate sub-page, just fanned out over
+// the batch.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import AdminTile from "./AdminTile";
@@ -153,11 +153,7 @@ function BatchCard({ word }: { word: string }) {
   );
 }
 
-export default function BatchSeed({
-  onActiveChange,
-}: {
-  onActiveChange: (active: boolean) => void;
-}) {
+export default function BatchSeed() {
   const { pair } = useStarterPack();
   const [batchSize, setBatchSizeState] = useState(DEFAULT_BATCH_SIZE);
   const [scene, setScene] = useState<string | null>(null);
@@ -186,7 +182,6 @@ export default function BatchSeed({
   async function run() {
     setError(null);
     setLoading(true);
-    onActiveChange(true); // keep the batch mounted even after the pack fills
     try {
       const batch = await suggestStarterBatch(pair, batchSize);
       setScene(batch.scene);
@@ -204,7 +199,6 @@ export default function BatchSeed({
     setScene(null);
     setWords(null);
     setError(null);
-    onActiveChange(false);
   }
 
   return (
