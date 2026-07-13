@@ -35,10 +35,42 @@ function clampBatchSize(n: number): number {
   return Math.max(1, Math.min(24, Math.floor(n)));
 }
 
+// Cap how many card generations run at once. Each POST /admin/cards/generate
+// holds server-side LLM + decoded-image buffers; firing a whole batch in
+// parallel OOM-killed the small single-machine server and rebooted it
+// mid-request, so every card came back "Load failed" (VocabCards, 2026-07-13).
+// Three at a time keeps the queue moving without swamping the box. The server
+// enforces its own limit too; this just paces work instead of making it queue
+// server-side. Re-rolls/retries share the gate, and an idle gate grants a slot
+// immediately — a single action is never slowed.
+const MAX_CONCURRENT_GENERATES = 3;
+
+// Minimal async semaphore: acquire() resolves to a single-use release fn once a
+// slot is free (FIFO). Shared across a batch so its cards take turns.
+function createGate(max: number) {
+  let active = 0;
+  const waiters: Array<() => void> = [];
+  return async function acquire(): Promise<() => void> {
+    if (active >= max) {
+      await new Promise<void>((resolve) => waiters.push(resolve));
+    }
+    active++;
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      active--;
+      waiters.shift()?.();
+    };
+  };
+}
+
+type Gate = ReturnType<typeof createGate>;
+
 // One word's card: generated on mount, image polled to 'ready', then offered
 // for review with Add / Re-roll. A self-contained mirror of the Generate
 // pane's single-card lifecycle (the pane keeps its typed-input concerns).
-function BatchCard({ word }: { word: string }) {
+function BatchCard({ word, gate }: { word: string; gate: Gate }) {
   const { pair, packIds, addCard } = useStarterPack();
   const [card, setCard] = useState<AdminCard | null>(null);
   const [busy, setBusy] = useState(true); // generating on mount
@@ -74,6 +106,7 @@ function BatchCard({ word }: { word: string }) {
       setPolling(false);
       setBusy(true);
       setError(null);
+      const release = await gate(); // wait for a generation slot
       try {
         const generated = await generateAdminCard(
           word,
@@ -81,10 +114,12 @@ function BatchCard({ word }: { word: string }) {
           avoidAssociationId,
           MIDDLE_ABSURDITY,
         );
+        release(); // free the slot before the cheap image poll
         setCard(generated);
         setBusy(false);
         await pollImage(generated.association_id);
       } catch (err) {
+        release();
         setBusy(false);
         setError(
           isAdminStatus(err, 404)
@@ -93,7 +128,7 @@ function BatchCard({ word }: { word: string }) {
         );
       }
     },
-    [word, pair, pollImage],
+    [word, pair, pollImage, gate],
   );
 
   useEffect(() => {
@@ -160,6 +195,10 @@ export default function BatchSeed() {
   const [words, setWords] = useState<string[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // One gate shared by every card in the pane, so the batch (and any re-rolls)
+  // take turns instead of hammering the server all at once. Stable for the
+  // pane's lifetime — a drained gate carries no state between batches.
+  const gate = useRef(createGate(MAX_CONCURRENT_GENERATES)).current;
 
   // Restore the saved batch size after mount (localStorage is client-only).
   useEffect(() => {
@@ -260,7 +299,7 @@ export default function BatchSeed() {
       {words !== null && words.length > 0 && (
         <div className="tile-grid">
           {words.map((word, i) => (
-            <BatchCard key={`${scene}-${word}-${i}`} word={word} />
+            <BatchCard key={`${scene}-${word}-${i}`} word={word} gate={gate} />
           ))}
         </div>
       )}
