@@ -6,6 +6,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import CardTile from "@/components/CardTile";
 import {
+  DeckSort,
+  DEFAULT_DECK_SORT,
   FeedCard,
   fetchDeckPage,
   fetchPairsLive,
@@ -18,9 +20,10 @@ import {
 } from "@/lib/api";
 
 // The interactive deck: sticky toolbar (search, random card, new-card CTA, app
-// CTA), sidebar (pair filter, corpus stats, app CTA) and the card feed. Sort,
-// score pills and the duel widget are phase 2 (VocabCards#194) and absent — the
-// feed is newest-first, so a lone "New" sort toggle did nothing and was removed.
+// CTA), sidebar (pair filter, corpus stats, app CTA) and the card feed. The
+// feed offers two sorts — "Top" (net community votes, the default) and "New"
+// (newest-first) — both server-side via /public/cards?sort=; voted cards carry
+// a score badge. The duel widget is still phase 2 (VocabCards#194).
 //
 // `cards === null` means GET /public/cards is unavailable (VocabCards#193 not
 // deployed): the feed area degrades to a pair navigator and the pair filter
@@ -190,6 +193,13 @@ export default function DeckClient({
   // page 1.
   const [page, setPage] = useState(1);
 
+  // Feed sort, ephemeral client state (never a cookie/URL param — that would
+  // re-open the middleware-prefetch trap the selection cookie already navigates
+  // around). The SSR preload (`cards`) is page 1 of the default sort, so a
+  // fresh load / navigation always lands on it; switching sort refetches from
+  // the API. Resets to the default on remount, which every navigation triggers.
+  const [sort, setSort] = useState<DeckSort>(DEFAULT_DECK_SORT);
+
   // Session cache of fetched pages, keyed `${sel}#${page}` (slug shapes are
   // distinct strings, so one scheme covers all three); "error" pins the
   // fallback so a failed page isn't refetched on every re-render.
@@ -206,18 +216,19 @@ export default function DeckClient({
     .reduce((n, p) => n + p.association_count, 0);
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  const cacheKey = `${sel}#${page}`;
-  // Page 1 of every selection is the SSR preload (`cards` is this route's own
-  // page-1 feed — see loadDeckData/getSelectionCards), so it renders straight
-  // from the server HTML and is never refetched. Only pages 2+ hit the API.
-  const isPreloadedPage = page === 1;
+  const cacheKey = `${sel}#${sort}#${page}`;
+  // The SSR preload (`cards`) is page 1 of the *default* sort for this route's
+  // own selection (loadDeckData/getSelectionCards), so it renders straight from
+  // the server HTML and is never refetched. Every other page — pages 2+, and
+  // page 1 once the visitor switches sort — hits the API.
+  const isPreloadedPage = page === 1 && sort === DEFAULT_DECK_SORT;
   const cached = pageCache[cacheKey];
 
   // Fetch the current page unless it's the SSR preload or already cached.
   useEffect(() => {
     if (cards === null || isPreloadedPage || pageCache[cacheKey]) return;
     let cancelled = false;
-    fetchDeckPage(sel, page)
+    fetchDeckPage(sel, page, sort)
       .then((fetched) => {
         if (!cancelled) setPageCache((c) => ({ ...c, [cacheKey]: fetched }));
       })
@@ -227,7 +238,7 @@ export default function DeckClient({
     return () => {
       cancelled = true;
     };
-  }, [cacheKey, isPreloadedPage, cards, pageCache, sel, page]);
+  }, [cacheKey, isPreloadedPage, cards, pageCache, sel, page, sort]);
 
   const loading = cards !== null && !isPreloadedPage && cached === undefined;
 
@@ -309,6 +320,16 @@ export default function DeckClient({
     const clamped = Math.min(Math.max(1, n), pageCount);
     if (clamped === page) return;
     setPage(clamped);
+    if (typeof window !== "undefined")
+      window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  // Switch feed sort. Reordering is a fresh ranking of the whole deck, so it
+  // resets to page 1 (the row count is sort-independent, so pageCount holds).
+  function changeSort(next: DeckSort) {
+    if (next === sort) return;
+    setSort(next);
+    setPage(1);
     if (typeof window !== "undefined")
       window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -567,18 +588,38 @@ export default function DeckClient({
 
         <main>
           <div className="feed-head">
-            <div className="feed-head-info">
-              <h1>Newest cards</h1>
+            <div className="feed-head-left">
+              <div className="feed-head-info">
+                <h1>{sort === "top" ? "Top-voted cards" : "Newest cards"}</h1>
+                {cards !== null && (
+                  <span>
+                    {loading
+                      ? "Loading…"
+                      : q
+                        ? `${shown.length} match${
+                            shown.length === 1 ? "" : "es"
+                          } on this page`
+                        : `Page ${page} of ${pageCount} · ${total} cards`}
+                  </span>
+                )}
+              </div>
               {cards !== null && (
-                <span>
-                  {loading
-                    ? "Loading…"
-                    : q
-                      ? `${shown.length} match${
-                          shown.length === 1 ? "" : "es"
-                        } on this page`
-                      : `Page ${page} of ${pageCount} · ${total} cards`}
-                </span>
+                <div className="sorts" role="group" aria-label="Sort cards">
+                  <button
+                    className={sort === "top" ? "on" : undefined}
+                    aria-pressed={sort === "top"}
+                    onClick={() => changeSort("top")}
+                  >
+                    Top
+                  </button>
+                  <button
+                    className={sort === "recent" ? "on" : undefined}
+                    aria-pressed={sort === "recent"}
+                    onClick={() => changeSort("recent")}
+                  >
+                    New
+                  </button>
+                </div>
               )}
             </div>
             {pagerNav("top")}
@@ -644,6 +685,7 @@ export default function DeckClient({
                   imageSrc={c.image_id ? imageUrl(c.image_id) : null}
                   word={c.word}
                   keyword={c.keyword}
+                  score={c.vote_score}
                   sub={`${pairCode(c.pair)} · ${shortDate(c.created_at)}`}
                 />
               ))}

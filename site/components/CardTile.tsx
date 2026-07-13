@@ -10,6 +10,7 @@ export default function CardTile({
   word,
   sub,
   keyword,
+  score,
 }: {
   href: string;
   imageSrc: string | null;
@@ -18,7 +19,11 @@ export default function CardTile({
   // Sound-alike mnemonic keyword overlaid on the image (as in the app's home
   // grid); null for cards published before the server stored it.
   keyword?: string | null;
+  // Net community vote score. A corner badge overlays it only when it's
+  // positive — the unvoted majority (score 0 or absent) shows nothing.
+  score?: number | null;
 }) {
+  const showScore = typeof score === "number" && score > 0;
   return (
     <Link className="card" href={href} prefetch={false}>
       {imageSrc && (
@@ -29,6 +34,11 @@ export default function CardTile({
             alt={`Mnemonic illustration for ${word}`}
             loading="lazy"
           />
+          {showScore && (
+            <span className="card-score" aria-label={`${score} net votes`}>
+              <span aria-hidden="true">▲</span> {score}
+            </span>
+          )}
           {keyword && (
             <span className="card-keyword" dir="auto">
               {keyword}

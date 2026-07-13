@@ -24,6 +24,13 @@ export const LANG_PATTERN = /^[a-z]{2}$/;
 // the client page size. Must stay <= the server's per-request cap (50).
 export const PAGE_SIZE = 48;
 
+// How the deck feed is ordered. "top" ranks by net community vote score
+// (newest-first as the tiebreak, server-side via ?sort=top); "recent" is
+// plain newest-first. "top" is the default — the feed leads with the cards
+// people voted up. The chosen sort maps straight onto /public/cards?sort=.
+export type DeckSort = "top" | "recent";
+export const DEFAULT_DECK_SORT: DeckSort = "top";
+
 export interface WordInfo {
   part_of_speech?: string | null;
   gender?: string | null;
@@ -96,6 +103,10 @@ export interface FeedCard {
   // Sound-alike keyword(s) behind the mnemonic, overlaid on grid tiles;
   // null for cards published before the server stored it (VocabCards#261).
   keyword?: string | null;
+  // Net community vote score (SUM of ±1 votes), 0 when unvoted. Drives the
+  // "top" sort and the vote badge on the tile. Optional so the feed still
+  // renders against a server that predates the field (VocabCards#401).
+  vote_score?: number;
   created_at: string;
 }
 
@@ -170,15 +181,16 @@ export async function getPairIndex(
   return getJson<PairIndexData>(`/public/pairs/${encodeURIComponent(pair)}`);
 }
 
-// Maps a deck selection slug + 1-based page onto the /public/cards query for
-// that page: "all" → the cross-pair feed, a pair slug → `pair=`, a studied-
-// language slug → `lang=` (VocabCards#314). Shared by the SSR preload
-// (getSelectionCards) and the client pager (fetchDeckPage) so the two can
-// never drift apart.
-function deckFeedQuery(sel: string, page: number): string {
+// Maps a deck selection slug + 1-based page + sort onto the /public/cards
+// query for that page: "all" → the cross-pair feed, a pair slug → `pair=`, a
+// studied-language slug → `lang=` (VocabCards#314), and `sort=` for the order.
+// Shared by the SSR preload (getSelectionCards) and the client pager
+// (fetchDeckPage) so the two can never drift apart.
+function deckFeedQuery(sel: string, page: number, sort: DeckSort): string {
   const params = new URLSearchParams({
     limit: String(PAGE_SIZE),
     offset: String((Math.max(1, page) - 1) * PAGE_SIZE),
+    sort,
   });
   if (PAIR_PATTERN.test(sel)) params.set("pair", sel);
   else if (LANG_PATTERN.test(sel)) params.set("lang", sel);
@@ -196,9 +208,10 @@ function deckFeedQuery(sel: string, page: number): string {
 export async function getSelectionCards(
   sel = "all",
   page = 1,
+  sort: DeckSort = DEFAULT_DECK_SORT,
 ): Promise<FeedCard[] | null> {
   try {
-    const data = await getJson<FeedData>(deckFeedQuery(sel, page));
+    const data = await getJson<FeedData>(deckFeedQuery(sel, page, sort));
     return data?.cards ?? null;
   } catch {
     return null;
@@ -224,15 +237,17 @@ export async function getPairCards(
 // Client-side fetch of one page of the deck feed (VocabCards#208/#209 + the
 // full-deck browse), for the numbered pager. `sel` is the deck's selection
 // slug and `page` is 1-based; both are mapped onto the /public/cards query by
-// deckFeedQuery. Page 1 of every selection is now the SSR preload
-// (getSelectionCards), so this only runs for pages 2+. Runs in the browser,
-// so no ISR revalidate hint. Unlike getSelectionCards this *throws* on
-// failure: DeckClient catches and shows a retry note for the failed page.
+// deckFeedQuery. Page 1 of the default sort is the SSR preload
+// (getSelectionCards), so this runs for pages 2+ and for page 1 once the
+// visitor switches sort. Runs in the browser, so no ISR revalidate hint.
+// Unlike getSelectionCards this *throws* on failure: DeckClient catches and
+// shows a retry note for the failed page.
 export async function fetchDeckPage(
   sel: string,
   page: number,
+  sort: DeckSort = DEFAULT_DECK_SORT,
 ): Promise<FeedCard[]> {
-  const path = deckFeedQuery(sel, page);
+  const path = deckFeedQuery(sel, page, sort);
   const res = await fetch(`${API_BASE}${path}`);
   if (!res.ok) throw new Error(`API ${path} responded ${res.status}`);
   const data = (await res.json()) as FeedData;
