@@ -681,7 +681,7 @@ export default function CommunityThread({
   // the thread. Errors surface in the card's inline control.
   async function onHide(entry: CommunityEntry) {
     if (entry.association_id == null) return;
-    await hideAdminCard(entry.association_id);
+    await hideAdminCard(entry.association_id, pair);
     setEntries((prev) => prev.filter((e) => e.id !== entry.id));
   }
 

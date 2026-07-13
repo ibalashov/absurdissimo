@@ -127,14 +127,32 @@ export function imageUrl(imageId: string): string {
 
 // No AbortSignal on purpose: the Fly.io machine cold-starts in 2-5 s after
 // idle, and these fetches run at build/revalidate time where the default
-// (generous) timeout is exactly what we want.
-async function getJson<T>(path: string): Promise<T | null> {
+// (generous) timeout is exactly what we want. `tags` label the cached response
+// so a hide can revalidate exactly the decks that showed the card (#390).
+async function getJson<T>(path: string, tags?: string[]): Promise<T | null> {
   const res = await fetch(`${API_BASE}${path}`, {
-    next: { revalidate: REVALIDATE_SECONDS },
+    next: { revalidate: REVALIDATE_SECONDS, ...(tags ? { tags } : {}) },
   });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`API ${path} responded ${res.status}`);
   return (await res.json()) as T;
+}
+
+// Cache tag for a deck selection's feed (on-demand hide, #390): the cross-pair
+// home ("all"), a pair page, or a studied-language page each get their own tag,
+// so hiding a card can bust exactly the decks that could show it.
+export function deckTag(sel: string): string {
+  if (PAIR_PATTERN.test(sel)) return `deck:pair:${sel}`;
+  if (LANG_PATTERN.test(sel)) return `deck:lang:${sel}`;
+  return "deck:all";
+}
+
+// The deck tags a hidden card in `pair` can appear under: the cross-pair home,
+// its own pair page, and its source-language page (decks filter by source
+// language). Everything else — other pairs, other languages — is left cached.
+export function deckTagsForPair(pair: string): string[] {
+  const src = pair.split("-")[0];
+  return ["deck:all", `deck:pair:${pair}`, `deck:lang:${src}`];
 }
 
 export async function getWordPage(
@@ -211,7 +229,9 @@ export async function getSelectionCards(
   sort: DeckSort = DEFAULT_DECK_SORT,
 ): Promise<FeedCard[] | null> {
   try {
-    const data = await getJson<FeedData>(deckFeedQuery(sel, page, sort));
+    const data = await getJson<FeedData>(deckFeedQuery(sel, page, sort), [
+      deckTag(sel),
+    ]);
     return data?.cards ?? null;
   } catch {
     return null;
@@ -227,6 +247,7 @@ export async function getPairCards(
   try {
     const data = await getJson<FeedData>(
       `/public/cards?pair=${encodeURIComponent(pair)}&limit=${limit}`,
+      [`deck:pair:${pair}`],
     );
     return data?.cards ?? [];
   } catch {

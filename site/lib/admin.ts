@@ -204,10 +204,38 @@ export interface HiddenCard {
 
 // Hide an inappropriate/broken card (VocabCards #390): a reversible suspension —
 // soft-retire the corpus row and cascade (starter pack + community), keeping the
-// record. 404 = unknown id; idempotent for an already-hidden card.
-export function hideAdminCard(associationId: number): Promise<HiddenCard> {
-  return adminFetch<HiddenCard>(`/admin/cards/${associationId}/hide`, {
+// record. 404 = unknown id; idempotent for an already-hidden card. `pair` is the
+// card's pair, used only to revalidate the decks that showed it.
+export async function hideAdminCard(
+  associationId: number,
+  pair: string,
+): Promise<HiddenCard> {
+  const result = await adminFetch<HiddenCard>(
+    `/admin/cards/${associationId}/hide`,
+    { method: "POST" },
+  );
+  // The hide already succeeded server-side; now bust the ISR-cached decks that
+  // showed this pair so the card vanishes from the site within seconds instead
+  // of the ~1h window. Best-effort — a failed revalidation just falls back to
+  // the timer, so never let it surface as a hide failure.
+  await requestDeckRevalidate(pair).catch(() => {});
+  return result;
+}
+
+// Ping the same-origin site route that revalidates the home/pair/lang decks for
+// `pair` (VocabCards #390). Carries the admin token so the route can confirm the
+// caller is an admin before spending regeneration. Not via adminFetch: this is a
+// site route, not the API server.
+async function requestDeckRevalidate(pair: string): Promise<void> {
+  const token = getToken();
+  if (!token) return;
+  await fetch(`/api/revalidate`, {
     method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ pair }),
   });
 }
 
