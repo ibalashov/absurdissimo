@@ -16,9 +16,6 @@ export default function CurrentPackPane() {
   const { pack, packError, packBusy, reorderPack, remove } = useStarterPack();
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
-  // A seeding batch stays open once started, so adding a card (which fills the
-  // pack) doesn't yank the batch out from under the review.
-  const [batchActive, setBatchActive] = useState(false);
 
   function handleDrop(target: number) {
     if (dragIndex !== null) void reorderPack(dragIndex, target);
@@ -43,7 +40,8 @@ export default function CurrentPackPane() {
             No cards in this pack yet — seed it with a themed batch below, or
             add some from Browse &amp; select / Generate.
           </p>
-        ) : (
+        ) : null}
+        {pack !== null && pack.length > 0 && (
           <div className="tile-grid">
           {pack.map((card, i) => (
             <AdminTile
@@ -96,9 +94,7 @@ export default function CurrentPackPane() {
         </div>
         )}
       </section>
-      {pack !== null && !packError && (pack.length === 0 || batchActive) && (
-        <BatchSeed onActiveChange={setBatchActive} />
-      )}
+      {pack !== null && !packError && <BatchSeed />}
     </>
   );
 }
