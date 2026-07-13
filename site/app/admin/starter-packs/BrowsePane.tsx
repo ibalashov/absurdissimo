@@ -10,7 +10,7 @@ import { useEffect, useState } from "react";
 import AdminTile from "./AdminTile";
 import { errorMessage, useStarterPack } from "./StarterPackContext";
 import {
-  deleteAdminCard,
+  hideAdminCard,
   searchAdminCards,
   type AdminCardsPage,
 } from "@/lib/admin";
@@ -24,11 +24,11 @@ export default function BrowsePane() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [addingId, setAddingId] = useState<number | null>(null);
-  // Force-delete (VocabCards #390) is destructive, so it's a two-step inline
-  // confirm: `confirmId` is the card showing Confirm/Cancel, `deletingId` the
-  // one whose delete is in flight.
+  // Hide (VocabCards #390) is a heavy admin action, so it's a two-step inline
+  // confirm: `confirmId` is the card showing Confirm/Cancel, `hidingId` the one
+  // whose hide is in flight.
   const [confirmId, setConfirmId] = useState<number | null>(null);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [hidingId, setHidingId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!pair) return;
@@ -60,13 +60,13 @@ export default function BrowsePane() {
     setAddingId(null);
   }
 
-  // Force-delete: the card is soft-retired + cascaded server-side, so drop it
-  // from the local browse view (and the count) rather than refetching.
-  async function remove(associationId: number) {
-    setDeletingId(associationId);
+  // Hide: the card is soft-retired + cascaded server-side (reversibly), so drop
+  // it from the local browse view (and the count) rather than refetching.
+  async function hide(associationId: number) {
+    setHidingId(associationId);
     setError(null);
     try {
-      await deleteAdminCard(associationId);
+      await hideAdminCard(associationId);
       setData((d) =>
         d
           ? {
@@ -80,7 +80,7 @@ export default function BrowsePane() {
     } catch (err) {
       setError(errorMessage(err));
     } finally {
-      setDeletingId(null);
+      setHidingId(null);
     }
   }
 
@@ -139,7 +139,7 @@ export default function BrowsePane() {
                   className="admin-btn primary"
                   onClick={() => void add(card.association_id)}
                   disabled={
-                    inPack || addingId !== null || deletingId !== null
+                    inPack || addingId !== null || hidingId !== null
                   }
                 >
                   {inPack
@@ -152,17 +152,17 @@ export default function BrowsePane() {
                   <>
                     <button
                       className="admin-btn danger"
-                      onClick={() => void remove(card.association_id)}
-                      disabled={deletingId !== null}
+                      onClick={() => void hide(card.association_id)}
+                      disabled={hidingId !== null}
                     >
-                      {deletingId === card.association_id
-                        ? "Deleting…"
-                        : "Confirm delete"}
+                      {hidingId === card.association_id
+                        ? "Hiding…"
+                        : "Confirm hide"}
                     </button>
                     <button
                       className="admin-btn"
                       onClick={() => setConfirmId(null)}
-                      disabled={deletingId !== null}
+                      disabled={hidingId !== null}
                     >
                       Cancel
                     </button>
@@ -171,10 +171,10 @@ export default function BrowsePane() {
                   <button
                     className="admin-btn danger"
                     onClick={() => setConfirmId(card.association_id)}
-                    disabled={addingId !== null || deletingId !== null}
-                    title="Force-delete this card (inappropriate or broken)"
+                    disabled={addingId !== null || hidingId !== null}
+                    title="Hide this card — inappropriate or broken (reversible)"
                   >
-                    Delete
+                    Hide
                   </button>
                 )}
               </AdminTile>
