@@ -7,7 +7,7 @@ import { clearAuth } from "@/lib/auth";
 import Avatar from "./Avatar";
 import InlineMarkup from "./InlineMarkup";
 import MnemonicText from "./MnemonicText";
-import { deleteAdminCard } from "@/lib/admin";
+import { hideAdminCard } from "@/lib/admin";
 import {
   GoogleSignInButton,
   HandlePrompt,
@@ -337,7 +337,7 @@ function EntryCard({
   onEdit,
   onEditComment,
   onDeleteComment,
-  onForceDelete,
+  onHide,
   meId,
 }: {
   entry: CommunityEntry;
@@ -348,7 +348,7 @@ function EntryCard({
   // The signed-in account owns this entry (#333) — only then the edit
   // affordance shows (and only user entries carry an owner; AI never).
   mine: boolean;
-  // Allowlisted admin (#390): unlocks the inline force-delete on AI cards.
+  // Allowlisted admin (#390): unlocks the inline hide on AI cards.
   isAdmin: boolean;
   onVote: (entry: CommunityEntry, dir: 1 | -1) => void;
   onComment: (entryId: number, body: string) => Promise<void>;
@@ -358,7 +358,7 @@ function EntryCard({
   ) => Promise<void>;
   onEditComment: (entryId: number, commentId: number, body: string) => Promise<void>;
   onDeleteComment: (entryId: number, commentId: number) => Promise<void>;
-  onForceDelete: (entry: CommunityEntry) => Promise<void>;
+  onHide: (entry: CommunityEntry) => Promise<void>;
   meId: number | null;
 }) {
   // Owner edit (#333): the text block swaps for the composer's field trio;
@@ -369,26 +369,26 @@ function EntryCard({
   const [explanation, setExplanation] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Admin force-delete (#390): a two-step inline confirm, matching the
-  // owner-delete affordances elsewhere in the thread. Only AI cards qualify —
-  // they map to a corpus row; user submissions are moderated separately.
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  const canForceDelete =
+  // Admin hide (#390): a two-step inline confirm, matching the owner-delete
+  // affordances elsewhere in the thread. Only AI cards qualify — they map to a
+  // corpus row; user submissions are moderated separately.
+  const [confirmingHide, setConfirmingHide] = useState(false);
+  const [hiding, setHiding] = useState(false);
+  const [hideError, setHideError] = useState<string | null>(null);
+  const canHide =
     isAdmin && entry.kind === "ai" && entry.association_id != null;
 
-  async function doForceDelete() {
-    if (deleting) return;
-    setDeleting(true);
-    setDeleteError(null);
+  async function doHide() {
+    if (hiding) return;
+    setHiding(true);
+    setHideError(null);
     try {
-      await onForceDelete(entry);
+      await onHide(entry);
       // Parent drops the row on success — nothing to reset here.
     } catch (e) {
-      setDeleteError(e instanceof Error ? e.message : "Could not delete — try again.");
-      setDeleting(false);
-      setConfirmingDelete(false);
+      setHideError(e instanceof Error ? e.message : "Could not hide — try again.");
+      setHiding(false);
+      setConfirmingHide(false);
     }
   }
 
@@ -528,22 +528,22 @@ function EntryCard({
               </button>
             </>
           )}
-          {canForceDelete && !editing && (
+          {canHide && !editing && (
             <>
               <span className="dot">·</span>
-              {confirmingDelete ? (
+              {confirmingHide ? (
                 <>
                   <button
                     className="own-action danger"
-                    onClick={doForceDelete}
-                    disabled={deleting}
+                    onClick={doHide}
+                    disabled={hiding}
                   >
-                    {deleting ? "deleting…" : "confirm delete"}
+                    {hiding ? "hiding…" : "confirm hide"}
                   </button>
                   <button
                     className="own-action"
-                    onClick={() => setConfirmingDelete(false)}
-                    disabled={deleting}
+                    onClick={() => setConfirmingHide(false)}
+                    disabled={hiding}
                   >
                     cancel
                   </button>
@@ -551,13 +551,13 @@ function EntryCard({
               ) : (
                 <button
                   className="own-action danger"
-                  onClick={() => setConfirmingDelete(true)}
-                  title="Force-delete this card — inappropriate or broken (admin)"
+                  onClick={() => setConfirmingHide(true)}
+                  title="Hide this card — inappropriate or broken; reversible (admin)"
                 >
-                  delete card
+                  hide card
                 </button>
               )}
-              {deleteError && <span className="submit-error"> {deleteError}</span>}
+              {hideError && <span className="submit-error"> {hideError}</span>}
             </>
           )}
         </div>
@@ -676,12 +676,12 @@ export default function CommunityThread({
     );
   }
 
-  // Admin force-delete (#390): retires the corpus card server-side (and hides
-  // this very entry + unpins it from the starter pack), so drop it from the
-  // thread. Errors surface in the card's inline control.
-  async function onForceDelete(entry: CommunityEntry) {
+  // Admin hide (#390): reversibly retires the corpus card server-side (and
+  // hides this very entry + unpins it from the starter pack), so drop it from
+  // the thread. Errors surface in the card's inline control.
+  async function onHide(entry: CommunityEntry) {
     if (entry.association_id == null) return;
-    await deleteAdminCard(entry.association_id);
+    await hideAdminCard(entry.association_id);
     setEntries((prev) => prev.filter((e) => e.id !== entry.id));
   }
 
@@ -764,7 +764,7 @@ export default function CommunityThread({
               onEdit={onEditEntry}
               onEditComment={onEditComment}
               onDeleteComment={onDeleteComment}
-              onForceDelete={onForceDelete}
+              onHide={onHide}
             />
           ))}
         </ul>

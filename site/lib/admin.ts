@@ -192,22 +192,22 @@ export function generateAdminCard(
   });
 }
 
-// What the delete cascade cleared, for a confirmation message. The card is
-// soft-retired (append-only corpus, reversible server-side), unpinned from the
+// What the hide cascade cleared. The card is soft-retired (append-only corpus,
+// fully reversible server-side — nothing is destroyed), unpinned from the
 // starter pack, and its community entry hidden.
-export interface DeletedCard {
+export interface HiddenCard {
   association_id: number;
-  retired: boolean;
+  hidden: boolean;
   unpinned_from_starter_pack: boolean;
   community_entry_hidden: boolean;
 }
 
-// Force-delete an inappropriate/broken card (VocabCards #390): soft-retire the
-// corpus row and cascade (starter pack + community). 404 = unknown id;
-// idempotent for an already-deleted card.
-export function deleteAdminCard(associationId: number): Promise<DeletedCard> {
-  return adminFetch<DeletedCard>(`/admin/cards/${associationId}`, {
-    method: "DELETE",
+// Hide an inappropriate/broken card (VocabCards #390): a reversible suspension —
+// soft-retire the corpus row and cascade (starter pack + community), keeping the
+// record. 404 = unknown id; idempotent for an already-hidden card.
+export function hideAdminCard(associationId: number): Promise<HiddenCard> {
+  return adminFetch<HiddenCard>(`/admin/cards/${associationId}/hide`, {
+    method: "POST",
   });
 }
 
