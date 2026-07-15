@@ -1,0 +1,349 @@
+/* Association-quality lab (VocabCards #426). Extends the admin shell styles
+   (admin.css) and the shared admin controls from starter-packs.css — only
+   lab-specific classes live here. */
+
+.lab-subhead {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin: 1.5rem 0 0.6rem;
+}
+
+/* Config checklist */
+.lab-config-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-width: 720px;
+}
+
+.lab-config-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.lab-config-row input,
+.lab-band input {
+  accent-color: var(--accent);
+}
+
+.lab-config-key {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.lab-config-meta {
+  color: var(--muted);
+  font-size: 0.78rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.lab-config-price {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* Word list + the suggest/sample tools beside it */
+.lab-words {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.lab-textarea {
+  flex: 1;
+  min-width: 260px;
+  max-width: 420px;
+  resize: vertical;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.lab-word-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  align-items: flex-start;
+}
+
+.lab-tool-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.lab-band {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+/* Projected cost + Run button — the epic's cost-confirmation display. */
+.lab-run-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1.25rem;
+}
+
+.lab-cost {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.lab-cost strong {
+  color: var(--text);
+  font-family: var(--mono);
+}
+
+/* Run header: id + status + meta chips. */
+.lab-run-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.lab-run-header h2 {
+  margin-bottom: 0;
+}
+
+.lab-status {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  white-space: nowrap;
+}
+
+.lab-status.running {
+  color: var(--accent);
+  border-color: #f5c54259;
+}
+
+.lab-status.done {
+  color: #9ccc65;
+  border-color: #9ccc6559;
+}
+
+.lab-status.error {
+  color: #ff8a80;
+  border-color: #ff8a8059;
+}
+
+.lab-chip {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+  white-space: nowrap;
+}
+
+.lab-chip.judge {
+  color: var(--accent);
+  border-color: #f5c54259;
+  cursor: help;
+}
+
+/* Results: word groups, each a grid of one card per config. */
+.lab-word-group {
+  margin: 1.75rem 0;
+}
+
+.lab-word-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 0.6rem;
+}
+
+.lab-gen-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0.75rem;
+}
+
+.lab-gen-card {
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: var(--surface);
+  padding: 0.8rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.lab-gen-card:hover {
+  border-color: #f5c54259;
+}
+
+.lab-gen-card.picked {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.lab-gen-card.pending,
+.lab-gen-card.failed {
+  cursor: default;
+}
+
+.lab-gen-card.pending:hover,
+.lab-gen-card.failed:hover {
+  border-color: var(--border);
+}
+
+.lab-gen-card.failed {
+  border-color: #ff8a8040;
+}
+
+.lab-gen-head {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.lab-picked-badge {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.lab-gen-keyword {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.lab-gen-mnemonic {
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.lab-gen-explanation {
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.lab-gen-error {
+  color: #ff8a80;
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+
+.lab-gen-meta {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+  margin-top: auto;
+}
+
+/* Tables: the per-run summary and the run history. */
+.lab-table-scroll {
+  overflow-x: auto;
+}
+
+.lab-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.lab-table th,
+.lab-table td {
+  text-align: left;
+  padding: 0.45rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.lab-table th {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.lab-table th.num,
+.lab-table td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.lab-sort-btn {
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.lab-sort-btn.active {
+  color: var(--accent);
+}
+
+.lab-history-controls {
+  margin-bottom: 1rem;
+}
+
+.lab-history-row {
+  cursor: pointer;
+}
+
+.lab-history-row:hover td {
+  background: var(--surface-2);
+}
+
+.lab-history-row.active td {
+  background: var(--accent-soft);
+}
+
+.lab-run-link {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
