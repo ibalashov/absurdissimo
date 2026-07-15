@@ -5,6 +5,9 @@
 // shown, a sensible default subset pre-checked), and the word list assembled
 // from any mix of manual entry, a themed suggestion (reusing the starter-pack
 // suggest endpoint), and a corpus sample with zipf-band + count controls.
+// Each checked config runs with a chosen prompt (VocabCards #427, prod:v4 by
+// default), and "extra entries" repeat a config key with a different prompt —
+// the run request always uses the (key, prompt_ref) `configs` form.
 // The projected cost renders live next to Run — that display is the epic's
 // cost-confirmation mechanism; the server rejects > $5 batches with a 422
 // whose message is surfaced verbatim below the button.
@@ -22,10 +25,13 @@ import {
   startLabRun,
   suggestStarterBatch,
   type LabConfig,
+  type LabPrompt,
+  type LabRunConfigEntry,
 } from "@/lib/admin";
 import {
   ABSURDITIES,
   DEFAULT_ABSURDITY,
+  PROD_PROMPT_REF,
   errorMessage,
   fmtUsd,
   mergeWordList,
@@ -54,20 +60,60 @@ function paramsSummary(params: Record<string, unknown>): string {
     .join(" ");
 }
 
+// Compact prompt picker: prod plus every saved template (#427). Rendered
+// inside the config-row <label>, but selects are interactive content, so
+// clicking one doesn't toggle the row's checkbox.
+function PromptSelect({
+  value,
+  onChange,
+  prompts,
+  ariaLabel,
+}: {
+  value: string;
+  onChange: (ref: string) => void;
+  prompts: LabPrompt[] | null;
+  ariaLabel: string;
+}) {
+  return (
+    <select
+      className="admin-input lab-prompt-select"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      aria-label={ariaLabel}
+    >
+      <option value={PROD_PROMPT_REF}>{PROD_PROMPT_REF}</option>
+      {(prompts ?? []).map((p) => (
+        <option key={p.id} value={`lab:${p.id}`}>
+          {p.name} (lab:{p.id})
+        </option>
+      ))}
+    </select>
+  );
+}
+
 export default function BatchSetup({
   pairs,
   pair,
   setPair,
+  prompts,
   onRunStarted,
 }: {
   pairs: PairSummary[] | null;
   pair: string;
   setPair: (pair: string) => void;
+  prompts: LabPrompt[] | null;
   onRunStarted: (runId: number) => void;
 }) {
   const [configs, setConfigs] = useState<LabConfig[] | null>(null);
   const [configsError, setConfigsError] = useState<string | null>(null);
   const [checked, setChecked] = useState<Set<string>>(new Set());
+  // Prompt per checked config key; absent means prod:v4 (#427).
+  const [promptByKey, setPromptByKey] = useState<Record<string, string>>({});
+  // Extra (key, prompt) entries beyond the checklist — the way to run the
+  // same config twice with different prompts.
+  const [extras, setExtras] = useState<
+    { key: string; promptRef: string }[]
+  >([]);
   const [absurdity, setAbsurdity] = useState<string>(DEFAULT_ABSURDITY);
   const [wordsText, setWordsText] = useState("");
   const [count, setCount] = useState(DEFAULT_WORD_COUNT);
@@ -101,13 +147,31 @@ export default function BatchSetup({
 
   const words = useMemo(() => parseWordList(wordsText), [wordsText]);
   const checkedConfigs = (configs ?? []).filter((c) => checked.has(c.key));
+  const configByKey = useMemo(
+    () => new Map((configs ?? []).map((c) => [c.key, c])),
+    [configs],
+  );
+  // The run's entries: every checked config with its chosen prompt, then the
+  // extra rows — in the server's config-list order, not check order. Prompt
+  // choice doesn't change unit price, so cost math counts entries.
+  const entries: LabRunConfigEntry[] = [
+    ...checkedConfigs.map((c) => ({
+      key: c.key,
+      prompt_ref: promptByKey[c.key] ?? PROD_PROMPT_REF,
+    })),
+    ...extras.map((ex) => ({ key: ex.key, prompt_ref: ex.promptRef })),
+  ];
   // Mirrors the server's projection: per-card unit prices plus one rubric-judge
   // call per word (VocabCards#425, ~2500 in / ~600 out at gpt-5.5 prices). The
   // server's number is authoritative; this display just shouldn't undershoot it.
   const JUDGE_USD_PER_WORD = 0.0305;
   const projected =
-    words.length * checkedConfigs.reduce((s, c) => s + c.unit_price_usd, 0) +
-    words.length * (checkedConfigs.length > 0 ? JUDGE_USD_PER_WORD : 0);
+    words.length *
+      entries.reduce(
+        (s, e) => s + (configByKey.get(e.key)?.unit_price_usd ?? 0),
+        0,
+      ) +
+    words.length * (entries.length > 0 ? JUDGE_USD_PER_WORD : 0);
 
   function toggleConfig(key: string) {
     setChecked((cur) => {
@@ -116,6 +180,26 @@ export default function BatchSetup({
       else next.add(key);
       return next;
     });
+  }
+
+  function setPromptFor(key: string, ref: string) {
+    setPromptByKey((cur) => ({ ...cur, [key]: ref }));
+  }
+
+  function addExtra() {
+    const key = checkedConfigs[0]?.key ?? (configs ?? [])[0]?.key;
+    if (!key) return;
+    setExtras((cur) => [...cur, { key, promptRef: PROD_PROMPT_REF }]);
+  }
+
+  function updateExtra(index: number, patch: Partial<{ key: string; promptRef: string }>) {
+    setExtras((cur) =>
+      cur.map((ex, i) => (i === index ? { ...ex, ...patch } : ex)),
+    );
+  }
+
+  function removeExtra(index: number) {
+    setExtras((cur) => cur.filter((_, i) => i !== index));
   }
 
   function toggleBand(band: string) {
@@ -162,8 +246,8 @@ export default function BatchSetup({
         pair,
         absurdity,
         words,
-        // In the server's config-list order, not check order.
-        config_keys: checkedConfigs.map((c) => c.key),
+        // Always the (key, prompt_ref) form — config_keys is legacy (#427).
+        configs: entries,
       });
       onRunStarted(res.run_id);
     } catch (err) {
@@ -249,6 +333,14 @@ export default function BatchSetup({
                   {Object.keys(c.params).length > 0 &&
                     ` · ${paramsSummary(c.params)}`}
                 </span>
+                {checked.has(c.key) && (
+                  <PromptSelect
+                    value={promptByKey[c.key] ?? PROD_PROMPT_REF}
+                    onChange={(ref) => setPromptFor(c.key, ref)}
+                    prompts={prompts}
+                    ariaLabel={`Prompt for ${c.key}`}
+                  />
+                )}
                 <span
                   className="lab-config-price"
                   title={`$${c.input_usd_per_mtok}/M in · $${c.output_usd_per_mtok}/M out`}
@@ -259,6 +351,45 @@ export default function BatchSetup({
             </li>
           ))}
         </ul>
+      )}
+      {configs && configs.length > 0 && (
+        <div className="lab-extra-entries">
+          {extras.map((ex, i) => (
+            <div className="lab-tool-row" key={i}>
+              <select
+                className="admin-input lab-prompt-select"
+                value={ex.key}
+                onChange={(e) => updateExtra(i, { key: e.target.value })}
+                aria-label={`Extra entry ${i + 1} config`}
+              >
+                {configs.map((c) => (
+                  <option key={c.key} value={c.key}>
+                    {c.key}
+                  </option>
+                ))}
+              </select>
+              <PromptSelect
+                value={ex.promptRef}
+                onChange={(ref) => updateExtra(i, { promptRef: ref })}
+                prompts={prompts}
+                ariaLabel={`Extra entry ${i + 1} prompt`}
+              />
+              <button
+                className="admin-btn"
+                onClick={() => removeExtra(i)}
+                aria-label={`Remove extra entry ${i + 1}`}
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+          <button className="admin-btn" onClick={addExtra}>
+            + Add row
+          </button>
+          <span className="admin-muted lab-extra-hint">
+            Extra rows run a config again with a different prompt.
+          </span>
+        </div>
       )}
 
       <h3 className="lab-subhead">Words</h3>
@@ -341,15 +472,15 @@ export default function BatchSetup({
       <div className="lab-run-row">
         <span className="lab-cost">
           {words.length} word{words.length === 1 ? "" : "s"} ×{" "}
-          {checkedConfigs.length} config
-          {checkedConfigs.length === 1 ? "" : "s"} ≈{" "}
+          {entries.length} config
+          {entries.length === 1 ? "" : "s"} ≈{" "}
           <strong>{fmtUsd(projected)}</strong>
         </span>
         <button
           className="admin-btn primary"
           onClick={() => void run()}
           disabled={
-            starting || !pair || words.length === 0 || checkedConfigs.length === 0
+            starting || !pair || words.length === 0 || entries.length === 0
           }
         >
           {starting ? "Starting…" : "Run batch"}

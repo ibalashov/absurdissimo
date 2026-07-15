@@ -12,6 +12,32 @@ export const ABSURDITIES = [
 ] as const;
 export const DEFAULT_ABSURDITY = "wild";
 
+// The production prompt's ref — the default for every run entry (#427).
+export const PROD_PROMPT_REF = "prod:v4";
+
+// Display label for a prompt ref: the template's name when the prompts list
+// resolves "lab:<id>", otherwise the raw ref ("prod:v4" has no nicer name).
+export function promptLabel(
+  ref: string,
+  prompts: { id: number; name: string }[] | null | undefined,
+): string {
+  if (ref.startsWith("lab:")) {
+    const id = Number(ref.slice(4));
+    const hit = (prompts ?? []).find((p) => p.id === id);
+    if (hit) return hit.name;
+  }
+  return ref;
+}
+
+// Composite lookup key for a run entry: runs may repeat a config key with
+// different prompts (#427), so generations match on (config_key, prompt_ref).
+export function entryKey(
+  configKey: string,
+  promptRef: string | null | undefined,
+): string {
+  return `${configKey}\u0000${promptRef ?? PROD_PROMPT_REF}`;
+}
+
 export function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : "Something went wrong.";
 }
