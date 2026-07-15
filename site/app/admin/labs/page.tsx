@@ -1,17 +1,27 @@
 "use client";
 
 // Association-quality lab (VocabCards #426): configure a batch, run it,
-// compare results. One page holds the three panes — batch setup, the open
-// run's results, and the run history — so a finished run is one click away
-// from tweaking the setup and running again. The selected pair is page-level
-// state because both the setup and the history filter use it; it persists in
-// localStorage the same way the starter-pack manager's pair does.
+// compare results. One page holds the panes — batch setup, prompt templates,
+// the open run's results, and the run history — so a finished run is one
+// click away from tweaking the setup and running again. The selected pair is
+// page-level state because both the setup and the history filter use it; it
+// persists in localStorage the same way the starter-pack manager's pair does.
+// Prompt templates (VocabCards #427) are page-level too: the pane lists and
+// creates them, BatchSetup's per-config selectors offer them, and RunView
+// resolves "lab:<id>" refs to their names.
 
 import { useCallback, useEffect, useState } from "react";
 import { fetchPairsLive, type PairSummary } from "@/lib/api";
+import {
+  fetchLabPrompts,
+  type LabPrompt,
+  type LabPromptsResponse,
+} from "@/lib/admin";
 import BatchSetup from "./BatchSetup";
+import PromptsPane from "./PromptsPane";
 import RunHistory from "./RunHistory";
 import RunView from "./RunView";
+import { errorMessage } from "./util";
 
 const PAIR_KEY = "admin.labsPair";
 
@@ -21,6 +31,32 @@ export default function LabsPage() {
   const [activeRunId, setActiveRunId] = useState<number | null>(null);
   // Bumped when a new run starts so the history list refetches.
   const [historyVersion, setHistoryVersion] = useState(0);
+  const [promptData, setPromptData] = useState<LabPromptsResponse | null>(
+    null,
+  );
+  const [promptsError, setPromptsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchLabPrompts().then(
+      (fresh) => {
+        if (!cancelled) setPromptData(fresh);
+      },
+      (err: unknown) => {
+        if (!cancelled) setPromptsError(errorMessage(err));
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Newest first, matching the server's ordering.
+  const onPromptCreated = useCallback((prompt: LabPrompt) => {
+    setPromptData((cur) =>
+      cur ? { ...cur, prompts: [prompt, ...cur.prompts] } : cur,
+    );
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -67,14 +103,25 @@ export default function LabsPage() {
         pairs={pairs}
         pair={pair}
         setPair={setPair}
+        prompts={promptData?.prompts ?? null}
         onRunStarted={(runId) => {
           setActiveRunId(runId);
           setHistoryVersion((v) => v + 1);
         }}
       />
+      <PromptsPane
+        prompts={promptData?.prompts ?? null}
+        prod={promptData?.prod ?? null}
+        loadError={promptsError}
+        onCreated={onPromptCreated}
+      />
       {activeRunId !== null && (
         // Keyed so reopening a different run resets the poll and pick state.
-        <RunView key={activeRunId} runId={activeRunId} />
+        <RunView
+          key={activeRunId}
+          runId={activeRunId}
+          prompts={promptData?.prompts ?? null}
+        />
       )}
       <RunHistory
         pair={pair}

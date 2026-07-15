@@ -62,6 +62,91 @@
   white-space: nowrap;
 }
 
+/* Per-config prompt selector + extra (config, prompt) entries (#427). */
+.lab-prompt-select {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.4rem;
+  max-width: 220px;
+}
+
+.lab-extra-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-start;
+  margin-top: 0.6rem;
+  max-width: 720px;
+}
+
+.lab-extra-hint {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+/* Prompt templates pane (#427): expandable rows + the new-template form. */
+.lab-prompt {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  padding: 0.45rem 0.7rem;
+  margin-bottom: 0.35rem;
+  max-width: 720px;
+}
+
+.lab-prompt-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.lab-prompt-name {
+  font-weight: 600;
+}
+
+.lab-prompt-date {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.lab-prompt-body {
+  margin-top: 0.6rem;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--muted);
+}
+
+.lab-prompt-new {
+  margin-top: 0.75rem;
+}
+
+.lab-prompt-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  align-items: flex-start;
+  margin-top: 0.75rem;
+  max-width: 720px;
+}
+
+.lab-prompt-form input {
+  width: 100%;
+  max-width: 420px;
+}
+
+.lab-prompt-editor {
+  width: 100%;
+  max-width: 100%;
+}
+
 /* Word list + the suggest/sample tools beside it */
 .lab-words {
   display: flex;
@@ -175,6 +260,12 @@
   color: var(--accent);
   border-color: #f5c54259;
   cursor: help;
+}
+
+/* Prompt-variant chip (#427) — only rendered when a run mixes prompts. */
+.lab-chip.prompt {
+  color: #b39ddb;
+  border-color: #b39ddb59;
 }
 
 /* Results: word groups, each a grid of one card per config. */

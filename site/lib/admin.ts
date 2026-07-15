@@ -333,6 +333,52 @@ export interface LabSample {
   bands: string[];
 }
 
+// Saved prompt template (#427). Append-only server-side: saving always creates
+// a new row, so a run's stored "lab:<id>" ref forever resolves to exactly the
+// text that generated its cards.
+export interface LabPrompt {
+  id: number;
+  name: string;
+  body: string;
+  created_at: string;
+}
+
+// The production prompt, exposed so the UI can seed new templates from it.
+export interface LabProdPrompt {
+  ref: string;
+  body: string;
+  prompt_version: number;
+}
+
+export interface LabPromptsResponse {
+  prompts: LabPrompt[];
+  prod: LabProdPrompt;
+}
+
+export function fetchLabPrompts(): Promise<LabPromptsResponse> {
+  return adminFetch("/admin/labs/prompts");
+}
+
+// 422 (malformed braces / unknown placeholders) surfaces the server's string
+// detail via AdminApiError.message — callers show it verbatim.
+export function createLabPrompt(
+  name: string,
+  body: string,
+): Promise<LabPrompt> {
+  return adminFetch("/admin/labs/prompts", {
+    method: "POST",
+    json: { name, body },
+  });
+}
+
+// One run entry: a config key plus the prompt it runs with ("prod:v4" or
+// "lab:<id>"). The same key may appear repeatedly with different prompt_refs —
+// that's the prompt-variant axis (#427).
+export interface LabRunConfigEntry {
+  key: string;
+  prompt_ref: string;
+}
+
 export function fetchLabConfigs(): Promise<{ configs: LabConfig[] }> {
   return adminFetch("/admin/labs/configs");
 }
@@ -341,7 +387,7 @@ export function startLabRun(body: {
   pair: string;
   absurdity: string;
   words: string[];
-  config_keys: string[];
+  configs: LabRunConfigEntry[];
 }): Promise<{ run_id: number; projected_cost_usd: number }> {
   return adminFetch("/admin/labs/runs", { method: "POST", json: body });
 }

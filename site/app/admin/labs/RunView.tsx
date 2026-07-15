@@ -2,12 +2,16 @@
 
 // One run's results (VocabCards #426): polls GET /admin/labs/runs/{id} every
 // ~2 s while the run is "running" and renders generations incrementally,
-// grouped by word — one card per config. Tapping a card records it as the
-// word's winner via PUT .../picks; that endpoint lands with VocabCards#425,
-// so a 404/405 degrades to a "picks not available yet" notice instead of an
-// error. Judge fields (judge_total / judge_scores_json) likewise render only
-// when present — absent means #425 isn't deployed yet, so they're omitted
-// silently.
+// grouped by word — one card per run config entry. Entries are keyed by
+// (config_key, prompt_ref), not bare key: the prompt-variant axis (VocabCards
+// #427) lets the same config appear twice with different prompts. Runs where
+// everything is prod:v4 render exactly as before — the prompt chip and the
+// summary's Prompt column appear only when a non-prod prompt is involved.
+// Tapping a card records it as the word's winner via PUT .../picks; that
+// endpoint lands with VocabCards#425, so a 404/405 degrades to a "picks not
+// available yet" notice instead of an error. Judge fields (judge_total /
+// judge_scores_json) likewise render only when present — absent means #425
+// isn't deployed yet, so they're omitted silently.
 
 import { useEffect, useMemo, useState } from "react";
 import MnemonicText from "@/components/MnemonicText";
@@ -23,9 +27,18 @@ import {
   pickLabGeneration,
   type LabConfig,
   type LabGeneration,
+  type LabPrompt,
   type LabRun,
 } from "@/lib/admin";
-import { errorMessage, fmtMs, fmtUsd, judgeScores } from "./util";
+import {
+  PROD_PROMPT_REF,
+  entryKey,
+  errorMessage,
+  fmtMs,
+  fmtUsd,
+  judgeScores,
+  promptLabel,
+} from "./util";
 
 const RUN_POLL_MS = 2000;
 
@@ -52,12 +65,16 @@ function judgeTitle(gen: LabGeneration): string | undefined {
 // renders its error — neither is pickable.
 function GenCard({
   config,
+  promptChip,
   gen,
   running,
   picked,
   onPick,
 }: {
   config: LabConfig;
+  // Rendered only for runs that use a non-prod prompt somewhere (#427);
+  // null keeps all-prod runs looking exactly as before.
+  promptChip: { label: string; ref: string } | null;
   gen: LabGeneration | undefined;
   running: boolean;
   picked: boolean;
@@ -67,6 +84,11 @@ function GenCard({
     <div className="lab-gen-head">
       <span className="lab-chip">{config.key}</span>
       <span className="lab-chip">{config.model}</span>
+      {promptChip && (
+        <span className="lab-chip prompt" title={promptChip.ref}>
+          {promptChip.label}
+        </span>
+      )}
       {picked && <span className="lab-picked-badge">✓ picked</span>}
     </div>
   );
@@ -146,14 +168,22 @@ function GenCard({
 type SortKey = "config" | "judge" | "latency" | "cost" | "picks";
 
 interface SummaryRow {
+  id: string;
   key: string;
+  promptRef: string;
   judge: number | null;
   latency: number | null;
   cost: number | null;
   picks: number;
 }
 
-export default function RunView({ runId }: { runId: number }) {
+export default function RunView({
+  runId,
+  prompts,
+}: {
+  runId: number;
+  prompts: LabPrompt[] | null;
+}) {
   const [run, setRun] = useState<LabRun | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Bumped by the Retry button to restart a poll that stopped on an error.
@@ -200,6 +230,12 @@ export default function RunView({ runId }: { runId: number }) {
     return { ...map, ...localPicks };
   }, [run, localPicks]);
 
+  // Non-prod anywhere in the run → show prompt chips and the Prompt column;
+  // otherwise the view is byte-identical to the pre-#427 rendering.
+  const hasLabPrompt = (run?.configs ?? []).some(
+    (c) => (c.prompt_ref ?? PROD_PROMPT_REF) !== PROD_PROMPT_REF,
+  );
+
   const byWord = useMemo(() => {
     const map = new Map<string, Map<string, LabGeneration>>();
     for (const g of run?.generations ?? []) {
@@ -208,7 +244,9 @@ export default function RunView({ runId }: { runId: number }) {
         inner = new Map();
         map.set(g.word, inner);
       }
-      inner.set(g.config_key, g);
+      // Keyed by (config_key, prompt_ref): the same config may run twice
+      // with different prompts (#427).
+      inner.set(entryKey(g.config_key, g.prompt_ref), g);
     }
     return map;
   }, [run]);
@@ -236,16 +274,24 @@ export default function RunView({ runId }: { runId: number }) {
   const summary = useMemo<SummaryRow[]>(() => {
     if (!run) return [];
     const pickedIds = Object.values(picks);
-    const rows = run.configs.map((c) => {
+    // One row per run config entry — (config_key, prompt_ref), since the same
+    // key may appear with different prompts (#427).
+    const rows = run.configs.map((c, i) => {
+      const ref = c.prompt_ref ?? PROD_PROMPT_REF;
+      const matches = (g: LabGeneration) =>
+        g.config_key === c.key &&
+        (g.prompt_ref ?? PROD_PROMPT_REF) === ref;
       const gens = (run.generations ?? []).filter(
-        (g) => g.config_key === c.key && !g.error,
+        (g) => matches(g) && !g.error,
       );
       const mean = (values: number[]): number | null =>
         values.length > 0
           ? values.reduce((s, v) => s + v, 0) / values.length
           : null;
       return {
+        id: `${entryKey(c.key, ref)}#${i}`,
         key: c.key,
+        promptRef: ref,
         judge: mean(
           gens.map((g) => g.judge_total).filter((v): v is number => v != null),
         ),
@@ -255,13 +301,20 @@ export default function RunView({ runId }: { runId: number }) {
         cost: mean(
           gens.map((g) => g.cost_usd).filter((v): v is number => v != null),
         ),
-        picks: pickedIds.filter((id) => genById.get(id)?.config_key === c.key)
-          .length,
+        picks: pickedIds.filter((id) => {
+          const g = genById.get(id);
+          return g !== undefined && matches(g);
+        }).length,
       };
     });
     const dir = sort.asc ? 1 : -1;
     return [...rows].sort((a, b) => {
-      if (sort.key === "config") return a.key.localeCompare(b.key) * dir;
+      if (sort.key === "config") {
+        return (
+          (a.key.localeCompare(b.key) ||
+            a.promptRef.localeCompare(b.promptRef)) * dir
+        );
+      }
       const av = a[sort.key];
       const bv = b[sort.key];
       if (av == null && bv == null) return 0;
@@ -382,12 +435,18 @@ export default function RunView({ runId }: { runId: number }) {
               {word}
             </h3>
             <div className="lab-gen-grid">
-              {run.configs.map((config) => {
-                const gen = gens?.get(config.key);
+              {run.configs.map((config, i) => {
+                const ref = config.prompt_ref ?? PROD_PROMPT_REF;
+                const gen = gens?.get(entryKey(config.key, ref));
                 return (
                   <GenCard
-                    key={config.key}
+                    key={`${entryKey(config.key, ref)}#${i}`}
                     config={config}
+                    promptChip={
+                      hasLabPrompt
+                        ? { label: promptLabel(ref, prompts), ref }
+                        : null
+                    }
                     gen={gen}
                     running={run.status === "running"}
                     picked={gen !== undefined && gen.id === pickedId}
@@ -408,6 +467,7 @@ export default function RunView({ runId }: { runId: number }) {
           <thead>
             <tr>
               {sortableHeader("config", "Config", false)}
+              {hasLabPrompt && <th scope="col">Prompt</th>}
               {sortableHeader("judge", "Mean judge", true)}
               {sortableHeader("latency", "Mean latency", true)}
               {sortableHeader("cost", "Mean cost", true)}
@@ -416,8 +476,13 @@ export default function RunView({ runId }: { runId: number }) {
           </thead>
           <tbody>
             {summary.map((row) => (
-              <tr key={row.key}>
+              <tr key={row.id}>
                 <td className="lab-config-key">{row.key}</td>
+                {hasLabPrompt && (
+                  <td title={row.promptRef}>
+                    {promptLabel(row.promptRef, prompts)}
+                  </td>
+                )}
                 <td className="num">
                   {row.judge != null ? row.judge.toFixed(1) : "—"}
                 </td>
