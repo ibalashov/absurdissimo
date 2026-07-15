@@ -1,0 +1,73 @@
+/* Runtime settings (VocabCards #433/#434) — field rows on top of the shared
+   admin control styles (.admin-pane/.admin-input/.admin-btn from the
+   starter-pack manager). Only the label/status/spacing bits are section-local. */
+
+.setting-field {
+  margin-bottom: 1.75rem;
+}
+
+.setting-label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+}
+
+.setting-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-left: auto;
+}
+
+.setting-badge {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.setting-badge.default {
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.setting-reset {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.setting-reset:hover {
+  text-decoration: underline;
+}
+
+.setting-version {
+  max-width: 8rem;
+}
+
+.setting-prompt {
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.setting-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+}

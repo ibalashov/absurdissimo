@@ -432,3 +432,42 @@ export async function pickLabGeneration(
 export function fetchAdminCard(associationId: number): Promise<AdminCard> {
   return adminFetch<AdminCard>(`/admin/cards/${associationId}`);
 }
+
+// Runtime settings (VocabCards #433): admin-editable generation params (model,
+// system prompt, prompt version, default absurdity) that were compile-time
+// constants server-side. GET returns effective + default values, which fields
+// are overridden, and the option lists for the dropdowns; PUT is a partial
+// update — an omitted field is left as-is, and a field set back to its default
+// clears the override.
+export interface RuntimeSettings {
+  model: string;
+  system_prompt: string;
+  prompt_version: number;
+  default_absurdity_level: string;
+}
+
+export type RuntimeSettingField = keyof RuntimeSettings;
+
+export interface RuntimeSettingsResponse {
+  effective: RuntimeSettings;
+  defaults: RuntimeSettings;
+  overridden: RuntimeSettingField[];
+  model_options: string[];
+  absurdity_options: string[];
+}
+
+export function fetchRuntimeSettings(): Promise<RuntimeSettingsResponse> {
+  return adminFetch<RuntimeSettingsResponse>("/admin/settings");
+}
+
+// Only the fields present in `update` are changed. Server validates the model
+// against model_options and the prompt template's placeholders — its 422
+// detail surfaces through AdminApiError.
+export function updateRuntimeSettings(
+  update: Partial<RuntimeSettings>,
+): Promise<RuntimeSettingsResponse> {
+  return adminFetch<RuntimeSettingsResponse>("/admin/settings", {
+    method: "PUT",
+    json: update,
+  });
+}

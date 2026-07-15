@@ -22,4 +22,10 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     description:
       "Run generation batches and compare association quality across models.",
   },
+  {
+    title: "Runtime settings",
+    href: "/admin/settings",
+    description:
+      "Change the live generation model, prompt, prompt version, and default absurdity.",
+  },
 ];
