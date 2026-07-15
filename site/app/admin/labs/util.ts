@@ -1,0 +1,71 @@
+// Small helpers shared by the association-quality lab components
+// (VocabCards #426). Pure functions only — no fetching, no React.
+
+// The server's five absurdity levels, in ramp order. "wild" is the default
+// both here and in the batch endpoint.
+export const ABSURDITIES = [
+  "sensible",
+  "quirky",
+  "wild",
+  "bizarre",
+  "unhinged",
+] as const;
+export const DEFAULT_ABSURDITY = "wild";
+
+export function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : "Something went wrong.";
+}
+
+// Money spans four orders of magnitude here (per-card unit prices are
+// fractions of a cent; run totals are dollars) — show four decimals below
+// ten cents so cheap configs don't all collapse to $0.00.
+export function fmtUsd(v: number | null | undefined): string {
+  if (v == null || !Number.isFinite(v)) return "—";
+  return `$${v < 0.1 ? v.toFixed(4) : v.toFixed(2)}`;
+}
+
+export function fmtMs(v: number | null | undefined): string {
+  if (v == null || !Number.isFinite(v)) return "—";
+  return `${Math.round(v).toLocaleString("en-US")} ms`;
+}
+
+// judge_scores arrives as a parsed object (VocabCards#425 serves it that
+// way), but parse a JSON string too, defensively — return null for anything
+// unusable. Values mix numeric dimension scores with a justification string.
+export function judgeScores(
+  raw: Record<string, number | string> | string | null | undefined,
+): Record<string, number | string> | null {
+  if (raw == null) return null;
+  if (typeof raw !== "string") return raw;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed as Record<string, number | string>;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// Textarea → word list: one word per line, trimmed, blanks dropped,
+// case-insensitively deduped keeping first spelling and order.
+export function parseWordList(text: string): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const line of text.split("\n")) {
+    const word = line.trim();
+    if (!word) continue;
+    const key = word.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(word);
+  }
+  return out;
+}
+
+// Append suggested/sampled words to the textarea contents, deduped against
+// what's already there (manual entry keeps priority and order).
+export function mergeWordList(text: string, added: string[]): string {
+  return parseWordList(`${text}\n${added.join("\n")}`).join("\n");
+}

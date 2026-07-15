@@ -87,11 +87,15 @@ async function adminFetch<T>(
   }
   if (!res.ok) {
     const detail = (await res.json().catch(() => null))?.detail;
-    throw new AdminApiError(
-      res.status,
+    const message =
       typeof detail === "string"
         ? detail
-        : `Admin API ${path} responded ${res.status}`,
+        : detail && typeof detail.message === "string"
+          ? detail.message
+          : `Admin API ${path} responded ${res.status}`;
+    throw new AdminApiError(
+      res.status,
+      message,
     );
   }
   const text = await res.text();
@@ -257,6 +261,124 @@ export function suggestStarterBatch(
     `/admin/starter-pack/${encodeURIComponent(pair)}/suggest`,
     { method: "POST", json: { count } },
   );
+}
+
+// Association-quality lab (#426). These calls deliberately share adminFetch
+// with starter packs: both use the community bearer token client-side while
+// the parent /admin layout enforces the allowlist server-side.
+export interface LabConfig {
+  key: string;
+  provider: string;
+  model: string;
+  params: Record<string, unknown>;
+  prompt_ref: string;
+  input_usd_per_mtok: number;
+  output_usd_per_mtok: number;
+  unit_price_usd: number;
+}
+
+export interface LabGeneration {
+  id: number;
+  word: string;
+  config_key: string;
+  provider: string;
+  model: string;
+  params: Record<string, unknown>;
+  prompt_ref: string;
+  keyword?: string | null;
+  mnemonic?: string | null;
+  explanation?: string | null;
+  strategy?: string | null;
+  tokens_in?: number | null;
+  tokens_out?: number | null;
+  cost_usd?: number | null;
+  latency_ms?: number | null;
+  error?: string | null;
+  raw_response?: string | null;
+  judge_scores?: Record<string, number | string> | string | null;
+  judge_total?: number | null;
+  judge_model?: string | null;
+}
+
+export interface LabPick {
+  word: string;
+  generation_id: number;
+}
+
+export interface LabRun {
+  id: number;
+  source_language: string;
+  target_language: string;
+  absurdity: string;
+  status: "running" | "done" | "error";
+  created_at: string;
+  words: string[];
+  configs: LabConfig[];
+  projected_cost_usd: number;
+  actual_cost_usd?: number | null;
+  generations?: LabGeneration[];
+  picks?: LabPick[];
+}
+
+export interface LabRunPage {
+  page: number;
+  page_size: number;
+  total: number;
+  runs: LabRun[];
+}
+
+export interface LabSample {
+  pair: string;
+  words: string[];
+  bands: string[];
+}
+
+export function fetchLabConfigs(): Promise<{ configs: LabConfig[] }> {
+  return adminFetch("/admin/labs/configs");
+}
+
+export function startLabRun(body: {
+  pair: string;
+  absurdity: string;
+  words: string[];
+  config_keys: string[];
+}): Promise<{ run_id: number; projected_cost_usd: number }> {
+  return adminFetch("/admin/labs/runs", { method: "POST", json: body });
+}
+
+export function fetchLabRun(id: number): Promise<LabRun> {
+  return adminFetch(`/admin/labs/runs/${id}`);
+}
+
+// Omitting `pair` lists runs across all pairs (the history filter is optional).
+export function fetchLabRuns(pair?: string, page = 1): Promise<LabRunPage> {
+  const params = new URLSearchParams({ page: String(page) });
+  if (pair) params.set("pair", pair);
+  return adminFetch(`/admin/labs/runs?${params.toString()}`);
+}
+
+export function sampleLabWords(
+  pair: string,
+  n: number,
+  bands: string[],
+): Promise<LabSample> {
+  const params = new URLSearchParams({
+    pair,
+    n: String(n),
+    bands: bands.join(","),
+  });
+  return adminFetch(`/admin/labs/sample?${params.toString()}`);
+}
+
+export async function pickLabGeneration(
+  runId: number,
+  word: string,
+  generationId: number,
+): Promise<void> {
+  await adminFetch(`/admin/labs/runs/${runId}/picks`, {
+    method: "PUT",
+    json: { word, generation_id: generationId },
+  });
 }
 
 // Card detail with image_status — polled (~3 s) after generation until the

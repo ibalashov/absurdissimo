@@ -16,4 +16,10 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     description:
       "Curate each pair's starter pack: select, order, and generate cards.",
   },
+  {
+    title: "Association quality",
+    href: "/admin/labs",
+    description:
+      "Run generation batches and compare association quality across models.",
+  },
 ];
