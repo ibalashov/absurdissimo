@@ -12,11 +12,16 @@ export const ABSURDITIES = [
 ] as const;
 export const DEFAULT_ABSURDITY = "wild";
 
-// The production prompt's ref — the default for every run entry (#427).
+// Fallback only while prompts load (and for null stored refs); live ref is from
+// GET /admin/labs/prompts.
 export const PROD_PROMPT_REF = "prod:v4";
 
+export function isProdPromptRef(ref: string): boolean {
+  return ref.startsWith("prod:");
+}
+
 // Display label for a prompt ref: the template's name when the prompts list
-// resolves "lab:<id>", otherwise the raw ref ("prod:v4" has no nicer name).
+// resolves "lab:<id>", otherwise the raw ref (prod refs have no nicer name).
 export function promptLabel(
   ref: string,
   prompts: { id: number; name: string }[] | null | undefined,

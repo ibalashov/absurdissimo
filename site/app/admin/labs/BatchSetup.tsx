@@ -5,7 +5,7 @@
 // shown, a sensible default subset pre-checked), and the word list assembled
 // from any mix of manual entry, a themed suggestion (reusing the starter-pack
 // suggest endpoint), and a corpus sample with zipf-band + count controls.
-// Each checked config runs with a chosen prompt (VocabCards #427, prod:v4 by
+// Each checked config runs with a chosen prompt (VocabCards #427, prod by
 // default), and "extra entries" repeat a config key with a different prompt —
 // the run request always uses the (key, prompt_ref) `configs` form.
 // The projected cost renders live next to Run — that display is the epic's
@@ -31,9 +31,9 @@ import {
 import {
   ABSURDITIES,
   DEFAULT_ABSURDITY,
-  PROD_PROMPT_REF,
   errorMessage,
   fmtUsd,
+  isProdPromptRef,
   mergeWordList,
   parseWordList,
 } from "./util";
@@ -67,21 +67,23 @@ function PromptSelect({
   value,
   onChange,
   prompts,
+  prodRef,
   ariaLabel,
 }: {
   value: string;
   onChange: (ref: string) => void;
   prompts: LabPrompt[] | null;
+  prodRef: string;
   ariaLabel: string;
 }) {
   return (
     <select
       className="admin-input lab-prompt-select"
-      value={value}
+      value={isProdPromptRef(value) ? prodRef : value}
       onChange={(e) => onChange(e.target.value)}
       aria-label={ariaLabel}
     >
-      <option value={PROD_PROMPT_REF}>{PROD_PROMPT_REF}</option>
+      <option value={prodRef}>{prodRef}</option>
       {(prompts ?? []).map((p) => (
         <option key={p.id} value={`lab:${p.id}`}>
           {p.name} (lab:{p.id})
@@ -96,18 +98,20 @@ export default function BatchSetup({
   pair,
   setPair,
   prompts,
+  prodRef,
   onRunStarted,
 }: {
   pairs: PairSummary[] | null;
   pair: string;
   setPair: (pair: string) => void;
   prompts: LabPrompt[] | null;
+  prodRef: string;
   onRunStarted: (runId: number) => void;
 }) {
   const [configs, setConfigs] = useState<LabConfig[] | null>(null);
   const [configsError, setConfigsError] = useState<string | null>(null);
   const [checked, setChecked] = useState<Set<string>>(new Set());
-  // Prompt per checked config key; absent means prod:v4 (#427).
+  // Prompt per checked config key; absent means the live prod ref (#427).
   const [promptByKey, setPromptByKey] = useState<Record<string, string>>({});
   // Extra (key, prompt) entries beyond the checklist — the way to run the
   // same config twice with different prompts.
@@ -151,15 +155,20 @@ export default function BatchSetup({
     () => new Map((configs ?? []).map((c) => [c.key, c])),
     [configs],
   );
+  const livePromptRef = (ref: string) =>
+    isProdPromptRef(ref) ? prodRef : ref;
   // The run's entries: every checked config with its chosen prompt, then the
   // extra rows — in the server's config-list order, not check order. Prompt
   // choice doesn't change unit price, so cost math counts entries.
   const entries: LabRunConfigEntry[] = [
     ...checkedConfigs.map((c) => ({
       key: c.key,
-      prompt_ref: promptByKey[c.key] ?? PROD_PROMPT_REF,
+      prompt_ref: livePromptRef(promptByKey[c.key] ?? prodRef),
     })),
-    ...extras.map((ex) => ({ key: ex.key, prompt_ref: ex.promptRef })),
+    ...extras.map((ex) => ({
+      key: ex.key,
+      prompt_ref: livePromptRef(ex.promptRef),
+    })),
   ];
   // Mirrors the server's projection: per-card unit prices plus one rubric-judge
   // call per word (VocabCards#425, ~2500 in / ~600 out at gpt-5.5 prices). The
@@ -189,7 +198,7 @@ export default function BatchSetup({
   function addExtra() {
     const key = checkedConfigs[0]?.key ?? (configs ?? [])[0]?.key;
     if (!key) return;
-    setExtras((cur) => [...cur, { key, promptRef: PROD_PROMPT_REF }]);
+    setExtras((cur) => [...cur, { key, promptRef: prodRef }]);
   }
 
   function updateExtra(index: number, patch: Partial<{ key: string; promptRef: string }>) {
@@ -335,9 +344,10 @@ export default function BatchSetup({
                 </span>
                 {checked.has(c.key) && (
                   <PromptSelect
-                    value={promptByKey[c.key] ?? PROD_PROMPT_REF}
+                    value={promptByKey[c.key] ?? prodRef}
                     onChange={(ref) => setPromptFor(c.key, ref)}
                     prompts={prompts}
+                    prodRef={prodRef}
                     ariaLabel={`Prompt for ${c.key}`}
                   />
                 )}
@@ -372,6 +382,7 @@ export default function BatchSetup({
                 value={ex.promptRef}
                 onChange={(ref) => updateExtra(i, { promptRef: ref })}
                 prompts={prompts}
+                prodRef={prodRef}
                 ariaLabel={`Extra entry ${i + 1} prompt`}
               />
               <button

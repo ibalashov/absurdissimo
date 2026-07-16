@@ -5,7 +5,7 @@
 // grouped by word — one card per run config entry. Entries are keyed by
 // (config_key, prompt_ref), not bare key: the prompt-variant axis (VocabCards
 // #427) lets the same config appear twice with different prompts. Runs where
-// everything is prod:v4 render exactly as before — the prompt chip and the
+// everything is prod render exactly as before — the prompt chip and the
 // summary's Prompt column appear only when a non-prod prompt is involved.
 // Tapping a card records it as the word's winner via PUT .../picks; that
 // endpoint lands with VocabCards#425, so a 404/405 degrades to a "picks not
@@ -36,6 +36,7 @@ import {
   errorMessage,
   fmtMs,
   fmtUsd,
+  isProdPromptRef,
   judgeScores,
   promptLabel,
 } from "./util";
@@ -233,7 +234,7 @@ export default function RunView({
   // Non-prod anywhere in the run → show prompt chips and the Prompt column;
   // otherwise the view is byte-identical to the pre-#427 rendering.
   const hasLabPrompt = (run?.configs ?? []).some(
-    (c) => (c.prompt_ref ?? PROD_PROMPT_REF) !== PROD_PROMPT_REF,
+    (c) => !isProdPromptRef(c.prompt_ref ?? PROD_PROMPT_REF),
   );
 
   const byWord = useMemo(() => {
