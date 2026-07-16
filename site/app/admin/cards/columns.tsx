@@ -14,7 +14,7 @@ import {
 } from "@/lib/api";
 import { adminImageUrl, type InventoryRow, type InventorySortKey } from "@/lib/admin";
 import CardImage from "@/components/CardImage";
-import { agoExact, fmtMs, fmtUsd, providerOf } from "./util";
+import { agoExact, fmtMs, fmtUsd } from "./util";
 
 export interface InventoryColumn {
   key: string;
@@ -149,17 +149,7 @@ export const COLUMNS: InventoryColumn[] = [
   {
     key: "provider",
     label: "Provider",
-    render: (r) => {
-      const provider = providerOf(r);
-      if (!provider) return "—";
-      return provider.derived ? (
-        <span className="admin-muted" title="derived from the model name">
-          {provider.name}?
-        </span>
-      ) : (
-        provider.name
-      );
-    },
+    render: (r) => r.provider ?? "—",
   },
   {
     key: "effort",
@@ -230,18 +220,6 @@ export const COLUMNS: InventoryColumn[] = [
     numeric: true,
     sortKey: "vote_score",
     render: (r) => r.vote_score,
-  },
-  {
-    key: "error",
-    label: "Error",
-    render: (r) =>
-      r.error ? (
-        <span className="cards-error-flag" title={r.error}>
-          ⚠️
-        </span>
-      ) : (
-        ""
-      ),
   },
 ];
 

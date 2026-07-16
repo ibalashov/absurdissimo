@@ -158,14 +158,6 @@ export default function CardsChrome({
           <option value="active">active</option>
           <option value="hidden">hidden</option>
         </select>
-        <label className="cards-filter-check">
-          <input
-            type="checkbox"
-            checked={filters.errorsOnly}
-            onChange={(e) => setFilters({ errorsOnly: e.target.checked })}
-          />
-          errors only
-        </label>
         <label className="cards-filter-date">
           from
           <input

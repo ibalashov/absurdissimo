@@ -17,7 +17,7 @@ import {
   type GenerationSummary,
 } from "@/lib/admin";
 import CardImage from "@/components/CardImage";
-import { errorMessage, fmtMs, fmtUsd, pairSlug, providerOf } from "./util";
+import { errorMessage, fmtMs, fmtUsd, pairSlug } from "./util";
 import { useCards } from "./CardsContext";
 
 function Meta({ label, value }: { label: string; value: React.ReactNode }) {
@@ -99,7 +99,6 @@ export default function CardDetail({
   if (!detail) return <p className="admin-muted">Loading…</p>;
 
   const pair = pairSlug(detail.source_language, detail.target_language);
-  const provider = providerOf(detail);
   const info = detail.word_info;
 
   async function hide() {
@@ -167,12 +166,7 @@ export default function CardDetail({
             />
             <Meta label="created" value={formatDateTime(detail.created_at)} />
             <Meta label="model" value={detail.model} />
-            <Meta
-              label="provider"
-              value={
-                provider ? `${provider.name}${provider.derived ? "?" : ""}` : null
-              }
-            />
+            <Meta label="provider" value={detail.provider} />
             <Meta label="effort" value={detail.effort} />
             <Meta label="prompt v" value={detail.prompt_version} />
             <Meta label="absurdity" value={detail.absurdity} />

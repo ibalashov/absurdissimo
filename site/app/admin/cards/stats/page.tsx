@@ -51,10 +51,9 @@ export default function CardsStatsPage() {
     (acc, r) => ({
       count: acc.count + r.count,
       cost: acc.cost + (r.total_cost_usd ?? 0),
-      errors: acc.errors + r.errors,
       hidden: acc.hidden + r.hidden,
     }),
-    { count: 0, cost: 0, errors: 0, hidden: 0 },
+    { count: 0, cost: 0, hidden: 0 },
   );
 
   return (
@@ -78,8 +77,7 @@ export default function CardsStatsPage() {
         {rows && (
           <span className="admin-muted">
             {totals.count.toLocaleString("en-US")} generations ·{" "}
-            {fmtUsd(totals.cost)} · {totals.errors} errors · {totals.hidden}{" "}
-            hidden
+            {fmtUsd(totals.cost)} · {totals.hidden} hidden
           </span>
         )}
       </div>
@@ -115,9 +113,6 @@ export default function CardsStatsPage() {
                   Tok out
                 </th>
                 <th scope="col" className="num">
-                  Errors
-                </th>
-                <th scope="col" className="num">
                   Hidden
                 </th>
               </tr>
@@ -138,7 +133,6 @@ export default function CardsStatsPage() {
                   <td className="num">
                     {r.tokens_out?.toLocaleString("en-US") ?? "—"}
                   </td>
-                  <td className="num">{r.errors}</td>
                   <td className="num">{r.hidden}</td>
                 </tr>
               ))}

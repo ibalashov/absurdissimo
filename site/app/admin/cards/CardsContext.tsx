@@ -29,7 +29,6 @@ export interface CardsFilterState {
   audience: string;
   absurdity: string;
   status: string;
-  errorsOnly: boolean;
   createdAfter: string; // yyyy-mm-dd from <input type="date">
   createdBefore: string;
 }
@@ -44,13 +43,12 @@ export const EMPTY_FILTERS: CardsFilterState = {
   audience: "",
   absurdity: "",
   status: "",
-  errorsOnly: false,
   createdAfter: "",
   createdBefore: "",
 };
 
-// The API-facing shape. Date bounds widen to full-day UTC stamps so a
-// same-day range means "that whole day" (the server compares ISO strings).
+// The API-facing shape. Bare yyyy-mm-dd bounds pass through as-is — the
+// server widens date-only values to the full named day.
 export function toApiFilters(f: CardsFilterState): InventoryFilters {
   return {
     pair: f.pair || undefined,
@@ -62,13 +60,8 @@ export function toApiFilters(f: CardsFilterState): InventoryFilters {
     audience: f.audience || undefined,
     absurdity: f.absurdity || undefined,
     status: (f.status as InventoryFilters["status"]) || undefined,
-    errors_only: f.errorsOnly || undefined,
-    created_after: f.createdAfter
-      ? `${f.createdAfter}T00:00:00+00:00`
-      : undefined,
-    created_before: f.createdBefore
-      ? `${f.createdBefore}T23:59:59+00:00`
-      : undefined,
+    created_after: f.createdAfter || undefined,
+    created_before: f.createdBefore || undefined,
   };
 }
 

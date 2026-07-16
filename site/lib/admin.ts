@@ -500,9 +500,10 @@ export interface InventoryRow {
   tokens_out: number | null;
   cost_usd: number | null;
   latency_ms: number | null;
+  // Stamped at generation time, or derived server-side from the model name
+  // for rows that predate the stamp.
   provider: string | null;
   effort: string | null;
-  error: string | null;
   in_starter_pack: boolean;
   vote_score: number;
   status: "active" | "hidden";
@@ -529,7 +530,7 @@ export interface InventoryFilters {
   audience?: string;
   absurdity?: string;
   status?: "active" | "hidden" | "";
-  errors_only?: boolean;
+  // Date-only values mean the whole named day (the server widens them).
   created_after?: string;
   created_before?: string;
 }
@@ -631,7 +632,6 @@ export interface InventoryStatsRow {
   avg_latency_ms: number | null;
   tokens_in: number | null;
   tokens_out: number | null;
-  errors: number;
   hidden: number;
 }
 
@@ -670,6 +670,7 @@ export interface CardGenerationDetail
   grandfathered: boolean;
   raw_response: string | null;
   provider_request_id: string | null;
+  error: string | null;
   parent: GenerationSummary | null;
   children: GenerationSummary[];
   siblings: GenerationSummary[];

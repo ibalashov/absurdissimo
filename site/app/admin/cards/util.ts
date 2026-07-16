@@ -28,19 +28,6 @@ export function agoExact(isoDate: string, now: number): string {
   return `${parts.join(" ")} ago`;
 }
 
-// Provider for display: the stamped value when the row has one (#457), else
-// derived from the model name (legacy rows predate the provider column).
-// `derived` lets the UI render the guess muted.
-export function providerOf(row: {
-  provider: string | null;
-  model: string | null;
-}): { name: string; derived: boolean } | null {
-  if (row.provider) return { name: row.provider, derived: false };
-  if (row.model?.startsWith("gemini")) return { name: "gemini", derived: true };
-  if (row.model?.startsWith("gpt")) return { name: "openai", derived: true };
-  return null;
-}
-
 // Pair slug ("it-en") from the API's full language names — the reverse of the
 // server's slug parsing, needed to link rows out to /c/{pair}/{word} and to
 // call hideAdminCard (which revalidates the pair's decks).
