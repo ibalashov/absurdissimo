@@ -21,7 +21,7 @@ import BatchSetup from "./BatchSetup";
 import PromptsPane from "./PromptsPane";
 import RunHistory from "./RunHistory";
 import RunView from "./RunView";
-import { errorMessage } from "./util";
+import { errorMessage, PROD_PROMPT_REF } from "./util";
 
 const PAIR_KEY = "admin.labsPair";
 
@@ -104,6 +104,7 @@ export default function LabsPage() {
         pair={pair}
         setPair={setPair}
         prompts={promptData?.prompts ?? null}
+        prodRef={promptData?.prod.ref ?? PROD_PROMPT_REF}
         onRunStarted={(runId) => {
           setActiveRunId(runId);
           setHistoryVersion((v) => v + 1);
