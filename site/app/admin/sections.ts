@@ -11,6 +11,12 @@ export interface AdminSection {
 
 export const ADMIN_SECTIONS: AdminSection[] = [
   {
+    title: "Cards",
+    href: "/admin/cards",
+    description:
+      "Inspect every generated card: table, gallery, by-word, and stats views.",
+  },
+  {
     title: "Starter packs",
     href: "/admin/starter-packs",
     description:

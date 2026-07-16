@@ -471,3 +471,214 @@ export function updateRuntimeSettings(
     json: update,
   });
 }
+
+// Cards inventory (VocabCards #457/#458): every generation ever stored —
+// hidden rows included — with the generation_details telemetry joined in.
+// One row per generation (a card variant), NOT one per active word.
+
+export interface InventoryRow {
+  id: number;
+  source_language: string;
+  target_language: string;
+  word: string;
+  display_word: string;
+  mnemonic: string;
+  explanation: string;
+  keyword: string | null;
+  strategy: string | null;
+  absurdity: string | null;
+  prompt_version: string | null;
+  model: string | null;
+  provenance: string;
+  audience: string | null;
+  device_id: string | null;
+  parent_generation_id: number | null;
+  image_id: string | null;
+  retired_at: string | null;
+  created_at: string;
+  tokens_in: number | null;
+  tokens_out: number | null;
+  cost_usd: number | null;
+  latency_ms: number | null;
+  provider: string | null;
+  effort: string | null;
+  error: string | null;
+  in_starter_pack: boolean;
+  vote_score: number;
+  status: "active" | "hidden";
+  image_url: string | null;
+  image_status: ImageStatus;
+}
+
+export interface InventoryPage {
+  page: number;
+  page_size: number;
+  total: number;
+  rows: InventoryRow[];
+}
+
+// Server-side filter set — mirrors GET /admin/cards/inventory's query params
+// 1:1 (the server owns filtering/sorting; the corpus is too big to ship).
+export interface InventoryFilters {
+  pair?: string;
+  q?: string;
+  word?: string;
+  model?: string;
+  prompt_version?: string;
+  provider?: string;
+  audience?: string;
+  absurdity?: string;
+  status?: "active" | "hidden" | "";
+  errors_only?: boolean;
+  created_after?: string;
+  created_before?: string;
+}
+
+function inventoryParams(filters: InventoryFilters): URLSearchParams {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters)) {
+    if (value === undefined || value === "" || value === false) continue;
+    params.set(key, String(value));
+  }
+  return params;
+}
+
+// Sort keys are server-whitelisted (422 otherwise) — keep in sync with
+// association_store.INVENTORY_SORT_COLUMNS.
+export type InventorySortKey =
+  | "created_at"
+  | "id"
+  | "word"
+  | "model"
+  | "cost"
+  | "latency"
+  | "tokens_in"
+  | "tokens_out"
+  | "vote_score";
+
+export function fetchCardInventory(
+  filters: InventoryFilters,
+  opts: {
+    sort?: InventorySortKey;
+    order?: "asc" | "desc";
+    page?: number;
+    pageSize?: number;
+  } = {},
+): Promise<InventoryPage> {
+  const params = inventoryParams(filters);
+  if (opts.sort) params.set("sort", opts.sort);
+  if (opts.order) params.set("order", opts.order);
+  if (opts.page) params.set("page", String(opts.page));
+  if (opts.pageSize) params.set("page_size", String(opts.pageSize));
+  return adminFetch<InventoryPage>(
+    `/admin/cards/inventory?${params.toString()}`,
+  );
+}
+
+// group=word rollup: one group per (pair, word) under the same filters,
+// newest generation first. Expanding a group = the flat inventory with
+// word= + pair= set.
+export interface InventoryWordGroup {
+  source_language: string;
+  target_language: string;
+  word: string;
+  display_word: string;
+  variant_count: number;
+  active_count: number;
+  total_cost_usd: number | null;
+  first_created_at: string;
+  last_created_at: string;
+}
+
+export interface InventoryWordGroupPage {
+  page: number;
+  page_size: number;
+  total: number;
+  groups: InventoryWordGroup[];
+}
+
+export function fetchCardWordGroups(
+  filters: InventoryFilters,
+  page = 1,
+  pageSize?: number,
+): Promise<InventoryWordGroupPage> {
+  const params = inventoryParams(filters);
+  params.set("group", "word");
+  params.set("page", String(page));
+  if (pageSize) params.set("page_size", String(pageSize));
+  return adminFetch<InventoryWordGroupPage>(
+    `/admin/cards/inventory?${params.toString()}`,
+  );
+}
+
+// Aggregate rollup under the same filters. Keys mirror the server's
+// INVENTORY_STATS_GROUPS whitelist. Telemetry aggregates cover the
+// with_telemetry subset (legacy rows have no sidecar).
+export type InventoryStatsGroup =
+  | "model"
+  | "prompt_version"
+  | "provider"
+  | "audience"
+  | "absurdity"
+  | "pair"
+  | "day";
+
+export interface InventoryStatsRow {
+  grp: string | null;
+  count: number;
+  with_telemetry: number;
+  total_cost_usd: number | null;
+  avg_latency_ms: number | null;
+  tokens_in: number | null;
+  tokens_out: number | null;
+  errors: number;
+  hidden: number;
+}
+
+export function fetchCardStats(
+  filters: InventoryFilters,
+  groupBy: InventoryStatsGroup,
+): Promise<{ group_by: InventoryStatsGroup; rows: InventoryStatsRow[] }> {
+  const params = inventoryParams(filters);
+  params.set("group_by", groupBy);
+  return adminFetch(`/admin/cards/stats?${params.toString()}`);
+}
+
+// Lineage/sibling summary rows on the detail payload.
+export interface GenerationSummary {
+  id: number;
+  word: string;
+  mnemonic: string;
+  keyword: string | null;
+  absurdity: string | null;
+  model: string | null;
+  prompt_version: string | null;
+  image_id: string | null;
+  image_url: string | null;
+  image_status: ImageStatus;
+  retired_at: string | null;
+  status: "active" | "hidden";
+  created_at: string;
+}
+
+// The expanded-row payload: everything too heavy or too niche for the list —
+// raw LLM response, prompt inputs, regenerate lineage, sibling variants.
+export interface CardGenerationDetail
+  extends Omit<InventoryRow, "in_starter_pack" | "vote_score"> {
+  word_info: WordInfo;
+  input_definition: string | null;
+  grandfathered: boolean;
+  raw_response: string | null;
+  provider_request_id: string | null;
+  parent: GenerationSummary | null;
+  children: GenerationSummary[];
+  siblings: GenerationSummary[];
+}
+
+export function fetchCardGenerationDetail(
+  associationId: number,
+): Promise<CardGenerationDetail> {
+  return adminFetch<CardGenerationDetail>(
+    `/admin/cards/${associationId}/details`,
+  );
+}
