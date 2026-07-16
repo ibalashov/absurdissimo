@@ -17,9 +17,9 @@ import {
 } from "@/lib/admin";
 
 // Allowed placeholders in the system prompt — the server rejects anything else
-// (and requires all three), so the card can't silently degrade.
+// (and requires them all), so the card can't silently degrade.
 const PLACEHOLDERS =
-  "{target_language}, {length_instruction}, {absurdity_instruction}";
+  "{target_language}, {length_instruction}, {absurdity_instruction}, {examples}";
 
 function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : "Something went wrong.";
@@ -233,8 +233,8 @@ export default function SettingsPage() {
             onChange={(e) => set("system_prompt", e.target.value)}
           />
           <p className="admin-pane-hint">
-            Allowed placeholders: {PLACEHOLDERS} — all three are required and
-            anything else is rejected. Editing this changes generated content;
+            Allowed placeholders: {PLACEHOLDERS} — all are required and anything
+            else is rejected. Editing this changes generated content;
             bump the prompt version above to make it take effect for existing
             words.
           </p>
