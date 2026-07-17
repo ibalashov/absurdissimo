@@ -7,6 +7,12 @@
 // field set back to its default clears the override server-side). Each field
 // shows whether it's currently an override and offers a reset to the
 // compile-time default.
+//
+// Model tunables (VocabCards #460/#461): reasoning effort + temperature.
+// Their default is unset (null) — resetting sends an explicit null. Which
+// tunables apply is server-driven via model_tunables: a field the selected
+// model doesn't support is greyed out, not hidden, and its stored value
+// survives until a supporting model is picked again.
 
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -67,6 +73,12 @@ export default function SettingsPage() {
       diff.prompt_version = form.prompt_version;
     if (form.default_absurdity_level !== data.effective.default_absurdity_level)
       diff.default_absurdity_level = form.default_absurdity_level;
+    // Tunables: null is a real value here (explicit null clears the override
+    // server-side), so a set→unset change lands in the diff as null.
+    if (form.reasoning_effort !== data.effective.reasoning_effort)
+      diff.reasoning_effort = form.reasoning_effort;
+    if (form.temperature !== data.effective.temperature)
+      diff.temperature = form.temperature;
     return diff;
   }, [data, form]);
 
@@ -141,6 +153,13 @@ export default function SettingsPage() {
     </span>
   );
 
+  // Which tunables the model currently picked in the form supports — server-
+  // driven, so a new model needs no UI change. An inapplicable field stays
+  // visible but disabled; its stored value is kept, not cleared.
+  const tunables = data.model_tunables[form.model] ?? [];
+  const effortApplies = tunables.includes("reasoning_effort");
+  const temperatureApplies = tunables.includes("temperature");
+
   return (
     <>
       <h1>Runtime settings</h1>
@@ -171,6 +190,83 @@ export default function SettingsPage() {
           <p className="admin-pane-hint">
             The text-generation model. Stamped on each card, so switching it
             does <strong>not</strong> bump the prompt version.
+          </p>
+        </div>
+
+        <div className="setting-field">
+          <label className="setting-label" htmlFor="setting-effort">
+            Reasoning effort
+            {fieldStatus("reasoning_effort")}
+          </label>
+          <select
+            id="setting-effort"
+            className="admin-input"
+            value={form.reasoning_effort ?? ""}
+            disabled={!effortApplies}
+            onChange={(e) =>
+              set(
+                "reasoning_effort",
+                e.target.value === "" ? null : e.target.value,
+              )
+            }
+          >
+            <option value="">Unset (model default)</option>
+            {data.reasoning_effort_options.map((o) => (
+              <option key={o} value={o}>
+                {titleCase(o)}
+              </option>
+            ))}
+          </select>
+          <p className="admin-pane-hint">
+            {effortApplies ? (
+              <>
+                How much the model reasons before answering — more effort,
+                slower and pricier generations. Unset keeps the model&rsquo;s
+                built-in default.
+              </>
+            ) : (
+              <>
+                Not used by {form.model}. The stored value is kept and applies
+                again when a supporting model is selected.
+              </>
+            )}
+          </p>
+        </div>
+
+        <div className="setting-field">
+          <label className="setting-label" htmlFor="setting-temperature">
+            Temperature
+            {fieldStatus("temperature")}
+          </label>
+          <input
+            id="setting-temperature"
+            className="admin-input setting-temperature"
+            type="number"
+            min={0}
+            max={2}
+            step={0.1}
+            value={form.temperature ?? ""}
+            disabled={!temperatureApplies}
+            onChange={(e) =>
+              set(
+                "temperature",
+                e.target.value === "" ? null : Number(e.target.value),
+              )
+            }
+          />
+          <p className="admin-pane-hint">
+            {temperatureApplies ? (
+              <>
+                Sampling temperature, 0&ndash;2 — higher means more varied
+                regenerations. Empty means unset: the provider&rsquo;s default
+                applies.
+              </>
+            ) : (
+              <>
+                Not used by {form.model}. The stored value is kept and applies
+                again when a supporting model is selected.
+              </>
+            )}
           </p>
         </div>
 

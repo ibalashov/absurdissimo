@@ -444,6 +444,12 @@ export interface RuntimeSettings {
   system_prompt: string;
   prompt_version: number;
   default_absurdity_level: string;
+  // Model tunables (VocabCards #460/#461). null = unset: the model keeps its
+  // own default. Unlike the four fields above, whose default is a concrete
+  // value, these are cleared by PUTting an explicit null — omitting the field
+  // leaves it untouched.
+  reasoning_effort: string | null;
+  temperature: number | null;
 }
 
 export type RuntimeSettingField = keyof RuntimeSettings;
@@ -454,6 +460,11 @@ export interface RuntimeSettingsResponse {
   overridden: RuntimeSettingField[];
   model_options: string[];
   absurdity_options: string[];
+  reasoning_effort_options: string[];
+  // Model id → tunable params it supports ("reasoning_effort"/"temperature").
+  // A tunable the selected model doesn't support is stored but inert — the UI
+  // greys it out instead of hiding or clearing it.
+  model_tunables: Record<string, string[]>;
 }
 
 export function fetchRuntimeSettings(): Promise<RuntimeSettingsResponse> {
@@ -461,8 +472,10 @@ export function fetchRuntimeSettings(): Promise<RuntimeSettingsResponse> {
 }
 
 // Only the fields present in `update` are changed. Server validates the model
-// against model_options and the prompt template's placeholders — its 422
-// detail surfaces through AdminApiError.
+// against model_options, the prompt template's placeholders, reasoning_effort
+// against reasoning_effort_options, and temperature within [0, 2] — its 422
+// detail surfaces through AdminApiError. reasoning_effort/temperature take an
+// explicit null to clear (their default is unset).
 export function updateRuntimeSettings(
   update: Partial<RuntimeSettings>,
 ): Promise<RuntimeSettingsResponse> {
