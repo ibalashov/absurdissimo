@@ -54,8 +54,16 @@
   text-decoration: underline;
 }
 
-.setting-version {
+.setting-version,
+.setting-temperature {
   max-width: 8rem;
+}
+
+/* A tunable the selected model doesn't support: greyed but visible — the
+   stored value stays and re-activates on a supporting model. */
+.setting-field .admin-input:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .setting-prompt {
