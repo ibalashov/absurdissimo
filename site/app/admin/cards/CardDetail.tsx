@@ -18,12 +18,14 @@ import {
 } from "@/lib/admin";
 import CardImage from "@/components/CardImage";
 import {
+  cardStackKey,
   errorMessage,
   fmtMs,
   fmtUsd,
   pairSlug,
   posthogCardEventsUrl,
   posthogLlmTracesUrl,
+  posthogStackEventsUrl,
 } from "./util";
 import { useCards } from "./CardsContext";
 
@@ -260,19 +262,28 @@ export default function CardDetail({
         </Link>
         <a
           className="admin-btn"
-          href={posthogCardEventsUrl(
-            [detail.word, detail.display_word],
-            detail.source_language,
-            detail.target_language,
+          href={posthogCardEventsUrl(detail.id)}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Card events ↗
+        </a>
+        <a
+          className="admin-btn"
+          href={posthogStackEventsUrl(
+            cardStackKey(detail.source_language, detail.target_language, detail.word),
           )}
           target="_blank"
           rel="noreferrer"
         >
-          PostHog events ↗
+          Stack events ↗
         </a>
         <a
           className="admin-btn"
-          href={posthogLlmTracesUrl(detail.created_at)}
+          href={posthogLlmTracesUrl(
+            [detail.trace_id, detail.image_trace_id],
+            detail.created_at,
+          )}
           target="_blank"
           rel="noreferrer"
         >
