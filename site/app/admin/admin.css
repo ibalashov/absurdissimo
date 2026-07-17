@@ -1,10 +1,11 @@
 /* Admin shell (VocabCards #363) — reuses the design tokens from globals.css
    and the nav from cards.css. */
 
+/* Full viewport width for every section (the data tables need it; prose
+   elements cap themselves individually, e.g. .admin-intro). */
 .admin-shell {
   display: flex;
   gap: 2rem;
-  max-width: 1100px;
   margin: 0 auto;
   padding: 2rem 1.5rem 4rem;
   align-items: flex-start;

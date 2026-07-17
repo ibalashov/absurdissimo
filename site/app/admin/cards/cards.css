@@ -3,14 +3,6 @@
    cards-specific pieces: the filter bar, column picker, thumbnails, expanded
    detail, and the gallery grid. */
 
-/* The inventory is a wide data table: lift the admin shell's 1100px cap on
-   Cards pages only (the marker div is rendered by this section's layout), so
-   the table gets the full viewport while other sections keep their reading
-   width. */
-.admin-shell:has(.cards-full-bleed) {
-  max-width: none;
-}
-
 /* Always-visible horizontal scrollbar for the inventory: macOS overlay
    scrollbars render nothing until you happen to scroll inside the div, which
    made the overflowing table read as cut off. Custom WebKit scrollbar styling
