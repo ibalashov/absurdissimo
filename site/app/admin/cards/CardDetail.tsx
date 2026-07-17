@@ -17,7 +17,14 @@ import {
   type GenerationSummary,
 } from "@/lib/admin";
 import CardImage from "@/components/CardImage";
-import { errorMessage, fmtMs, fmtUsd, pairSlug } from "./util";
+import {
+  errorMessage,
+  fmtMs,
+  fmtUsd,
+  pairSlug,
+  posthogCardEventsUrl,
+  posthogLlmTracesUrl,
+} from "./util";
 import { useCards } from "./CardsContext";
 
 function Meta({ label, value }: { label: string; value: React.ReactNode }) {
@@ -251,6 +258,26 @@ export default function CardDetail({
         >
           Community thread ↗
         </Link>
+        <a
+          className="admin-btn"
+          href={posthogCardEventsUrl(
+            [detail.word, detail.display_word],
+            detail.source_language,
+            detail.target_language,
+          )}
+          target="_blank"
+          rel="noreferrer"
+        >
+          PostHog events ↗
+        </a>
+        <a
+          className="admin-btn"
+          href={posthogLlmTracesUrl(detail.created_at)}
+          target="_blank"
+          rel="noreferrer"
+        >
+          LLM traces ↗
+        </a>
         <button
           className="admin-btn"
           type="button"
