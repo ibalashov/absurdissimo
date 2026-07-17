@@ -17,8 +17,13 @@ import { errorMessage } from "./util";
 import { useCards } from "./CardsContext";
 import CardDetail from "./CardDetail";
 
-// v2: image-telemetry columns (VocabCards #464) joined the defaults — bumping
-// the key resets a stored pre-#464 selection that would silently hide them.
+// Sticky column prefs (VocabCards #467). The stored shape is {visible, known}:
+// `visible` is the admin's selection in display order (drag a header to
+// re-arrange), `known` is the full column set that existed when it was saved —
+// so a later release's new default columns join the view without resetting
+// the selection (the earlier approach bumped this key per column addition,
+// trading the curated selection away every time). Bare-array payloads from
+// the pre-#467 shape are honored as-is.
 const COLUMNS_KEY = "admin.cards.columns.v2";
 const PAGE_SIZE_KEY = "admin.cards.pageSize";
 // Server caps page_size at 200.
@@ -35,20 +40,49 @@ function loadPageSize(): number {
   return DEFAULT_PAGE_SIZE;
 }
 
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((k) => typeof k === "string");
+}
+
 function loadVisibleColumns(): string[] {
+  const current = new Set(COLUMNS.map((c) => c.key));
   try {
     const raw = localStorage.getItem(COLUMNS_KEY);
     if (!raw) return DEFAULT_COLUMNS;
     const parsed: unknown = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.every((k) => typeof k === "string")) {
-      const known = new Set(COLUMNS.map((c) => c.key));
-      const kept = parsed.filter((k) => known.has(k));
+    if (isStringArray(parsed)) {
+      // Legacy pre-#467 shape: the selection alone. Keep it verbatim; the
+      // next toggle/re-arrange rewrites it in the {visible, known} shape.
+      const kept = parsed.filter((k) => current.has(k));
       if (kept.length > 0) return kept;
+    } else if (typeof parsed === "object" && parsed !== null) {
+      const { visible, known } = parsed as { visible?: unknown; known?: unknown };
+      if (isStringArray(visible) && isStringArray(known)) {
+        const savedKnown = new Set(known);
+        const kept = visible.filter((k) => current.has(k));
+        // Default columns shipped after this selection was saved append at
+        // the end — new telemetry surfaces without resetting the selection.
+        const fresh = COLUMNS.filter(
+          (c) => c.defaultVisible && !savedKnown.has(c.key) && !kept.includes(c.key),
+        ).map((c) => c.key);
+        if (kept.length + fresh.length > 0) return [...kept, ...fresh];
+      }
     }
   } catch {
     // Corrupt/unavailable storage — fall through to the defaults.
   }
   return DEFAULT_COLUMNS;
+}
+
+function saveColumns(visible: string[]) {
+  try {
+    localStorage.setItem(
+      COLUMNS_KEY,
+      JSON.stringify({ visible, known: COLUMNS.map((c) => c.key) }),
+    );
+  } catch {
+    // Private mode — keep the in-memory value.
+  }
 }
 
 export default function CardsTablePage() {
@@ -73,10 +107,16 @@ export default function CardsTablePage() {
     setPageSize(loadPageSize());
   }, []);
 
+  // Rendered in the admin's own order — `visible` is ordered, not a set.
   const columns = useMemo(
-    () => COLUMNS.filter((c) => visible.includes(c.key)),
+    () =>
+      visible
+        .map((key) => COLUMNS.find((c) => c.key === key))
+        .filter((c): c is InventoryColumn => c !== undefined),
     [visible],
   );
+  const [dragKey, setDragKey] = useState<string | null>(null);
+  const [dragOverKey, setDragOverKey] = useState<string | null>(null);
 
   // The live "Age" column ticks once a second — but only while it's shown.
   const ageVisible = visible.includes("age");
@@ -136,14 +176,35 @@ export default function CardsTablePage() {
 
   function toggleColumn(key: string) {
     setVisible((prev) => {
-      const next = prev.includes(key)
-        ? prev.filter((k) => k !== key)
-        : [...COLUMNS.map((c) => c.key).filter((k) => prev.includes(k) || k === key)];
-      try {
-        localStorage.setItem(COLUMNS_KEY, JSON.stringify(next));
-      } catch {
-        // Private mode — keep the in-memory value.
+      let next: string[];
+      if (prev.includes(key)) {
+        next = prev.filter((k) => k !== key);
+      } else {
+        // Insert after the last visible column that canonically precedes it,
+        // so a re-enabled column lands in a familiar spot even after the
+        // table has been re-arranged.
+        const canon = COLUMNS.map((c) => c.key);
+        const at = prev.reduce(
+          (acc, k, i) => (canon.indexOf(k) < canon.indexOf(key) ? i + 1 : acc),
+          0,
+        );
+        next = [...prev.slice(0, at), key, ...prev.slice(at)];
       }
+      saveColumns(next);
+      return next;
+    });
+  }
+
+  // Header drag-and-drop re-ordering (#467): drop the dragged column at the
+  // target's position. Order persists with the selection.
+  function moveColumn(fromKey: string, toKey: string) {
+    setVisible((prev) => {
+      const from = prev.indexOf(fromKey);
+      const to = prev.indexOf(toKey);
+      if (from === -1 || to === -1 || from === to) return prev;
+      const next = [...prev];
+      next.splice(to, 0, ...next.splice(from, 1));
+      saveColumns(next);
       return next;
     });
   }
@@ -203,7 +264,47 @@ export default function CardsTablePage() {
             <thead>
               <tr>
                 {columns.map((c) => (
-                  <th key={c.key} scope="col" className={c.numeric ? "num" : undefined}>
+                  <th
+                    key={c.key}
+                    scope="col"
+                    title="Drag to re-arrange"
+                    draggable
+                    onDragStart={(e) => {
+                      setDragKey(c.key);
+                      e.dataTransfer.effectAllowed = "move";
+                      // WebKit won't start a drag without payload data.
+                      e.dataTransfer.setData("text/plain", c.key);
+                    }}
+                    onDragOver={(e) => {
+                      if (dragKey && dragKey !== c.key) {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = "move";
+                        if (dragOverKey !== c.key) setDragOverKey(c.key);
+                      }
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      if (dragKey) moveColumn(dragKey, c.key);
+                      setDragKey(null);
+                      setDragOverKey(null);
+                    }}
+                    onDragEnd={() => {
+                      setDragKey(null);
+                      setDragOverKey(null);
+                    }}
+                    className={
+                      [
+                        c.numeric ? "num" : "",
+                        "cards-th-drag",
+                        dragKey === c.key ? "dragging" : "",
+                        dragOverKey === c.key && dragKey !== c.key
+                          ? "drop-target"
+                          : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ") || undefined
+                    }
+                  >
                     {c.sortKey ? (
                       <button
                         className={`lab-sort-btn${sort.key === c.sortKey ? " active" : ""}`}
