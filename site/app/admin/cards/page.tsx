@@ -17,7 +17,9 @@ import { errorMessage } from "./util";
 import { useCards } from "./CardsContext";
 import CardDetail from "./CardDetail";
 
-const COLUMNS_KEY = "admin.cards.columns";
+// v2: image-telemetry columns (VocabCards #464) joined the defaults — bumping
+// the key resets a stored pre-#464 selection that would silently hide them.
+const COLUMNS_KEY = "admin.cards.columns.v2";
 const PAGE_SIZE_KEY = "admin.cards.pageSize";
 // Server caps page_size at 200.
 const PAGE_SIZES = [25, 50, 100, 200];

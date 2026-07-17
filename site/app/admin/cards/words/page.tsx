@@ -75,6 +75,12 @@ export default function CardsByWordPage() {
                   Active
                 </th>
                 <th scope="col" className="num">
+                  Text cost
+                </th>
+                <th scope="col" className="num">
+                  Img cost
+                </th>
+                <th scope="col" className="num">
                   Total cost
                 </th>
                 <th scope="col">First</th>
@@ -98,6 +104,8 @@ export default function CardsByWordPage() {
                   </td>
                   <td className="num">{g.variant_count}</td>
                   <td className="num">{g.active_count}</td>
+                  <td className="num">{fmtUsd(g.text_cost_usd)}</td>
+                  <td className="num">{fmtUsd(g.image_cost_usd)}</td>
                   <td className="num">{fmtUsd(g.total_cost_usd)}</td>
                   <td>{formatDateTime(g.first_created_at)}</td>
                   <td>{formatDateTime(g.last_created_at)}</td>

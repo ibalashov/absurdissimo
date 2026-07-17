@@ -99,8 +99,11 @@ export default function CardsGalleryPage() {
                 {row.keyword && (
                   <span className="cards-tile-keyword">{row.keyword}</span>
                 )}
-                <span className="cards-tile-meta admin-muted">
-                  {row.model ?? "?"} · {fmtUsd(row.cost_usd)}
+                <span
+                  className="cards-tile-meta admin-muted"
+                  title="text + image cost"
+                >
+                  {row.model ?? "?"} · {fmtUsd(row.total_cost_usd)}
                   {row.status === "hidden" ? " · hidden" : ""}
                 </span>
               </div>

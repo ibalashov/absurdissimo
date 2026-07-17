@@ -118,7 +118,7 @@ export const COLUMNS: InventoryColumn[] = [
   },
   {
     key: "cost",
-    label: "Cost",
+    label: "Text cost",
     numeric: true,
     sortKey: "cost",
     defaultVisible: true,
@@ -126,11 +126,45 @@ export const COLUMNS: InventoryColumn[] = [
   },
   {
     key: "latency",
-    label: "Latency",
+    label: "Text latency",
     numeric: true,
     sortKey: "latency",
     defaultVisible: true,
     render: (r) => fmtMs(r.latency_ms),
+  },
+  // Image-render telemetry (VocabCards #464). Legacy images predate the
+  // sidecar: cost/latency render as — while the derived provider still shows.
+  {
+    key: "image_cost",
+    label: "Img cost",
+    numeric: true,
+    sortKey: "image_cost",
+    defaultVisible: true,
+    render: (r) => fmtUsd(r.image_cost_usd),
+  },
+  {
+    key: "image_latency",
+    label: "Img latency",
+    numeric: true,
+    sortKey: "image_latency",
+    defaultVisible: true,
+    render: (r) => fmtMs(r.image_latency_ms),
+  },
+  {
+    key: "total_cost",
+    label: "Total cost",
+    numeric: true,
+    sortKey: "total_cost",
+    defaultVisible: true,
+    render: (r) => fmtUsd(r.total_cost_usd),
+  },
+  {
+    key: "total_latency",
+    label: "Total latency",
+    numeric: true,
+    sortKey: "total_latency",
+    defaultVisible: true,
+    render: (r) => fmtMs(r.total_latency_ms),
   },
   {
     key: "tokens_in",
@@ -150,6 +184,16 @@ export const COLUMNS: InventoryColumn[] = [
     key: "provider",
     label: "Provider",
     render: (r) => r.provider ?? "—",
+  },
+  {
+    key: "image_provider",
+    label: "Img provider",
+    render: (r) => r.image_provider ?? "—",
+  },
+  {
+    key: "image_model",
+    label: "Img model",
+    render: (r) => r.image_model ?? "—",
   },
   {
     key: "effort",

@@ -174,8 +174,14 @@ export default function CardDetail({
             <Meta label="audience" value={detail.audience} />
             <Meta label="triggered by" value={detail.device_id} />
             <Meta label="provenance" value={detail.provenance} />
-            <Meta label="cost" value={fmtUsd(detail.cost_usd)} />
-            <Meta label="latency" value={fmtMs(detail.latency_ms)} />
+            <Meta label="text cost" value={fmtUsd(detail.cost_usd)} />
+            <Meta label="text latency" value={fmtMs(detail.latency_ms)} />
+            <Meta label="img provider" value={detail.image_provider} />
+            <Meta label="img model" value={detail.image_model} />
+            <Meta label="img cost" value={fmtUsd(detail.image_cost_usd)} />
+            <Meta label="img latency" value={fmtMs(detail.image_latency_ms)} />
+            <Meta label="total cost" value={fmtUsd(detail.total_cost_usd)} />
+            <Meta label="total latency" value={fmtMs(detail.total_latency_ms)} />
             <Meta
               label="tokens"
               value={

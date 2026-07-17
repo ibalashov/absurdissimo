@@ -517,6 +517,17 @@ export interface InventoryRow {
   // for rows that predate the stamp.
   provider: string | null;
   effort: string | null;
+  // Image-render telemetry from the image_details sidecar (VocabCards #464).
+  // Provider derives to 'openai' server-side for legacy rows with an image;
+  // legacy cost/latency stay null (the image model changed over time, so no
+  // constant-cost backfill). Totals span text + image and are null only when
+  // neither sidecar has data.
+  image_provider: string | null;
+  image_model: string | null;
+  image_cost_usd: number | null;
+  image_latency_ms: number | null;
+  total_cost_usd: number | null;
+  total_latency_ms: number | null;
   in_starter_pack: boolean;
   vote_score: number;
   status: "active" | "hidden";
@@ -568,6 +579,10 @@ export type InventorySortKey =
   | "latency"
   | "tokens_in"
   | "tokens_out"
+  | "image_cost"
+  | "image_latency"
+  | "total_cost"
+  | "total_latency"
   | "vote_score";
 
 export function fetchCardInventory(
@@ -599,6 +614,10 @@ export interface InventoryWordGroup {
   display_word: string;
   variant_count: number;
   active_count: number;
+  // Spend split (VocabCards #464): text and image sidecars separately, and
+  // their sum — null only when no variant has telemetry on that side.
+  text_cost_usd: number | null;
+  image_cost_usd: number | null;
   total_cost_usd: number | null;
   first_created_at: string;
   last_created_at: string;
@@ -641,8 +660,15 @@ export interface InventoryStatsRow {
   grp: string | null;
   count: number;
   with_telemetry: number;
+  with_image_telemetry: number;
+  // Cost split (VocabCards #464): text / image sidecars and their grand
+  // total; latency averaged per sidecar plus per-row text+image totals.
+  text_cost_usd: number | null;
+  image_cost_usd: number | null;
   total_cost_usd: number | null;
   avg_latency_ms: number | null;
+  avg_image_latency_ms: number | null;
+  avg_total_latency_ms: number | null;
   tokens_in: number | null;
   tokens_out: number | null;
   hidden: number;
