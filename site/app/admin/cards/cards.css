@@ -3,6 +3,40 @@
    cards-specific pieces: the filter bar, column picker, thumbnails, expanded
    detail, and the gallery grid. */
 
+/* The inventory is a wide data table: lift the admin shell's 1100px cap on
+   Cards pages only (the marker div is rendered by this section's layout), so
+   the table gets the full viewport while other sections keep their reading
+   width. */
+.admin-shell:has(.cards-full-bleed) {
+  max-width: none;
+}
+
+/* Always-visible horizontal scrollbar for the inventory: macOS overlay
+   scrollbars render nothing until you happen to scroll inside the div, which
+   made the overflowing table read as cut off. Custom WebKit scrollbar styling
+   opts out of overlay mode; scrollbar-width covers Firefox. */
+.cards-full-bleed .lab-table-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.cards-full-bleed .lab-table-scroll::-webkit-scrollbar {
+  height: 10px;
+}
+
+.cards-full-bleed .lab-table-scroll::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 5px;
+}
+
+.cards-full-bleed .lab-table-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+.cards-full-bleed .lab-table-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 .cards-filters {
   display: flex;
   flex-wrap: wrap;
@@ -35,6 +69,14 @@
   align-items: center;
   gap: 0.75rem;
   margin-bottom: 0.75rem;
+}
+
+.cards-page-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
 }
 
 .cards-column-picker {

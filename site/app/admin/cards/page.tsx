@@ -18,7 +18,20 @@ import { useCards } from "./CardsContext";
 import CardDetail from "./CardDetail";
 
 const COLUMNS_KEY = "admin.cards.columns";
-const PAGE_SIZE = 50;
+const PAGE_SIZE_KEY = "admin.cards.pageSize";
+// Server caps page_size at 200.
+const PAGE_SIZES = [25, 50, 100, 200];
+const DEFAULT_PAGE_SIZE = 50;
+
+function loadPageSize(): number {
+  try {
+    const stored = Number(localStorage.getItem(PAGE_SIZE_KEY));
+    if (PAGE_SIZES.includes(stored)) return stored;
+  } catch {
+    // Corrupt/unavailable storage — fall through to the default.
+  }
+  return DEFAULT_PAGE_SIZE;
+}
 
 function loadVisibleColumns(): string[] {
   try {
@@ -47,13 +60,15 @@ export default function CardsTablePage() {
   const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [visible, setVisible] = useState<string[]>(DEFAULT_COLUMNS);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [now, setNow] = useState(() => Date.now());
   // Bumped after a hide so the current page refetches.
   const [version, setVersion] = useState(0);
 
-  // Column prefs are client-only state; hydrate them after mount.
+  // Column and page-size prefs are client-only state; hydrate after mount.
   useEffect(() => {
     setVisible(loadVisibleColumns());
+    setPageSize(loadPageSize());
   }, []);
 
   const columns = useMemo(
@@ -81,7 +96,7 @@ export default function CardsTablePage() {
       sort: sort.key,
       order: sort.desc ? "desc" : "asc",
       page,
-      pageSize: PAGE_SIZE,
+      pageSize,
     }).then(
       (fresh) => {
         if (cancelled) return;
@@ -97,13 +112,24 @@ export default function CardsTablePage() {
     };
     // filtersKey stands in for apiFilters (same object, stable string).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtersKey, sort, page, version]);
+  }, [filtersKey, sort, page, pageSize, version]);
 
   function toggleSort(key: InventorySortKey) {
     setSort((prev) =>
       prev.key === key ? { key, desc: !prev.desc } : { key, desc: true },
     );
     setPage(1);
+  }
+
+  function changePageSize(size: number) {
+    setPageSize(size);
+    setPage(1);
+    setExpandedId(null);
+    try {
+      localStorage.setItem(PAGE_SIZE_KEY, String(size));
+    } catch {
+      // Private mode — keep the in-memory value.
+    }
   }
 
   function toggleColumn(key: string) {
@@ -132,6 +158,20 @@ export default function CardsTablePage() {
             {data.total.toLocaleString("en-US")} generations
           </span>
         )}
+        <label className="cards-page-size admin-muted">
+          per page
+          <select
+            className="admin-input"
+            value={pageSize}
+            onChange={(e) => changePageSize(Number(e.target.value))}
+          >
+            {PAGE_SIZES.map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+          </select>
+        </label>
         <details className="cards-column-picker">
           <summary className="admin-btn">Columns</summary>
           <div className="cards-column-menu">
