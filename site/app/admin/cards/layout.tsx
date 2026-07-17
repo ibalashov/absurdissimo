@@ -25,7 +25,12 @@ export default function CardsLayout({
 }) {
   return (
     <CardsProvider>
-      <CardsChrome>{children}</CardsChrome>
+      {/* Marker for the .admin-shell:has(.cards-full-bleed) full-width rule
+          (cards.css): the inventory is a wide data table, so Cards pages get
+          the whole viewport while other admin sections keep their cap. */}
+      <div className="cards-full-bleed">
+        <CardsChrome>{children}</CardsChrome>
+      </div>
     </CardsProvider>
   );
 }
