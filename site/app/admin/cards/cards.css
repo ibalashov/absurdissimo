@@ -1,0 +1,303 @@
+/* Cards inventory section (VocabCards #458). Shared admin controls come from
+   starter-packs.css, table basics from labs.css — this file adds only the
+   cards-specific pieces: the filter bar, column picker, thumbnails, expanded
+   detail, and the gallery grid. */
+
+.cards-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.cards-filter-q {
+  min-width: 11rem;
+}
+
+.cards-filter-check,
+.cards-filter-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.cards-word-chip {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+}
+
+.cards-table-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.cards-column-picker {
+  position: relative;
+  margin-left: auto;
+}
+
+.cards-column-picker summary {
+  list-style: none;
+  display: inline-block;
+}
+
+.cards-column-picker summary::-webkit-details-marker {
+  display: none;
+}
+
+.cards-column-menu {
+  position: absolute;
+  right: 0;
+  z-index: 10;
+  margin-top: 0.35rem;
+  padding: 0.6rem 0.8rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(8rem, 1fr));
+  gap: 0.3rem 1rem;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.cards-column-menu label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.cards-table td {
+  vertical-align: middle;
+}
+
+.cards-thumb {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 6px;
+  display: block;
+}
+
+.cards-clip {
+  display: inline-block;
+  max-width: 30ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.cards-clip-narrow {
+  display: inline-block;
+  max-width: 14ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.cards-error-flag {
+  cursor: help;
+}
+
+/* Expanded row */
+
+.cards-detail-row > td {
+  background: var(--surface-2);
+  white-space: normal;
+}
+
+.cards-detail {
+  display: grid;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  max-width: 72rem;
+}
+
+.cards-detail-main {
+  display: flex;
+  gap: 1.25rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.cards-detail-image {
+  width: 220px;
+  max-width: 40vw;
+  border-radius: 10px;
+  display: block;
+}
+
+.cards-detail-text {
+  flex: 1;
+  min-width: 16rem;
+}
+
+.cards-detail-text h3 {
+  margin: 0 0 0.4rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.cards-detail-keyword {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.cards-detail-mnemonic {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+}
+
+.cards-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1.4rem;
+  margin: 0.75rem 0 0;
+}
+
+.cards-meta-item dt {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.cards-meta-item dd {
+  margin: 0;
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.cards-detail-block h4,
+.cards-lineage h4 {
+  margin: 0 0 0.35rem;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.cards-lineage ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.85rem;
+}
+
+.cards-raw summary {
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.cards-raw pre {
+  margin: 0.5rem 0 0;
+  padding: 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.75rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 24rem;
+  overflow-y: auto;
+}
+
+.cards-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* Gallery */
+
+.cards-gallery-detail {
+  margin-bottom: 1.25rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+
+.cards-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.9rem;
+}
+
+.cards-tile {
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  font: inherit;
+  color: inherit;
+}
+
+.cards-tile:hover {
+  border-color: var(--accent);
+}
+
+.cards-tile.active {
+  outline: 2px solid var(--accent);
+}
+
+.cards-tile.hidden-card {
+  opacity: 0.55;
+}
+
+.cards-tile-image {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  display: block;
+}
+
+.cards-tile-placeholder {
+  width: 100%;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 0.8rem;
+  background: var(--surface-2);
+}
+
+.cards-tile-body {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.5rem 0.6rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+.cards-tile-keyword {
+  color: var(--accent);
+}
+
+.cards-tile-meta {
+  font-size: 0.75rem;
+}
+
+@media (max-width: 640px) {
+  .cards-column-menu {
+    grid-template-columns: 1fr;
+  }
+}
