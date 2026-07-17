@@ -75,16 +75,22 @@ export const COLUMNS: InventoryColumn[] = [
     key: "image",
     label: "Image",
     defaultVisible: true,
-    render: (r) =>
-      r.image_url && r.image_status === "ready" ? (
-        <CardImage
-          className="cards-thumb"
-          src={adminImageUrl(r.image_url)}
-          alt={r.display_word}
-        />
-      ) : (
-        <span className="admin-muted">{r.image_status}</span>
-      ),
+    // The fixed box keeps row height independent of the image outcome: a
+    // 404'd thumb (CardImage renders null) used to collapse the row by
+    // ~22px mid-scroll, jolting the whole table (#468).
+    render: (r) => (
+      <span className="cards-thumb-box">
+        {r.image_url && r.image_status === "ready" ? (
+          <CardImage
+            className="cards-thumb"
+            src={adminImageUrl(r.image_url)}
+            alt={r.display_word}
+          />
+        ) : (
+          <span className="admin-muted">{r.image_status}</span>
+        )}
+      </span>
+    ),
   },
   {
     key: "keyword",

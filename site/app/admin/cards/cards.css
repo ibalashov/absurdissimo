@@ -357,3 +357,24 @@
 .cards-table th.cards-th-drag.drop-target {
   box-shadow: inset 2px 0 0 var(--accent);
 }
+
+/* Fixed media slots (#468): row/tile height must never depend on whether an
+   image loads — CardImage renders null on a 404, and the collapsing cell
+   was jolting the table/grid up and down mid-scroll. */
+.cards-thumb-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  font-size: 0.65rem;
+}
+
+.cards-tile-media {
+  width: 100%;
+  aspect-ratio: 1;
+  background: var(--surface-2);
+}

@@ -85,15 +85,20 @@ export default function CardsGalleryPage() {
                 setSelectedId((prev) => (prev === row.id ? null : row.id))
               }
             >
-              {row.image_url && row.image_status === "ready" ? (
-                <CardImage
-                  className="cards-tile-image"
-                  src={adminImageUrl(row.image_url)}
-                  alt={row.display_word}
-                />
-              ) : (
-                <div className="cards-tile-placeholder">{row.image_status}</div>
-              )}
+              {/* The media box holds the square whether the image loads or
+                  404s (CardImage renders null on error) — a collapsed tile
+                  reflows the whole grid mid-scroll (#468). */}
+              <div className="cards-tile-media">
+                {row.image_url && row.image_status === "ready" ? (
+                  <CardImage
+                    className="cards-tile-image"
+                    src={adminImageUrl(row.image_url)}
+                    alt={row.display_word}
+                  />
+                ) : (
+                  <div className="cards-tile-placeholder">{row.image_status}</div>
+                )}
+              </div>
               <div className="cards-tile-body">
                 <strong>{row.display_word}</strong>
                 {row.keyword && (
