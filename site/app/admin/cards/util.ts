@@ -68,30 +68,59 @@ function exploreUrl(source: Record<string, unknown>): string {
   return `${POSTHOG_PROJECT_URL}/activity/explore#q=${encodeURIComponent(JSON.stringify(query))}`;
 }
 
-// Every product event carrying this card's word + pair properties
-// (card_fetched, card_rated, association_regenerated, admin_card_*,
-// card_load_failed, regenerate_failed, …). Cached serves log the display word
-// while fresh generations log the canonical one, so match either.
-export function posthogCardEventsUrl(
-  words: string[],
+// The card's identity properties, stamped by both the server and the app
+// since VocabCards#480/#481: card_id (the associations row id) pins one exact
+// card; card_stack ("{source}-{target}:{word}", full language names) groups
+// every variant of one (pair, word).
+export function cardStackKey(
   sourceLanguage: string,
   targetLanguage: string,
+  word: string,
 ): string {
+  return `${sourceLanguage}-${targetLanguage}:${word.toLowerCase()}`;
+}
+
+// Every event of this exact card: card_fetched, card_rated,
+// association_regenerated, admin_card_*, favorite_toggled, card_shared, ….
+// Events captured before the card_id stamp existed won't match.
+export function posthogCardEventsUrl(cardId: number): string {
   return exploreUrl({
     properties: [
-      { type: "event", key: "word", operator: "exact", value: [...new Set(words)] },
-      { type: "event", key: "source_language", operator: "exact", value: [sourceLanguage] },
-      { type: "event", key: "target_language", operator: "exact", value: [targetLanguage] },
+      { type: "event", key: "card_id", operator: "exact", value: [String(cardId)] },
     ],
   });
 }
 
-// $ai_generation traces can't be filtered to a card directly: PostHog strips
-// $ai_input from the stored event and the per-request $ai_trace_id is never
-// persisted in the association store. Bracketing the card's creation instead —
-// at current generation volume a ±10 min window singles out this card's text
-// and image traces.
-export function posthogLlmTracesUrl(createdAt: string): string {
+// Every event across the word's whole stack of variants, including
+// pre-card events (word_selected, card_load_failed) that carry only the
+// stack key.
+export function posthogStackEventsUrl(stack: string): string {
+  return exploreUrl({
+    properties: [
+      { type: "event", key: "card_stack", operator: "exact", value: [stack] },
+    ],
+  });
+}
+
+// The card's $ai_generation traces. Exact when the server persisted the
+// generating/rendering requests' trace ids (VocabCards#480); for rows from
+// before that, fall back to a ±10 min bracket around creation — PostHog
+// strips $ai_input from stored events, so time is the only join for legacy
+// rows.
+export function posthogLlmTracesUrl(
+  traceIds: (string | null | undefined)[],
+  createdAt: string,
+): string {
+  const ids = [...new Set(traceIds.filter((t): t is string => Boolean(t)))];
+  if (ids.length > 0) {
+    return exploreUrl({
+      event: "$ai_generation",
+      orderBy: ["timestamp ASC"],
+      properties: [
+        { type: "event", key: "$ai_trace_id", operator: "exact", value: ids },
+      ],
+    });
+  }
   const created = new Date(createdAt).getTime();
   const minutes = 10 * 60 * 1000;
   return exploreUrl({

@@ -709,6 +709,10 @@ export interface CardGenerationDetail
   grandfathered: boolean;
   raw_response: string | null;
   provider_request_id: string | null;
+  // The generating / image-rendering requests' PostHog $ai_trace_id
+  // (VocabCards#480); null on rows stored before the server persisted them.
+  trace_id: string | null;
+  image_trace_id: string | null;
   error: string | null;
   parent: GenerationSummary | null;
   children: GenerationSummary[];
