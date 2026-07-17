@@ -50,10 +50,12 @@ export default function CardsStatsPage() {
   const totals = (rows ?? []).reduce(
     (acc, r) => ({
       count: acc.count + r.count,
+      textCost: acc.textCost + (r.text_cost_usd ?? 0),
+      imageCost: acc.imageCost + (r.image_cost_usd ?? 0),
       cost: acc.cost + (r.total_cost_usd ?? 0),
       hidden: acc.hidden + r.hidden,
     }),
-    { count: 0, cost: 0, hidden: 0 },
+    { count: 0, textCost: 0, imageCost: 0, cost: 0, hidden: 0 },
   );
 
   return (
@@ -77,6 +79,7 @@ export default function CardsStatsPage() {
         {rows && (
           <span className="admin-muted">
             {totals.count.toLocaleString("en-US")} generations ·{" "}
+            {fmtUsd(totals.textCost)} text + {fmtUsd(totals.imageCost)} img ={" "}
             {fmtUsd(totals.cost)} · {totals.hidden} hidden
           </span>
         )}
@@ -97,14 +100,29 @@ export default function CardsStatsPage() {
                 <th scope="col" className="num">
                   Count
                 </th>
-                <th scope="col" className="num">
+                <th scope="col" className="num" title="rows with text-generation telemetry">
                   With telemetry
+                </th>
+                <th scope="col" className="num" title="rows with image-render telemetry">
+                  With img
+                </th>
+                <th scope="col" className="num">
+                  Text cost
+                </th>
+                <th scope="col" className="num">
+                  Img cost
                 </th>
                 <th scope="col" className="num">
                   Total cost
                 </th>
                 <th scope="col" className="num">
-                  Avg latency
+                  Avg text latency
+                </th>
+                <th scope="col" className="num">
+                  Avg img latency
+                </th>
+                <th scope="col" className="num" title="average of per-row text + image latency">
+                  Avg total latency
                 </th>
                 <th scope="col" className="num">
                   Tok in
@@ -125,8 +143,15 @@ export default function CardsStatsPage() {
                   <td className="num">
                     {r.with_telemetry.toLocaleString("en-US")}
                   </td>
+                  <td className="num">
+                    {r.with_image_telemetry.toLocaleString("en-US")}
+                  </td>
+                  <td className="num">{fmtUsd(r.text_cost_usd)}</td>
+                  <td className="num">{fmtUsd(r.image_cost_usd)}</td>
                   <td className="num">{fmtUsd(r.total_cost_usd)}</td>
                   <td className="num">{fmtMs(r.avg_latency_ms)}</td>
+                  <td className="num">{fmtMs(r.avg_image_latency_ms)}</td>
+                  <td className="num">{fmtMs(r.avg_total_latency_ms)}</td>
                   <td className="num">
                     {r.tokens_in?.toLocaleString("en-US") ?? "—"}
                   </td>
