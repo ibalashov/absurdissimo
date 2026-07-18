@@ -17,6 +17,7 @@ import {
   type GenerationSummary,
 } from "@/lib/admin";
 import CardImage from "@/components/CardImage";
+import { fetchThread } from "@/lib/community";
 import {
   cardStackKey,
   errorMessage,
@@ -85,6 +86,11 @@ export default function CardDetail({
   const [confirmingHide, setConfirmingHide] = useState(false);
   const [hiding, setHiding] = useState(false);
   const [copied, setCopied] = useState(false);
+  // Community entry id backing this generation, for the /c/{pair}/{word}/{entry}
+  // permalink (VocabCards#507). Resolved via the public thread read — which
+  // materializes AI entries server-side — so no admin endpoint is needed; null
+  // while resolving or when the card has no entry (e.g. hidden).
+  const [entryId, setEntryId] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -103,6 +109,28 @@ export default function CardDetail({
       cancelled = true;
     };
   }, [associationId]);
+
+  useEffect(() => {
+    if (!detail) return;
+    let cancelled = false;
+    setEntryId(null);
+    const threadPair = pairSlug(detail.source_language, detail.target_language);
+    fetchThread(threadPair, detail.word).then(
+      (thread) => {
+        if (cancelled) return;
+        const entry = thread.entries.find(
+          (e) => e.association_id === detail.id,
+        );
+        setEntryId(entry ? entry.id : null);
+      },
+      () => {
+        // Best-effort: no permalink button when the thread read fails.
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [detail]);
 
   if (error) return <p className="admin-error">{error}</p>;
   if (!detail) return <p className="admin-muted">Loading…</p>;
@@ -260,6 +288,15 @@ export default function CardDetail({
         >
           Community thread ↗
         </Link>
+        {entryId !== null && (
+          <Link
+            className="admin-btn"
+            href={`/c/${pair}/${encodeURIComponent(detail.word)}/${entryId}`}
+            target="_blank"
+          >
+            Permalink ↗
+          </Link>
+        )}
         <a
           className="admin-btn"
           href={posthogCardEventsUrl(detail.id)}
