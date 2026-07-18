@@ -25,11 +25,16 @@ export default function AdminTile({
   corner,
   children,
   drag,
+  onOpen,
 }: {
   card: AdminCard;
   corner?: ReactNode;
   children?: ReactNode;
   drag?: AdminTileDrag;
+  // When set, the tile itself becomes clickable (buttons/links inside keep
+  // their own behavior) — the browse pane uses this to open the card in the
+  // admin Cards table.
+  onOpen?: () => void;
 }) {
   // While the illustration is still rendering server-side the image URL
   // 404s, and CardImage latches onError into "hidden" — so a premature
@@ -42,12 +47,20 @@ export default function AdminTile({
       : null;
   return (
     <div
-      className={`card admin-tile${drag?.className ? ` ${drag.className}` : ""}`}
+      className={`card admin-tile${onOpen ? " openable" : ""}${drag?.className ? ` ${drag.className}` : ""}`}
       draggable={drag?.draggable}
       onDragStart={drag?.onDragStart}
       onDragOver={drag?.onDragOver}
       onDrop={drag?.onDrop}
       onDragEnd={drag?.onDragEnd}
+      onClick={
+        onOpen
+          ? (e) => {
+              if ((e.target as HTMLElement).closest("a,button,input")) return;
+              onOpen();
+            }
+          : undefined
+      }
     >
       <span className="card-media">
         {img ? (

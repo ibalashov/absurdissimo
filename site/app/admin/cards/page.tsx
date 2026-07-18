@@ -14,7 +14,7 @@ import {
 } from "@/lib/admin";
 import { COLUMNS, DEFAULT_COLUMNS, type InventoryColumn } from "./columns";
 import { errorMessage } from "./util";
-import { useCards } from "./CardsContext";
+import { EMPTY_FILTERS, useCards } from "./CardsContext";
 import CardDetail from "./CardDetail";
 
 // Sticky column prefs (VocabCards #467). The stored shape is {visible, known}:
@@ -86,7 +86,7 @@ function saveColumns(visible: string[]) {
 }
 
 export default function CardsTablePage() {
-  const { apiFilters, filtersKey } = useCards();
+  const { apiFilters, filtersKey, setFilters } = useCards();
   const [sort, setSort] = useState<{ key: InventorySortKey; desc: boolean }>({
     key: "created_at",
     desc: true,
@@ -106,6 +106,31 @@ export default function CardsTablePage() {
     setVisible(loadVisibleColumns());
     setPageSize(loadPageSize());
   }, []);
+
+  // Deep link into a specific generation (?card=<id>&word=<w>&pair=<p>),
+  // used by the starter-pack browse tiles: replace the filters with the
+  // card's word+pair so its variants are the whole table, then expand the
+  // linked row once a data page containing it arrives.
+  const [pendingCard, setPendingCard] = useState<number | null>(null);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const id = Number(params.get("card"));
+    if (!Number.isInteger(id) || id <= 0) return;
+    setFilters({
+      ...EMPTY_FILTERS,
+      word: params.get("word") ?? "",
+      pair: params.get("pair") ?? "",
+    });
+    setPendingCard(id);
+  }, [setFilters]);
+
+  useEffect(() => {
+    if (pendingCard === null || !data) return;
+    if (data.rows.some((r) => r.id === pendingCard)) {
+      setExpandedId(pendingCard);
+      setPendingCard(null);
+    }
+  }, [data, pendingCard]);
 
   // Rendered in the admin's own order — `visible` is ordered, not a set.
   const columns = useMemo(
