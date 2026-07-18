@@ -5,14 +5,17 @@
 // provider; membership marks derive from the loaded pack there. The parent
 // page remounts this on pair change (key={pair}), so the local search state
 // resets with the pair. Clicking a tile opens its entry in the admin Cards
-// table (deep-linked via ?card=), where the full detail — and destructive
-// actions like Hide — live.
+// table (deep-linked via ?card=), where the full detail lives.
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import AdminTile from "./AdminTile";
 import { errorMessage, useStarterPack } from "./StarterPackContext";
-import { searchAdminCards, type AdminCardsPage } from "@/lib/admin";
+import {
+  hideAdminCard,
+  searchAdminCards,
+  type AdminCardsPage,
+} from "@/lib/admin";
 
 export default function BrowsePane() {
   const router = useRouter();
@@ -24,6 +27,11 @@ export default function BrowsePane() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [addingId, setAddingId] = useState<number | null>(null);
+  // Hide (VocabCards #390) is a heavy admin action, so it's a two-step inline
+  // confirm: `confirmId` is the card showing Confirm/Cancel, `hidingId` the one
+  // whose hide is in flight.
+  const [confirmId, setConfirmId] = useState<number | null>(null);
+  const [hidingId, setHidingId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!pair) return;
@@ -53,6 +61,30 @@ export default function BrowsePane() {
     setAddingId(associationId);
     await addCard(associationId);
     setAddingId(null);
+  }
+
+  // Hide: the card is soft-retired + cascaded server-side (reversibly), so drop
+  // it from the local browse view (and the count) rather than refetching.
+  async function hide(associationId: number) {
+    setHidingId(associationId);
+    setError(null);
+    try {
+      await hideAdminCard(associationId, pair);
+      setData((d) =>
+        d
+          ? {
+              ...d,
+              cards: d.cards.filter((c) => c.association_id !== associationId),
+              total: Math.max(0, d.total - 1),
+            }
+          : d,
+      );
+      setConfirmId(null);
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setHidingId(null);
+    }
   }
 
   return (
@@ -114,7 +146,9 @@ export default function BrowsePane() {
                 <button
                   className="admin-btn primary"
                   onClick={() => void add(card.association_id)}
-                  disabled={inPack || addingId !== null}
+                  disabled={
+                    inPack || addingId !== null || hidingId !== null
+                  }
                 >
                   {inPack
                     ? "In pack"
@@ -122,6 +156,35 @@ export default function BrowsePane() {
                       ? "Adding…"
                       : "Add to pack"}
                 </button>
+                {confirmId === card.association_id ? (
+                  <>
+                    <button
+                      className="admin-btn danger"
+                      onClick={() => void hide(card.association_id)}
+                      disabled={hidingId !== null}
+                    >
+                      {hidingId === card.association_id
+                        ? "Hiding…"
+                        : "Confirm hide"}
+                    </button>
+                    <button
+                      className="admin-btn"
+                      onClick={() => setConfirmId(null)}
+                      disabled={hidingId !== null}
+                    >
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    className="admin-btn danger"
+                    onClick={() => setConfirmId(card.association_id)}
+                    disabled={addingId !== null || hidingId !== null}
+                    title="Hide this card — inappropriate or broken (reversible)"
+                  >
+                    Hide
+                  </button>
+                )}
               </AdminTile>
             );
           })}
