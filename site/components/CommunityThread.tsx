@@ -329,6 +329,7 @@ function CommentList({
 function EntryCard({
   entry,
   word,
+  permalink,
   hero,
   mine,
   isAdmin,
@@ -342,6 +343,8 @@ function EntryCard({
 }: {
   entry: CommunityEntry;
   word: string;
+  // Stable per-card URL (VocabCards#507), linked from the timestamp.
+  permalink: string;
   // The first entry of the current sort renders SO-answer style: full-size
   // image and story instead of a thumbnail row.
   hero: boolean;
@@ -420,7 +423,10 @@ function EntryCard({
   }
 
   return (
-    <li className={`assoc${entry.is_pick ? " picked" : ""}${hero ? " hero" : ""}`}>
+    <li
+      id={`entry-${entry.id}`}
+      className={`assoc${entry.is_pick ? " picked" : ""}${hero ? " hero" : ""}`}
+    >
       <VoteRail entry={entry} onVote={onVote} />
       <div className="assoc-body">
         <div className="assoc-top">
@@ -510,7 +516,17 @@ function EntryCard({
             />
           )}
           <span className="dot">·</span>
-          <span>{formatDate(entry.created_at)}</span>
+          {/* The timestamp is the card's permalink (VocabCards#507).
+              prefetch={false}: the card route is force-dynamic — a thread of
+              timestamps would otherwise fire a fetch per entry on scroll. */}
+          <Link
+            className="entry-permalink"
+            href={permalink}
+            prefetch={false}
+            title="Permalink to this card"
+          >
+            {formatDate(entry.created_at)}
+          </Link>
           {entry.updated_at && (
             <span
               className="edited"
@@ -755,6 +771,7 @@ export default function CommunityThread({
               key={entry.id}
               entry={entry}
               word={word}
+              permalink={`/c/${pair}/${encodeURIComponent(word)}/${entry.id}`}
               hero={i === 0}
               mine={meId !== null && entry.author_id === meId}
               isAdmin={isAdmin}
