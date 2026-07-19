@@ -10,10 +10,12 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import AdminTile from "./AdminTile";
+import RegenerateImageButton from "../RegenerateImageButton";
 import { errorMessage, useStarterPack } from "./StarterPackContext";
 import {
   hideAdminCard,
   searchAdminCards,
+  type AdminCard,
   type AdminCardsPage,
 } from "@/lib/admin";
 
@@ -56,6 +58,24 @@ export default function BrowsePane() {
   const totalPages = data
     ? Math.max(1, Math.ceil(data.total / data.page_size))
     : 1;
+
+  // Regenerated images arrive as full card details from the poll; fold them
+  // into the loaded page (spread keeps browse-only fields like
+  // in_starter_pack, which the detail response may omit).
+  function refresh(fresh: AdminCard) {
+    setData((d) =>
+      d
+        ? {
+            ...d,
+            cards: d.cards.map((c) =>
+              c.association_id === fresh.association_id
+                ? { ...c, ...fresh }
+                : c,
+            ),
+          }
+        : d,
+    );
+  }
 
   async function add(associationId: number) {
     setAddingId(associationId);
@@ -185,6 +205,7 @@ export default function BrowsePane() {
                     Hide
                   </button>
                 )}
+                <RegenerateImageButton card={card} onReady={refresh} />
               </AdminTile>
             );
           })}
