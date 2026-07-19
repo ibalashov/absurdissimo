@@ -19,6 +19,45 @@ export const PAIR_PATTERN = /^[a-z]{2}-[a-z]{2}$/;
 // pair slugs these are the three shapes of the deck's selection slug.
 export const LANG_PATTERN = /^[a-z]{2}$/;
 
+// The 15 shipped language-pair slugs ({studied}-{speaker}, ISO 639-1). Source
+// of truth: the server's language roster in server/app/languages.py of the
+// VocabCards repo and its shipped dictionary packs
+// (tools/dist/local_dict_{src}-{tgt}.sqlite) — keep this list in sync with
+// them. Deck routes validate slugs against this constant rather than the
+// corpus-derived /public/pairs data, so a supported pair with zero published
+// cards renders its empty deck instead of 404ing (VocabCards#545 — with the
+// corpus empty, every pair page 404'd, including "/" for visitors whose saved
+// `pair` cookie the middleware rewrites to).
+export const SUPPORTED_PAIRS: ReadonlySet<string> = new Set([
+  "de-en",
+  "en-de",
+  "en-es",
+  "en-fr",
+  "en-he",
+  "en-it",
+  "en-ru",
+  "es-en",
+  "fr-en",
+  "fr-ru",
+  "he-en",
+  "he-ru",
+  "it-en",
+  "it-ru",
+  "ru-en",
+]);
+
+// The studied-language codes: the first halves of the supported pair slugs
+// (a "/it" route shows every pair studying Italian).
+export const SUPPORTED_LANGS: ReadonlySet<string> = new Set(
+  [...SUPPORTED_PAIRS].map((p) => p.split("-")[0]),
+);
+
+// Is this deck selection slug (a pair "it-en" or a studied language "it")
+// one the site serves? The routes 404 anything else.
+export function isSupportedSel(sel: string): boolean {
+  return SUPPORTED_PAIRS.has(sel) || SUPPORTED_LANGS.has(sel);
+}
+
 // Cards per deck page. The deck browses the full corpus via numbered pages
 // (offset paging on GET /public/cards); this is both the SSR preload size and
 // the client page size. Must stay <= the server's per-request cap (50).
@@ -336,6 +375,25 @@ export async function loadDeckData(sel = "all"): Promise<DeckData> {
 
 export function languageName(apiName: string): string {
   return apiName.charAt(0).toUpperCase() + apiName.slice(1);
+}
+
+// ISO 639-1 code → the API's language name, mirroring the server's
+// WIKTIONARY_LANGUAGE_CODES (server/app/languages.py in the VocabCards repo).
+// Lets pair-route metadata derive names from the slug itself instead of the
+// corpus-derived pair data (VocabCards#545). Falls back to the raw code for
+// unknown codes (unreachable for supported slugs).
+const LANGUAGE_NAMES_BY_CODE: Record<string, string> = {
+  en: "english",
+  ru: "russian",
+  it: "italian",
+  de: "german",
+  fr: "french",
+  es: "spanish",
+  he: "hebrew",
+};
+
+export function languageNameForCode(code: string): string {
+  return LANGUAGE_NAMES_BY_CODE[code] ?? code;
 }
 
 // Emoji flag per language, keyed by the API's language names. Mirrors the
