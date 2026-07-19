@@ -17,9 +17,10 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { fetchPairsLive, type PairSummary } from "@/lib/api";
+import { type PairSummary } from "@/lib/api";
 import {
   addToStarterPack,
+  fetchAdminPairs,
   fetchStarterPack,
   isAdminStatus,
   removeFromStarterPack,
@@ -51,6 +52,9 @@ export function errorMessage(err: unknown): string {
 
 export interface StarterPackValue {
   pairs: PairSummary[] | null;
+  // Set when the pair list itself failed to load (pairs stays null then) —
+  // distinct from a successfully-fetched empty list.
+  pairsError: string | null;
   pair: string;
   setPair: (pair: string) => void;
   packTarget: number;
@@ -79,6 +83,7 @@ export function useStarterPack(): StarterPackValue {
 
 export function StarterPackProvider({ children }: { children: ReactNode }) {
   const [pairs, setPairs] = useState<PairSummary[] | null>(null);
+  const [pairsError, setPairsError] = useState<string | null>(null);
   const [pair, setPairState] = useState("");
   const [packTarget, setPackTargetState] = useState(DEFAULT_PACK_TARGET);
   const [pack, setPack] = useState<AdminCard[] | null>(null);
@@ -97,24 +102,34 @@ export function StarterPackProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // /admin/pairs, not /public/pairs (VocabCards #540): the public list only
+  // carries pairs with active cards, so it's empty on an empty corpus — this
+  // page exists precisely to fill such pairs.
   useEffect(() => {
     let cancelled = false;
-    void fetchPairsLive().then((ps) => {
-      if (cancelled) return;
-      setPairs(ps);
-      if (ps.length === 0) return;
-      // Prefer the saved pair when it's still a live pair; otherwise the first
-      // in the list. localStorage is client-only, so this can't run in render.
-      let saved: string | null = null;
-      try {
-        saved = localStorage.getItem(PAIR_KEY);
-      } catch {
-        saved = null;
-      }
-      const initial =
-        saved && ps.some((p) => p.pair === saved) ? saved : ps[0].pair;
-      setPairState((cur) => cur || initial);
-    });
+    fetchAdminPairs().then(
+      (ps) => {
+        if (cancelled) return;
+        setPairs(ps);
+        setPairsError(null);
+        if (ps.length === 0) return;
+        // Prefer the saved pair when it's still a live pair; otherwise the
+        // first in the list. localStorage is client-only, so this can't run
+        // in render.
+        let saved: string | null = null;
+        try {
+          saved = localStorage.getItem(PAIR_KEY);
+        } catch {
+          saved = null;
+        }
+        const initial =
+          saved && ps.some((p) => p.pair === saved) ? saved : ps[0].pair;
+        setPairState((cur) => cur || initial);
+      },
+      (err: unknown) => {
+        if (!cancelled) setPairsError(errorMessage(err));
+      },
+    );
     return () => {
       cancelled = true;
     };
@@ -240,6 +255,7 @@ export function StarterPackProvider({ children }: { children: ReactNode }) {
 
   const value: StarterPackValue = {
     pairs,
+    pairsError,
     pair,
     setPair,
     packTarget,

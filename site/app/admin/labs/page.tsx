@@ -11,8 +11,9 @@
 // resolves "lab:<id>" refs to their names.
 
 import { useCallback, useEffect, useState } from "react";
-import { fetchPairsLive, type PairSummary } from "@/lib/api";
+import { type PairSummary } from "@/lib/api";
 import {
+  fetchAdminPairs,
   fetchLabPrompts,
   type LabPrompt,
   type LabPromptsResponse,
@@ -27,6 +28,7 @@ const PAIR_KEY = "admin.labsPair";
 
 export default function LabsPage() {
   const [pairs, setPairs] = useState<PairSummary[] | null>(null);
+  const [pairsError, setPairsError] = useState<string | null>(null);
   const [pair, setPairState] = useState("");
   const [activeRunId, setActiveRunId] = useState<number | null>(null);
   // Bumped when a new run starts so the history list refetches.
@@ -58,25 +60,34 @@ export default function LabsPage() {
     );
   }, []);
 
+  // /admin/pairs, not /public/pairs (VocabCards #540): the public list only
+  // carries pairs with active cards, so the picker went empty — looking like
+  // an outage — on an empty corpus.
   useEffect(() => {
     let cancelled = false;
-    void fetchPairsLive().then((ps) => {
-      if (cancelled) return;
-      setPairs(ps);
-      if (ps.length === 0) return;
-      // Prefer the saved pair when it's still a live pair; otherwise the
-      // first in the list. localStorage is client-only, so this can't run in
-      // render (SSR mismatch).
-      let saved: string | null = null;
-      try {
-        saved = localStorage.getItem(PAIR_KEY);
-      } catch {
-        saved = null;
-      }
-      const initial =
-        saved && ps.some((p) => p.pair === saved) ? saved : ps[0].pair;
-      setPairState((cur) => cur || initial);
-    });
+    fetchAdminPairs().then(
+      (ps) => {
+        if (cancelled) return;
+        setPairs(ps);
+        setPairsError(null);
+        if (ps.length === 0) return;
+        // Prefer the saved pair when it's still a live pair; otherwise the
+        // first in the list. localStorage is client-only, so this can't run in
+        // render (SSR mismatch).
+        let saved: string | null = null;
+        try {
+          saved = localStorage.getItem(PAIR_KEY);
+        } catch {
+          saved = null;
+        }
+        const initial =
+          saved && ps.some((p) => p.pair === saved) ? saved : ps[0].pair;
+        setPairState((cur) => cur || initial);
+      },
+      (err: unknown) => {
+        if (!cancelled) setPairsError(errorMessage(err));
+      },
+    );
     return () => {
       cancelled = true;
     };
@@ -101,6 +112,7 @@ export default function LabsPage() {
       </p>
       <BatchSetup
         pairs={pairs}
+        pairsError={pairsError}
         pair={pair}
         setPair={setPair}
         prompts={promptData?.prompts ?? null}
