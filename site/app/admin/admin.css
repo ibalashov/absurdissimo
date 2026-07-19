@@ -107,6 +107,79 @@
   line-height: 1.5;
 }
 
+/* Shared read-only admin tables. */
+.lab-table-scroll {
+  overflow-x: auto;
+}
+
+.lab-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.lab-table th,
+.lab-table td {
+  text-align: left;
+  padding: 0.45rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.lab-table th {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.lab-table th.num,
+.lab-table td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-muted {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.admin-error {
+  color: #ff8a80;
+  font-size: 0.85rem;
+  margin: 0.5rem 0;
+}
+
+.word-info-contract {
+  color: var(--muted);
+  margin-bottom: 1.5rem;
+}
+
+.word-info-status {
+  display: inline-block;
+  min-width: 3.5rem;
+  border-radius: 6px;
+  padding: 0.15rem 0.45rem;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-align: center;
+}
+
+.word-info-status.ok {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.word-info-status.stale {
+  color: #ff8a80;
+}
+
 /* Sidebar collapses above the content on narrow screens. */
 @media (max-width: 640px) {
   .admin-shell {
