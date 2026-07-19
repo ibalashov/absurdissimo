@@ -5,6 +5,7 @@ import CommunityThread from "@/components/CommunityThread";
 import PronounceButton from "@/components/PronounceButton";
 import { SiteFooter, SiteNav } from "@/components/chrome";
 import {
+  displayTranscription,
   formatDate,
   getPairCards,
   getPairIndex,
@@ -70,6 +71,7 @@ export default async function CommunityWordPage({ params }: { params: Params }) 
 
   // word_info describes the word itself, not one card; take the newest.
   const info = wordPage?.associations.find((c) => c.word_info)?.word_info;
+  const transcription = displayTranscription(info);
   const commentCount = thread.entries.reduce(
     (n, e) => n + e.comments.length,
     0,
@@ -119,7 +121,7 @@ export default async function CommunityWordPage({ params }: { params: Params }) 
             )}
           </h1>
           <div className="word-meta">
-            {info?.transcription && <span>{info.transcription}</span>}
+            {transcription && <span>{transcription}</span>}
             {info?.part_of_speech && (
               <span>
                 {info.part_of_speech.toLowerCase()}
