@@ -26,6 +26,7 @@ import {
   removeFromStarterPack,
   reorderStarterPack,
   type AdminCard,
+  IMAGE_POLL_MS,
 } from "@/lib/admin";
 import StarterPackChrome from "./StarterPackChrome";
 
@@ -39,7 +40,7 @@ const PACK_TARGET_KEY = "admin.starterPackTarget";
 // already survives; this covers the fresh-load case (otherwise the pair snaps
 // back to the first in the list).
 const PAIR_KEY = "admin.starterPackPair";
-export const IMAGE_POLL_MS = 3000;
+export { IMAGE_POLL_MS };
 
 function clampTarget(n: number): number {
   if (!Number.isFinite(n)) return DEFAULT_PACK_TARGET;

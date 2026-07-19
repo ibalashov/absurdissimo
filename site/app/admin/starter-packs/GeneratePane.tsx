@@ -7,16 +7,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import AdminTile from "./AdminTile";
-import {
-  IMAGE_POLL_MS,
-  errorMessage,
-  useStarterPack,
-} from "./StarterPackContext";
+import { errorMessage, useStarterPack } from "./StarterPackContext";
 import { languageName } from "@/lib/api";
 import {
-  fetchAdminCard,
   generateAdminCard,
   isAdminStatus,
+  pollAdminCardImage,
   type AdminCard,
 } from "@/lib/admin";
 
@@ -47,14 +43,11 @@ export default function GeneratePane() {
     const token = ++pollToken.current;
     setPolling(true);
     try {
-      for (;;) {
-        const fresh = await fetchAdminCard(associationId);
-        if (pollToken.current !== token) return;
-        setCard(fresh);
-        if (fresh.image_status !== "pending") return;
-        await new Promise((r) => setTimeout(r, IMAGE_POLL_MS));
-        if (pollToken.current !== token) return;
-      }
+      await pollAdminCardImage(
+        associationId,
+        setCard,
+        () => pollToken.current !== token,
+      );
     } catch (err) {
       if (pollToken.current === token) setError(errorMessage(err));
     } finally {

@@ -172,6 +172,12 @@
   display: block;
 }
 
+.cards-detail-media {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+}
+
 .cards-detail-text {
   flex: 1;
   min-width: 16rem;
