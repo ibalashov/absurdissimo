@@ -4,7 +4,7 @@
 // channel as community writes, NOT the vc_admin_token cookie, which exists
 // solely for the /admin server layout's gate. Client-only, like community.ts.
 
-import { API_BASE, type WordInfo } from "./api";
+import { API_BASE, type PairSummary, type WordInfo } from "./api";
 import { clearAuth, getToken } from "./auth";
 
 export type ImageStatus = "ready" | "pending" | "none";
@@ -121,6 +121,17 @@ export function checkIsAdmin(): Promise<boolean> {
     };
   }
   return adminProbe.result;
+}
+
+// Every supported pack pair, corpus content or not (VocabCards #540).
+// /public/pairs only lists pairs that have active cards, so admin pair
+// pickers built on it went empty — indistinguishable from an outage — on an
+// empty corpus. Same entry shape as /public/pairs (counts fixed at 0, which
+// no admin page reads). Unlike fetchPairsLive this throws on failure, so
+// callers can tell "server unreachable" from "no pairs configured".
+export async function fetchAdminPairs(): Promise<PairSummary[]> {
+  const data = await adminFetch<{ pairs: PairSummary[] }>("/admin/pairs");
+  return data?.pairs ?? [];
 }
 
 export function fetchStarterPack(pair: string): Promise<StarterPack> {

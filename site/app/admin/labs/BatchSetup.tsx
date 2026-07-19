@@ -95,6 +95,7 @@ function PromptSelect({
 
 export default function BatchSetup({
   pairs,
+  pairsError,
   pair,
   setPair,
   prompts,
@@ -102,6 +103,9 @@ export default function BatchSetup({
   onRunStarted,
 }: {
   pairs: PairSummary[] | null;
+  // Set when the pair list failed to load (pairs stays null then) — distinct
+  // from a successfully-fetched empty list.
+  pairsError: string | null;
   pair: string;
   setPair: (pair: string) => void;
   prompts: LabPrompt[] | null;
@@ -312,10 +316,13 @@ export default function BatchSetup({
           ))}
         </select>
       </div>
-      {pairs && pairs.length === 0 && (
+      {pairsError && (
         <p className="admin-error">
-          Could not load the pair list — is the server reachable?
+          Could not reach the server — {pairsError}
         </p>
+      )}
+      {pairs && pairs.length === 0 && (
+        <p className="admin-muted">No pairs configured on the server.</p>
       )}
 
       <h3 className="lab-subhead">Configs</h3>

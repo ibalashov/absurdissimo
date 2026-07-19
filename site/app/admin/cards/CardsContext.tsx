@@ -15,8 +15,12 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { fetchPairsLive, type PairSummary } from "@/lib/api";
-import { fetchCardStats, type InventoryFilters } from "@/lib/admin";
+import { type PairSummary } from "@/lib/api";
+import {
+  fetchAdminPairs,
+  fetchCardStats,
+  type InventoryFilters,
+} from "@/lib/admin";
 
 // UI filter state: all strings so inputs bind directly; "" means unset.
 export interface CardsFilterState {
@@ -95,7 +99,11 @@ export function CardsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    void fetchPairsLive().then(
+    // /admin/pairs, not /public/pairs (VocabCards #540): the public list only
+    // carries pairs with active cards, so the filter dropdown lost its pairs
+    // on an empty corpus. Best-effort here — the pair filter is optional
+    // ("all pairs" default), so a failure just leaves the dropdown bare.
+    void fetchAdminPairs().then(
       (ps) => {
         if (!cancelled) setPairs(ps);
       },

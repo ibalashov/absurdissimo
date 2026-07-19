@@ -22,8 +22,16 @@ export default function StarterPackChrome({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { pairs, pair, setPair, packTarget, setPackTarget, pack, packNotice } =
-    useStarterPack();
+  const {
+    pairs,
+    pairsError,
+    pair,
+    setPair,
+    packTarget,
+    setPackTarget,
+    pack,
+    packNotice,
+  } = useStarterPack();
 
   return (
     <>
@@ -77,10 +85,13 @@ export default function StarterPackChrome({
           </span>
         )}
       </div>
-      {pairs && pairs.length === 0 && (
+      {pairsError && (
         <p className="admin-error">
-          Could not load the pair list — is the server reachable?
+          Could not reach the server — {pairsError}
         </p>
+      )}
+      {pairs && pairs.length === 0 && (
+        <p className="admin-muted">No pairs configured on the server.</p>
       )}
 
       <nav className="pack-tabs" aria-label="Starter pack sections">
