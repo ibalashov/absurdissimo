@@ -29,6 +29,7 @@ import {
   posthogStackEventsUrl,
 } from "./util";
 import { useCards } from "./CardsContext";
+import RegenerateImageButton from "../RegenerateImageButton";
 
 function Meta({ label, value }: { label: string; value: React.ReactNode }) {
   if (value === null || value === undefined || value === "") return null;
@@ -168,20 +169,37 @@ export default function CardDetail({
   return (
     <div className="cards-detail">
       <div className="cards-detail-main">
-        {detail.image_url && detail.image_status === "ready" && (
-          <a
-            href={adminImageUrl(detail.image_url)}
-            target="_blank"
-            rel="noreferrer"
-            className="cards-detail-img"
-          >
-            <CardImage
-              className="cards-detail-image"
-              src={adminImageUrl(detail.image_url)}
-              alt={detail.display_word}
-            />
-          </a>
-        )}
+        <div className="cards-detail-media">
+          {detail.image_url && detail.image_status === "ready" && (
+            <a
+              href={adminImageUrl(detail.image_url)}
+              target="_blank"
+              rel="noreferrer"
+              className="cards-detail-img"
+            >
+              <CardImage
+                className="cards-detail-image"
+                src={adminImageUrl(detail.image_url)}
+                alt={detail.display_word}
+              />
+            </a>
+          )}
+          <RegenerateImageButton
+            card={{ association_id: detail.id, image_id: detail.image_id }}
+            onReady={(fresh) =>
+              setDetail((current) =>
+                current
+                  ? {
+                      ...current,
+                      image_id: fresh.image_id ?? null,
+                      image_url: fresh.image_url ?? null,
+                      image_status: fresh.image_status ?? "none",
+                    }
+                  : current,
+              )
+            }
+          />
+        </div>
         <div className="cards-detail-text">
           <h3>
             {detail.display_word}

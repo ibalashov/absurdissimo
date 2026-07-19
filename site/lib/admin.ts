@@ -444,6 +444,34 @@ export function fetchAdminCard(associationId: number): Promise<AdminCard> {
   return adminFetch<AdminCard>(`/admin/cards/${associationId}`);
 }
 
+export const IMAGE_POLL_MS = 3000;
+const IMAGE_POLL_MAX_ATTEMPTS = 40;
+
+// Shared bounded poll for both initial image generation and admin regeneration.
+export async function pollAdminCardImage(
+  associationId: number,
+  onCard: (card: AdminCard) => void,
+  cancelled: () => boolean = () => false,
+): Promise<AdminCard | null> {
+  for (let attempt = 0; attempt < IMAGE_POLL_MAX_ATTEMPTS; attempt++) {
+    const card = await fetchAdminCard(associationId);
+    if (cancelled()) return null;
+    onCard(card);
+    if (card.image_status !== "pending") return card;
+    await new Promise((resolve) => setTimeout(resolve, IMAGE_POLL_MS));
+    if (cancelled()) return null;
+  }
+  throw new Error("Image rendering timed out — try again.");
+}
+
+export async function regenerateAdminCardImage(
+  associationId: number,
+): Promise<void> {
+  await adminFetch(`/admin/cards/${associationId}/image/regenerate`, {
+    method: "POST",
+  });
+}
+
 // Runtime settings (VocabCards #433): admin-editable generation params (model,
 // system prompt, prompt version, default absurdity) that were compile-time
 // constants server-side. GET returns effective + default values, which fields

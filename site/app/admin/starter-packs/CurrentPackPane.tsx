@@ -10,12 +10,15 @@
 import { useState } from "react";
 import AdminTile from "./AdminTile";
 import BatchSeed from "./BatchSeed";
+import RegenerateImageButton from "../RegenerateImageButton";
+import type { AdminCard } from "@/lib/admin";
 import { useStarterPack } from "./StarterPackContext";
 
 export default function CurrentPackPane() {
   const { pack, packError, packBusy, reorderPack, remove } = useStarterPack();
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
+  const [freshCards, setFreshCards] = useState<Record<number, AdminCard>>({});
 
   function handleDrop(target: number) {
     if (dragIndex !== null) void reorderPack(dragIndex, target);
@@ -43,7 +46,9 @@ export default function CurrentPackPane() {
         ) : null}
         {pack !== null && pack.length > 0 && (
           <div className="tile-grid">
-          {pack.map((card, i) => (
+          {pack.map((packCard, i) => {
+            const card = freshCards[packCard.association_id] ?? packCard;
+            return (
             <AdminTile
               key={card.association_id}
               card={card}
@@ -89,8 +94,18 @@ export default function CurrentPackPane() {
               >
                 Remove
               </button>
+              <RegenerateImageButton
+                card={card}
+                onReady={(fresh) =>
+                  setFreshCards((cards) => ({
+                    ...cards,
+                    [fresh.association_id]: fresh,
+                  }))
+                }
+              />
             </AdminTile>
-          ))}
+            );
+          })}
         </div>
         )}
       </section>
