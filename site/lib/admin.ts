@@ -510,6 +510,29 @@ export function fetchRuntimeSettings(): Promise<RuntimeSettingsResponse> {
   return adminFetch<RuntimeSettingsResponse>("/admin/settings");
 }
 
+// Per-pair word_info seed coverage (#557). Prompt versions are strings in the
+// row data even though the current contract version is numeric.
+export interface WordInfoStatusPair {
+  pair: string;
+  source_language: string;
+  target_language: string;
+  seeded_rows: number;
+  seeded_prompt_versions: string[];
+  seeded_at: string | null;
+  live_rows: number;
+  live_prompt_versions: string[];
+}
+
+export interface WordInfoStatusResponse {
+  current_prompt_version: number;
+  current_model: string;
+  pairs: WordInfoStatusPair[];
+}
+
+export function fetchWordInfoStatus(): Promise<WordInfoStatusResponse> {
+  return adminFetch<WordInfoStatusResponse>("/admin/word-info/status");
+}
+
 // Only the fields present in `update` are changed. Server validates the model
 // against model_options, the prompt template's placeholders, reasoning_effort
 // against reasoning_effort_options, and temperature within [0, 2] — its 422

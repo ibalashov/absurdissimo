@@ -34,4 +34,10 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     description:
       "Change the live generation model, prompt, prompt version, and default absurdity.",
   },
+  {
+    title: "Word info",
+    href: "/admin/word-info",
+    description:
+      "Per-pair word_info seed status: seeded rows, prompt version, live fallbacks.",
+  },
 ];

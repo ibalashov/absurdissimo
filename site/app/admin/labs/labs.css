@@ -364,40 +364,6 @@
   margin-top: auto;
 }
 
-/* Tables: the per-run summary and the run history. */
-.lab-table-scroll {
-  overflow-x: auto;
-}
-
-.lab-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.85rem;
-}
-
-.lab-table th,
-.lab-table td {
-  text-align: left;
-  padding: 0.45rem 0.6rem;
-  border-bottom: 1px solid var(--border);
-  white-space: nowrap;
-}
-
-.lab-table th {
-  font-family: var(--mono);
-  font-size: 0.68rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--muted);
-}
-
-.lab-table th.num,
-.lab-table td.num {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
 .lab-sort-btn {
   background: none;
   border: none;
