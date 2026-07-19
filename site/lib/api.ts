@@ -35,8 +35,20 @@ export interface WordInfo {
   part_of_speech?: string | null;
   gender?: string | null;
   transcription?: string | null;
+  // Learner-friendly respelling derived from the stored IPA at response time
+  // (VocabCards#532); prefer it over raw `transcription` when non-null.
+  // Absent from payloads that predate the field (e.g. the admin API).
+  display_transcription?: string | null;
   definition?: string | null;
   emoji?: string | null;
+}
+
+// The transcription to render: the friendly respelling when the server
+// provides one, else the raw stored transcription (VocabCards#534).
+export function displayTranscription(
+  info: WordInfo | null | undefined,
+): string | null {
+  return info?.display_transcription ?? info?.transcription ?? null;
 }
 
 export interface Association {

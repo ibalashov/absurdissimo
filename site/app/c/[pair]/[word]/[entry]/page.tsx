@@ -10,6 +10,7 @@ import PronounceButton from "@/components/PronounceButton";
 import { SiteFooter, SiteNav } from "@/components/chrome";
 import {
   absurdityLabel,
+  displayTranscription,
   formatDate,
   getWordPage,
   imageUrl,
@@ -121,6 +122,7 @@ export default async function CardPermalinkPage({
   const speechLang = speechLanguageCode(thread.source_language);
   // word_info describes the word, not one card; take the newest that has it.
   const info = wordPage?.associations.find((c) => c.word_info)?.word_info;
+  const transcription = displayTranscription(info);
   const wordPath = `/c/${pair}/${encodeURIComponent(thread.word)}`;
   const siblings = sortEntries(
     thread.entries.filter((e) => e.id !== card.id),
@@ -160,8 +162,8 @@ export default async function CardPermalinkPage({
               {speechLang && (
                 <PronounceButton word={thread.display_word} lang={speechLang} />
               )}
-              {info?.transcription && (
-                <span className="d-ipa">{info.transcription}</span>
+              {transcription && (
+                <span className="d-ipa">{transcription}</span>
               )}
               {info?.emoji && <span>{info.emoji}</span>}
             </div>
