@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import DeckShell from "@/components/DeckShell";
 import {
-  getPairs,
+  isSupportedSel,
   LANG_PATTERN,
   languageName,
+  languageNameForCode,
   loadDeckData,
   PAIR_PATTERN,
-  PairSummary,
 } from "@/lib/api";
 import "../deck.css";
 
@@ -25,14 +25,6 @@ export const revalidate = 3600;
 
 type Params = Promise<{ pair: string }>;
 
-// Does the corpus contain this selection? A language slug exists when any
-// pair studies it; a pair slug when the pair itself is listed.
-function selExists(pairs: PairSummary[], sel: string): boolean {
-  return pairs.some((p) =>
-    LANG_PATTERN.test(sel) ? p.pair.startsWith(`${sel}-`) : p.pair === sel,
-  );
-}
-
 export async function generateMetadata({
   params,
 }: {
@@ -42,21 +34,23 @@ export async function generateMetadata({
   // noindex by default: indexing is quality-gated and flips per page in
   // phase 2 (see WEBSITE.md, SEO strategy).
   const noindex: Metadata = { robots: { index: false, follow: true } };
-  if (!PAIR_PATTERN.test(sel) && !LANG_PATTERN.test(sel)) return noindex;
-  const match = (await getPairs()).find((p) =>
-    LANG_PATTERN.test(sel) ? p.pair.startsWith(`${sel}-`) : p.pair === sel,
-  );
-  if (!match) return noindex;
+  // Language names derive from the slug's own codes (via SUPPORTED_PAIRS /
+  // languageNameForCode in lib/api.ts), not the corpus-derived pair data —
+  // an empty corpus must not strip titles from supported pairs
+  // (VocabCards#545).
+  if (!isSupportedSel(sel)) return noindex;
 
-  const source = languageName(match.source_language);
   if (LANG_PATTERN.test(sel)) {
+    const source = languageName(languageNameForCode(sel));
     return {
       title: `${source} mnemonics | Absurdissimo`,
       description: `Browse ${source} words with absurd, memorable mnemonic association cards.`,
       ...noindex,
     };
   }
-  const target = languageName(match.target_language);
+  const [srcCode, tgtCode] = sel.split("-");
+  const source = languageName(languageNameForCode(srcCode));
+  const target = languageName(languageNameForCode(tgtCode));
   return {
     title: `${source} to ${target} mnemonics | Absurdissimo`,
     description: `Browse ${source} words with absurd, memorable mnemonic association cards for ${target} speakers.`,
@@ -72,7 +66,14 @@ export default async function NarrowedDeckPage({
   searchParams: Promise<{ all?: string }>;
 }) {
   const { pair: sel } = await params;
-  if (!PAIR_PATTERN.test(sel) && !LANG_PATTERN.test(sel)) notFound();
+  // Slugs are validated against the site-local SUPPORTED_PAIRS/SUPPORTED_LANGS
+  // constants, never the corpus-derived pair data: a supported pair with zero
+  // published cards renders the deck's empty state, so a wholesale card
+  // retire can't 404 the pair pages — nor "/", which middleware rewrites to
+  // the visitor's saved `pair` cookie selection (VocabCards#545). Unknown
+  // slugs (including non-slug paths this catch-all swallows, like
+  // /favicon.ico) still 404.
+  if (!isSupportedSel(sel)) notFound();
   // `?all=1` on a pair route records the filter context the pair was picked
   // from: the sidebar's flag filter is a separate axis from the pair
   // selection, and picking a pair must not move it. Plain /fr-ru = picked
@@ -83,7 +84,6 @@ export default async function NarrowedDeckPage({
   // route (its chip IS the filter) — ignored there.
   const allView = PAIR_PATTERN.test(sel) && (await searchParams).all === "1";
   const data = await loadDeckData(sel);
-  if (!selExists(data.pairs, sel)) notFound();
 
   return <DeckShell data={data} initialSel={sel} allView={allView} />;
 }
