@@ -180,6 +180,51 @@
   color: #ff8a80;
 }
 
+.word-info-browse {
+  margin-top: 2.5rem;
+}
+
+.word-info-browse h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+.word-info-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.word-info-filter-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.word-info-definition {
+  display: inline-block;
+  max-width: 36ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+  white-space: nowrap;
+}
+
+.word-info-status.seeded {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.word-info-status.live {
+  color: var(--text);
+}
+
 /* Sidebar collapses above the content on narrow screens. */
 @media (max-width: 640px) {
   .admin-shell {

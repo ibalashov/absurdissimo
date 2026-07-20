@@ -533,6 +533,51 @@ export function fetchWordInfoStatus(): Promise<WordInfoStatusResponse> {
   return adminFetch<WordInfoStatusResponse>("/admin/word-info/status");
 }
 
+export interface WordInfoRow {
+  word: string;
+  gender: string | null;
+  transcription: string;
+  display_transcription: string;
+  definition: string;
+  emoji: string;
+  model: string;
+  prompt_version: string;
+  created_at: string;
+  expires_at: string | null;
+  seeded: boolean;
+}
+
+export interface WordInfoRowsResponse {
+  total: number;
+  page: number;
+  page_size: number;
+  rows: WordInfoRow[];
+}
+
+export interface WordInfoRowsParams {
+  pair: string;
+  q?: string;
+  status?: "all" | "seeded" | "live";
+  suspect?: boolean;
+  sort?: "word" | "created_at";
+  order?: "asc" | "desc";
+  page?: number;
+  page_size?: number;
+}
+
+export function fetchWordInfoRows(
+  values: WordInfoRowsParams,
+): Promise<WordInfoRowsResponse> {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(values)) {
+    if (value === undefined || value === "" || value === false) continue;
+    params.set(key, String(value));
+  }
+  return adminFetch<WordInfoRowsResponse>(
+    `/admin/word-info/rows?${params.toString()}`,
+  );
+}
+
 // Only the fields present in `update` are changed. Server validates the model
 // against model_options, the prompt template's placeholders, reasoning_effort
 // against reasoning_effort_options, and temperature within [0, 2] — its 422
