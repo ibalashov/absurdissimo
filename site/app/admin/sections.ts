@@ -38,6 +38,6 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     title: "Word info",
     href: "/admin/word-info",
     description:
-      "Per-pair word_info seed status: seeded rows, prompt version, live fallbacks.",
+      "Review per-pair seed status and browse seeded or live word info rows.",
   },
 ];
