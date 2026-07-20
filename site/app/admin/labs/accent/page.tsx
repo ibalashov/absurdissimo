@@ -9,6 +9,7 @@ import {
   fetchLabPrompts,
   fetchLabRun,
   fetchRuntimeSettings,
+  lookupAccentWords,
   pickLabGeneration,
   sampleAccentWords,
   startLabRun,
@@ -61,6 +62,8 @@ export default function AccentLabPage() {
   const [absurdity, setAbsurdity] = useState(DEFAULT_ABSURDITY);
   const [count, setCount] = useState(DEFAULT_SAMPLE_COUNT);
   const [words, setWords] = useState<AccentWord[]>([]);
+  const [manual, setManual] = useState("");
+  const [adding, setAdding] = useState(false);
   const [judge, setJudge] = useState(true);
   const [sampling, setSampling] = useState(false);
   const [starting, setStarting] = useState(false);
@@ -124,6 +127,16 @@ export default function AccentLabPage() {
     setSampling(true); setError(null);
     try { setWords((await sampleAccentWords(pair, count)).words); } catch (reason) { setError(errorMessage(reason)); } finally { setSampling(false); }
   }
+  async function addManual() {
+    const entered = manual.split(/[,\s]+/).map((item) => item.trim()).filter(Boolean);
+    if (!entered.length) return;
+    setAdding(true); setError(null);
+    try {
+      const found = (await lookupAccentWords(entered)).words;
+      setWords((current) => [...current, ...found.filter((item) => !current.some((existing) => existing.word === item.word))]);
+      setManual("");
+    } catch (reason) { setError(errorMessage(reason)); } finally { setAdding(false); }
+  }
   async function start() {
     setStarting(true); setError(null); setRun(null); setLocalPicks({});
     try {
@@ -149,8 +162,9 @@ export default function AccentLabPage() {
         <label className="pack-toolbar-label" htmlFor="accent-absurdity">Absurdity</label>
         <select id="accent-absurdity" className="admin-input" value={absurdity} onChange={(event) => setAbsurdity(event.target.value)}>{ABSURDITIES.map((item) => <option key={item} value={item}>{item} · {absurdityLabel(item)}</option>)}</select>
       </div>
-      <div className="accent-sample-row"><label className="pack-toolbar-label" htmlFor="accent-count">Count</label><input id="accent-count" className="admin-input pack-target-input" type="number" min={1} max={200} value={count} onChange={(event) => setCount(Math.max(1, Math.min(200, Number(event.target.value) || 1)))} /><button className="admin-btn" disabled={!pair || sampling} onClick={() => void sample()}>{sampling ? "Sampling…" : "Sample words"}</button></div>
-      {words.length > 0 && <ul className="accent-word-list">{words.map((item) => <li key={item.word}><strong dir="auto">{item.word}</strong><span>/ {item.ipa_us} / 🇺🇸</span><span>/ {item.ipa_uk} / 🇬🇧</span><span className={`lab-chip divergence ${item.divergence}`}>{item.divergence}</span><button className="accent-remove" aria-label={`Remove ${item.word}`} onClick={() => setWords((current) => current.filter((word) => word.word !== item.word))}>×</button></li>)}</ul>}
+      <div className="accent-sample-row"><label className="pack-toolbar-label" htmlFor="accent-count">Count</label><input id="accent-count" className="admin-input pack-target-input" type="number" min={1} max={200} value={count} onChange={(event) => setCount(Math.max(1, Math.min(200, Number(event.target.value) || 1)))} /><button className="admin-btn" disabled={!pair || sampling} onClick={() => void sample()}>{sampling ? "Sampling…" : "Sample random words"}</button></div>
+      <div className="accent-sample-row"><input className="admin-input accent-manual-input" placeholder="Add your own words (comma- or space-separated)" value={manual} onChange={(event) => setManual(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void addManual(); } }} /><button className="admin-btn" disabled={adding || !manual.trim()} onClick={() => void addManual()}>{adding ? "Adding…" : "Add"}</button></div>
+      {words.length > 0 && <ul className="accent-word-list">{words.map((item) => <li key={item.word}><strong dir="auto">{item.word}</strong>{item.ipa_us && item.ipa_uk ? <><span>/ {item.ipa_us} / 🇺🇸</span><span>/ {item.ipa_uk} / 🇬🇧</span><span className={`lab-chip divergence ${item.divergence}`}>{item.divergence}</span></> : <span className="lab-chip accent-usonly" title="Not in the GA/RP divergence fixture — the Both arm falls back to the resolved US pronunciation">US-only</span>}<button className="accent-remove" aria-label={`Remove ${item.word}`} onClick={() => setWords((current) => current.filter((word) => word.word !== item.word))}>×</button></li>)}</ul>}
       <h3 className="lab-subhead">Model</h3>
       <div className="accent-model-row"><select className="admin-input" value={configKey} onChange={(event) => setConfigKey(event.target.value)} disabled={!configs?.length}>{(configs ?? []).map((item) => <option key={item.key} value={item.key}>{item.key} · {item.model}</option>)}</select><label className="lab-band"><input type="checkbox" checked={judge} onChange={(event) => setJudge(event.target.checked)} /> Judge results</label></div>
       <div className="lab-run-row"><span className="lab-cost">{words.length} words × 2 arms ≈ <strong>{fmtUsd(projected)}</strong></span><button className="admin-btn primary" disabled={starting || !pair || !configKey || words.length === 0} onClick={() => void start()}>{starting ? "Starting…" : "Run accent lab"}</button></div>

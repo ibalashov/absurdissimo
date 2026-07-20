@@ -317,9 +317,11 @@ export type AccentDivergence = "stress" | "vowel" | "rhoticity";
 
 export interface AccentWord {
   word: string;
-  ipa_us: string;
-  ipa_uk: string;
-  divergence: AccentDivergence;
+  // Null on hand-entered words absent from the divergence fixture — those run
+  // US-only in the "both" arm.
+  ipa_us: string | null;
+  ipa_uk: string | null;
+  divergence: AccentDivergence | null;
 }
 
 export interface LabPick {
@@ -447,6 +449,11 @@ export function sampleAccentWords(
 ): Promise<{ words: AccentWord[] }> {
   const params = new URLSearchParams({ pair, n: String(n) });
   return adminFetch(`/admin/labs/accent/sample?${params.toString()}`);
+}
+
+export function lookupAccentWords(words: string[]): Promise<{ words: AccentWord[] }> {
+  const params = new URLSearchParams({ words: words.join(",") });
+  return adminFetch(`/admin/labs/accent/words?${params.toString()}`);
 }
 
 export async function pickLabGeneration(
