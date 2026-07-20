@@ -29,6 +29,12 @@ export const ADMIN_SECTIONS: AdminSection[] = [
       "Run generation batches and compare association quality across models.",
   },
   {
+    title: "Accent lab",
+    href: "/admin/labs/accent",
+    description:
+      "Compare US-only and dual-accent IPA prompts on English source words.",
+  },
+  {
     title: "Runtime settings",
     href: "/admin/settings",
     description:

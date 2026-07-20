@@ -309,6 +309,17 @@ export interface LabGeneration {
   judge_scores?: Record<string, number | string> | string | null;
   judge_total?: number | null;
   judge_model?: string | null;
+  ipa_mode?: "us" | "both" | null;
+  chosen_accent?: "us" | "uk" | null;
+}
+
+export type AccentDivergence = "stress" | "vowel" | "rhoticity";
+
+export interface AccentWord {
+  word: string;
+  ipa_us: string;
+  ipa_uk: string;
+  divergence: AccentDivergence;
 }
 
 export interface LabPick {
@@ -329,6 +340,7 @@ export interface LabRun {
   actual_cost_usd?: number | null;
   generations?: LabGeneration[];
   picks?: LabPick[];
+  accent_words?: Record<string, Omit<AccentWord, "word">>;
 }
 
 export interface LabRunPage {
@@ -388,6 +400,7 @@ export function createLabPrompt(
 export interface LabRunConfigEntry {
   key: string;
   prompt_ref: string;
+  ipa_mode?: "us" | "both";
 }
 
 export function fetchLabConfigs(): Promise<{ configs: LabConfig[] }> {
@@ -399,6 +412,7 @@ export function startLabRun(body: {
   absurdity: string;
   words: string[];
   configs: LabRunConfigEntry[];
+  judge?: boolean;
 }): Promise<{ run_id: number; projected_cost_usd: number }> {
   return adminFetch("/admin/labs/runs", { method: "POST", json: body });
 }
@@ -425,6 +439,14 @@ export function sampleLabWords(
     bands: bands.join(","),
   });
   return adminFetch(`/admin/labs/sample?${params.toString()}`);
+}
+
+export function sampleAccentWords(
+  pair: string,
+  n: number,
+): Promise<{ words: AccentWord[] }> {
+  const params = new URLSearchParams({ pair, n: String(n) });
+  return adminFetch(`/admin/labs/accent/sample?${params.toString()}`);
 }
 
 export async function pickLabGeneration(

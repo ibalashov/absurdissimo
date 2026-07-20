@@ -1,0 +1,50 @@
+.accent-sample-row,
+.accent-model-row,
+.accent-word-head {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.accent-sample-row { margin-top: 1rem; }
+.accent-model-row { align-items: baseline; }
+
+.accent-word-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 0;
+  max-width: 760px;
+}
+
+.accent-word-list li {
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr) minmax(120px, 1fr) minmax(120px, 1fr) auto auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.82rem;
+}
+
+.accent-remove {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 1.15rem;
+}
+
+.lab-chip.divergence.stress { color: #ffb74d; }
+.lab-chip.divergence.vowel { color: #81d4fa; }
+.lab-chip.divergence.rhoticity { color: #ce93d8; }
+.lab-chip.accent-arm { color: var(--accent); border-color: #f5c54259; }
+
+.accent-word-head { margin-bottom: 0.6rem; font-size: 0.82rem; }
+.accent-word-head .lab-word-title { margin: 0 auto 0 0; }
+.accent-result-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+
+@media (max-width: 720px) {
+  .accent-word-list li { grid-template-columns: 1fr auto; }
+  .accent-result-grid { grid-template-columns: 1fr; }
+}
