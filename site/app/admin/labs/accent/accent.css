@@ -27,6 +27,9 @@
   font-size: 0.82rem;
 }
 
+.accent-manual-input { flex: 1 1 260px; }
+.lab-chip.accent-usonly { color: var(--muted); }
+
 .accent-remove {
   border: 0;
   background: none;
