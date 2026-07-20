@@ -77,7 +77,7 @@ export default function AccentLabPage() {
     Promise.all([fetchAdminPairs(), fetchLabConfigs(), fetchRuntimeSettings(), fetchLabPrompts()]).then(
       ([allPairs, configData, settings, prompts]) => {
         if (cancelled) return;
-        const englishPairs = allPairs.filter((item) => item.source_language === "en");
+        const englishPairs = allPairs.filter((item) => item.source_language === "english");
         setPairs(englishPairs);
         setPair(englishPairs[0]?.pair ?? "");
         setConfigs(configData.configs);
