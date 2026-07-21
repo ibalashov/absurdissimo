@@ -10,6 +10,26 @@
 .accent-sample-row { margin-top: 1rem; }
 .accent-model-row { align-items: baseline; }
 
+.accent-history { list-style: none; padding: 0; margin: 0; }
+.accent-history-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  padding: 0.45rem 0.5rem;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+  text-align: left;
+}
+.accent-history-row:hover { background: rgba(128, 128, 128, 0.08); }
+.accent-history-row.active { background: rgba(128, 128, 128, 0.14); }
+.accent-history-id { color: var(--muted); min-width: 2.5rem; }
+
 .accent-word-list {
   list-style: none;
   padding: 0;

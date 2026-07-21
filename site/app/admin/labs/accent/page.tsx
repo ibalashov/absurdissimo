@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import MnemonicText from "@/components/MnemonicText";
-import { absurdityLabel, languageFlag, languageName, type PairSummary } from "@/lib/api";
+import { absurdityLabel, formatDate, languageFlag, languageName, type PairSummary } from "@/lib/api";
 import {
   fetchAdminPairs,
   fetchLabConfigs,
   fetchLabPrompts,
   fetchLabRun,
+  fetchLabRuns,
   fetchRuntimeSettings,
   lookupAccentWords,
   pickLabGeneration,
@@ -71,6 +72,14 @@ export default function AccentLabPage() {
   const [run, setRun] = useState<LabRun | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [localPicks, setLocalPicks] = useState<Record<string, number>>({});
+  const [history, setHistory] = useState<LabRun[] | null>(null);
+
+  async function refreshHistory() {
+    try {
+      const page = await fetchLabRuns(undefined, 1);
+      setHistory(page.runs.filter((item) => item.configs?.some((config) => config.ipa_mode)));
+    } catch (reason) { setError(errorMessage(reason)); }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -88,6 +97,13 @@ export default function AccentLabPage() {
     );
     return () => { cancelled = true; };
   }, []);
+
+  // Refresh on mount and whenever the loaded run settles (a just-finished run
+  // should appear in / update its history row).
+  const runStatus = run?.status;
+  useEffect(() => {
+    if (runStatus !== "running") void refreshHistory();
+  }, [runStatus]);
 
   useEffect(() => {
     if (runId == null) return;
@@ -150,6 +166,10 @@ export default function AccentLabPage() {
   async function pick(word: string, gen: LabGeneration) {
     try { await pickLabGeneration(run!.id, word, gen.id); setLocalPicks((current) => ({ ...current, [word]: gen.id })); } catch (reason) { setError(errorMessage(reason)); }
   }
+  function openRun(id: number) {
+    if (id === runId) return;
+    setLocalPicks({}); setRun(null); setError(null); setRunId(id);
+  }
 
   return <>
     <h1>Accent lab</h1>
@@ -169,6 +189,23 @@ export default function AccentLabPage() {
       <div className="accent-model-row"><select className="admin-input" value={configKey} onChange={(event) => setConfigKey(event.target.value)} disabled={!configs?.length}>{(configs ?? []).map((item) => <option key={item.key} value={item.key}>{item.key} · {item.model}</option>)}</select><label className="lab-band"><input type="checkbox" checked={judge} onChange={(event) => setJudge(event.target.checked)} /> Judge results</label></div>
       <div className="lab-run-row"><span className="lab-cost">{words.length} words × 2 arms ≈ <strong>{fmtUsd(projected)}</strong></span><button className="admin-btn primary" disabled={starting || !pair || !configKey || words.length === 0} onClick={() => void start()}>{starting ? "Starting…" : "Run accent lab"}</button></div>
       {error && <p className="admin-error">{error}</p>}
+    </section>
+    <section className="admin-pane">
+      <h2>Past runs</h2>
+      {history == null ? <p className="admin-muted">Loading…</p> : history.length === 0 ? <p className="admin-muted">No accent runs yet.</p> : (
+        <ul className="accent-history">{history.map((item) => (
+          <li key={item.id}>
+            <button className={`accent-history-row${item.id === runId ? " active" : ""}`} onClick={() => openRun(item.id)}>
+              <span className="accent-history-id">#{item.id}</span>
+              <span>{languageFlag(item.source_language)}→{languageFlag(item.target_language)}</span>
+              <span>{formatDate(item.created_at)}</span>
+              <span>{item.words.length} words</span>
+              <span>{fmtUsd(item.actual_cost_usd)}</span>
+              <span className={`lab-status ${item.status}`}>{item.status}</span>
+            </button>
+          </li>
+        ))}</ul>
+      )}
     </section>
     {run && <section className="admin-pane">
       <div className="lab-run-header"><h2>Run #{run.id}</h2><span className={`lab-status ${run.status}`}>{run.status}</span>{run.status === "running" && <span className="admin-muted">refreshing every 2 s…</span>}</div>

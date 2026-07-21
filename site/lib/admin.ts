@@ -286,6 +286,9 @@ export interface LabConfig {
   input_usd_per_mtok: number;
   output_usd_per_mtok: number;
   unit_price_usd: number;
+  // Present on accent-experiment run config rows (#572); its presence is how
+  // the accent page recognizes its own runs in the shared runs list.
+  ipa_mode?: "us" | "both";
 }
 
 export interface LabGeneration {
