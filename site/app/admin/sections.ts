@@ -35,6 +35,12 @@ export const ADMIN_SECTIONS: AdminSection[] = [
       "Compare US-only and dual-accent IPA prompts on English source words.",
   },
   {
+    title: "Two-step lab",
+    href: "/admin/labs/two-step",
+    description:
+      "Compare one-shot generation with a filtered keyword-first pipeline.",
+  },
+  {
     title: "Runtime settings",
     href: "/admin/settings",
     description:

@@ -289,6 +289,24 @@ export interface LabConfig {
   // Present on accent-experiment run config rows (#572); its presence is how
   // the accent page recognizes its own runs in the shared runs list.
   ipa_mode?: "us" | "both";
+  flow?: "one_shot" | "two_step";
+  keyword_prompt_ref?: string;
+  oversample?: number;
+}
+
+export interface LabGenerationStep {
+  step: "keywords" | "scene";
+  latency_ms?: number | null;
+  tokens_in?: number | null;
+  tokens_out?: number | null;
+  cost_usd?: number | null;
+}
+
+export interface LabGenerationCandidates {
+  raw: string[];
+  rejected: Record<string, string>;
+  offered: string[];
+  off_list: boolean;
 }
 
 export interface LabGeneration {
@@ -314,6 +332,9 @@ export interface LabGeneration {
   judge_model?: string | null;
   ipa_mode?: "us" | "both" | null;
   chosen_accent?: "us" | "uk" | null;
+  flow?: "one_shot" | "two_step" | null;
+  steps?: LabGenerationStep[] | null;
+  candidates?: LabGenerationCandidates | null;
 }
 
 export type AccentDivergence = "stress" | "vowel" | "rhoticity";
@@ -381,6 +402,8 @@ export interface LabProdPrompt {
 export interface LabPromptsResponse {
   prompts: LabPrompt[];
   prod: LabProdPrompt;
+  // Absent until the two-step server support (#584) is deployed.
+  builtins?: Array<{ ref: string; name: string; body: string }>;
 }
 
 export function fetchLabPrompts(): Promise<LabPromptsResponse> {
@@ -406,6 +429,9 @@ export interface LabRunConfigEntry {
   key: string;
   prompt_ref: string;
   ipa_mode?: "us" | "both";
+  flow?: "one_shot" | "two_step";
+  keyword_prompt_ref?: string;
+  oversample?: number;
 }
 
 export function fetchLabConfigs(): Promise<{ configs: LabConfig[] }> {
