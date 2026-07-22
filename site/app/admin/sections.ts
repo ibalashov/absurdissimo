@@ -23,6 +23,12 @@ export const ADMIN_SECTIONS: AdminSection[] = [
       "Curate each pair's starter pack: select, order, and generate cards.",
   },
   {
+    title: "Keywords",
+    href: "/admin/keywords",
+    description:
+      "Review, rank, reject, and propose candidates in the keyword store.",
+  },
+  {
     title: "Association quality",
     href: "/admin/labs",
     description:
