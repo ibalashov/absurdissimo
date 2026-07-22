@@ -614,6 +614,12 @@ export interface RuntimeSettings {
   // leaves it untouched.
   reasoning_effort: string | null;
   temperature: number | null;
+  // Two-step generation (VocabCards #599/#605): concrete defaults like the
+  // prompt fields above — setting a field back to its default clears the
+  // override.
+  keyword_prompt: string;
+  scene_prompt: string;
+  keyword_oversample: number;
 }
 
 export type RuntimeSettingField = keyof RuntimeSettings;
