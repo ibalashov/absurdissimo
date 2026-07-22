@@ -134,6 +134,73 @@ export async function fetchAdminPairs(): Promise<PairSummary[]> {
   return data?.pairs ?? [];
 }
 
+// Keyword review store (VocabCards #601). These shapes deliberately mirror
+// the server contract pinned in VocabCards #600; the server may land after
+// this client, so callers surface normal AdminApiError states while absent.
+export type KeywordStatus = "candidate" | "verified" | "rejected";
+
+export interface AdminKeyword {
+  id: number;
+  word: string;
+  keyword: string;
+  status: KeywordStatus;
+  check_verdict: string | boolean | null;
+  origin: string;
+  model: string | null;
+  created_at: string;
+  rank: number | null;
+  used_in_cards: number;
+}
+
+export interface AdminKeywordsPage {
+  items: AdminKeyword[];
+  total: number;
+  page?: number;
+  page_size?: number;
+}
+
+export function fetchAdminKeywords(values: {
+  pair: string;
+  status: KeywordStatus | "all";
+  q?: string;
+  page?: number;
+  page_size?: number;
+}): Promise<AdminKeywordsPage> {
+  const params = new URLSearchParams({ pair: values.pair, status: values.status });
+  if (values.q) params.set("q", values.q);
+  if (values.page) params.set("page", String(values.page));
+  if (values.page_size) params.set("page_size", String(values.page_size));
+  return adminFetch<AdminKeywordsPage>(`/admin/keywords?${params.toString()}`);
+}
+
+export function setAdminKeywordVerdict(
+  id: number,
+  status: "verified" | "rejected",
+): Promise<AdminKeyword> {
+  return adminFetch<AdminKeyword>(`/admin/keywords/${id}/verdict`, {
+    method: "POST",
+    json: { status },
+  });
+}
+
+export function setAdminKeywordRank(id: number, rank: number): Promise<AdminKeyword> {
+  return adminFetch<AdminKeyword>(`/admin/keywords/${id}/rank`, {
+    method: "POST",
+    json: { rank },
+  });
+}
+
+export function proposeAdminKeywords(values: {
+  pair: string;
+  word: string;
+  oversample?: number;
+}): Promise<AdminKeyword[]> {
+  return adminFetch<AdminKeyword[]>("/admin/keywords/propose", {
+    method: "POST",
+    json: values,
+  });
+}
+
 export function fetchStarterPack(pair: string): Promise<StarterPack> {
   return adminFetch<StarterPack>(
     `/admin/starter-pack/${encodeURIComponent(pair)}`,

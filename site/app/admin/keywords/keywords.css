@@ -1,0 +1,15 @@
+.keywords-toolbar, .keywords-propose, .keywords-bulk, .keywords-counts {
+  display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem;
+}
+.keywords-toolbar .cards-column-picker { margin-left: auto; }
+.keywords-propose .admin-input { width: min(22rem, 100%); }
+.keywords-table td { vertical-align: middle; }
+.keywords-table .keywords-group-start td { border-top: 2px solid var(--border); }
+.keywords-keyword { color: var(--accent); font-weight: 600; }
+.keywords-check-rejected { color: #ff8a80; text-decoration: line-through; }
+.keywords-order, .keywords-actions { display: flex; align-items: center; gap: .3rem; }
+.keywords-order .admin-btn { padding-inline: .45rem; }
+.word-info-status.candidate { color: var(--text); }
+.word-info-status.verified { color: var(--accent); background: var(--accent-soft); }
+.word-info-status.rejected { color: #ff8a80; }
+@media (max-width: 640px) { .keywords-toolbar .cards-column-picker { margin-left: 0; } }
