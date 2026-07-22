@@ -3,7 +3,7 @@
 // Runtime settings (VocabCards #433/#434): change the live generation model,
 // system prompt, prompt version, and default absurdity without a redeploy —
 // they're compile-time constants server-side, overridable through
-// GET/PUT /admin/settings. One form; Save sends only the changed fields (a
+// GET/PATCH /admin/settings. One form; Save sends only the changed fields (a
 // field set back to its default clears the override server-side). Each field
 // shows whether it's currently an override and offers a reset to the
 // compile-time default.
@@ -61,7 +61,7 @@ export default function SettingsPage() {
     };
   }, []);
 
-  // Only the fields the admin actually changed, so the PUT stays a partial
+  // Only the fields the admin actually changed, so the PATCH stays a partial
   // update (untouched fields keep their current state server-side).
   const changed = useMemo<Partial<RuntimeSettings>>(() => {
     if (!data || !form) return {};
@@ -69,6 +69,12 @@ export default function SettingsPage() {
     if (form.model !== data.effective.model) diff.model = form.model;
     if (form.system_prompt !== data.effective.system_prompt)
       diff.system_prompt = form.system_prompt;
+    if (form.keyword_prompt !== data.effective.keyword_prompt)
+      diff.keyword_prompt = form.keyword_prompt;
+    if (form.scene_prompt !== data.effective.scene_prompt)
+      diff.scene_prompt = form.scene_prompt;
+    if (form.keyword_oversample !== data.effective.keyword_oversample)
+      diff.keyword_oversample = form.keyword_oversample;
     if (form.prompt_version !== data.effective.prompt_version)
       diff.prompt_version = form.prompt_version;
     if (form.default_absurdity_level !== data.effective.default_absurdity_level)
@@ -318,7 +324,7 @@ export default function SettingsPage() {
 
         <div className="setting-field">
           <label className="setting-label" htmlFor="setting-prompt">
-            System prompt
+            One-shot fallback prompt
             {fieldStatus("system_prompt")}
           </label>
           <textarea
@@ -330,9 +336,68 @@ export default function SettingsPage() {
           />
           <p className="admin-pane-hint">
             Allowed placeholders: {PLACEHOLDERS} — all are required and anything
-            else is rejected. Editing this changes generated content;
-            bump the prompt version above to make it take effect for existing
-            words.
+            else is rejected. Used only when the keyword and scene pipeline
+            produces no surviving cards.
+          </p>
+        </div>
+
+        <div className="setting-field">
+          <label className="setting-label" htmlFor="setting-keyword-prompt">
+            Keyword prompt
+            {fieldStatus("keyword_prompt")}
+          </label>
+          <textarea
+            id="setting-keyword-prompt"
+            className="admin-input setting-prompt"
+            rows={20}
+            value={form.keyword_prompt}
+            onChange={(e) => set("keyword_prompt", e.target.value)}
+          />
+          <p className="admin-pane-hint">
+            Template used to generate keyword candidates. Placeholders are
+            validated by the server.
+          </p>
+        </div>
+
+        <div className="setting-field">
+          <label className="setting-label" htmlFor="setting-scene-prompt">
+            Scene prompt
+            {fieldStatus("scene_prompt")}
+          </label>
+          <textarea
+            id="setting-scene-prompt"
+            className="admin-input setting-prompt"
+            rows={20}
+            value={form.scene_prompt}
+            onChange={(e) => set("scene_prompt", e.target.value)}
+          />
+          <p className="admin-pane-hint">
+            Template used to turn keyword candidates into mnemonic scenes.
+            Placeholders are validated by the server.
+          </p>
+        </div>
+
+        <div className="setting-field">
+          <label className="setting-label" htmlFor="setting-keyword-oversample">
+            Keyword oversample
+            {fieldStatus("keyword_oversample")}
+          </label>
+          <input
+            id="setting-keyword-oversample"
+            className="admin-input setting-version"
+            type="number"
+            min={1}
+            max={25}
+            value={form.keyword_oversample}
+            onChange={(e) =>
+              set(
+                "keyword_oversample",
+                Math.min(25, Math.max(1, Number(e.target.value) || 1)),
+              )
+            }
+          />
+          <p className="admin-pane-hint">
+            Number of keyword candidates generated before filtering (1&ndash;25).
           </p>
         </div>
 
