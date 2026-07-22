@@ -1,22 +1,28 @@
 "use client";
 
-// Seed a pack with a themed batch (VocabCards #366). Available whether the pack
-// is empty or already has cards — the admin can keep topping it up. The server
-// invents one coherent, positive everyday scene and returns medium-hard,
-// verb-leaning source words that populate it; each word is then generated into a
-// card here (at "wild" = middle absurdity) and reviewed before it lands in the
-// pack — same Add / Re-roll flow as the Generate sub-page, just fanned out over
-// the batch.
+// Seed a pack with a themed batch (VocabCards #366) or a pre-built seed set
+// (VocabCards #595/#596). Available whether the pack is empty or already has
+// cards — the admin can keep topping it up. The default source is a themed
+// batch: the server invents one coherent, positive everyday scene and returns
+// medium-hard, verb-leaning source words that populate it. Pairs with
+// committed seed sets (nested seed-20/50/100 lists curated offline from
+// pedagogical word lists) additionally offer a pre-select: picking one loads
+// its fixed words as the batch instead. Either way each word is then generated
+// into a card here (at "wild" = middle absurdity) and reviewed before it lands
+// in the pack — same Add / Re-roll flow as the Generate sub-page, just fanned
+// out over the batch.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import AdminTile from "./AdminTile";
 import { errorMessage, useStarterPack } from "./StarterPackContext";
 import {
   generateAdminCard,
+  getSeedSets,
   isAdminStatus,
   pollAdminCardImage,
   suggestStarterBatch,
   type AdminCard,
+  type SeedSet,
 } from "@/lib/admin";
 
 // The user asked for the middle of the five absurdity levels (sensible,
@@ -188,6 +194,10 @@ export default function BatchSeed() {
   const [words, setWords] = useState<string[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Committed seed sets for the pair (VocabCards #595/#596); empty for pairs
+  // without them, which hides the pre-select entirely. "" = themed scene.
+  const [seedSets, setSeedSets] = useState<SeedSet[]>([]);
+  const [selectedSet, setSelectedSet] = useState("");
   // One gate shared by every card in the pane, so the batch (and any re-rolls)
   // take turns instead of hammering the server all at once. Stable for the
   // pane's lifetime — a drained gate carries no state between batches.
@@ -198,6 +208,23 @@ export default function BatchSeed() {
     const raw = localStorage.getItem(BATCH_SIZE_KEY);
     if (raw !== null) setBatchSizeState(clampBatchSize(Number(raw)));
   }, []);
+
+  // Seed sets are per-pair; best-effort (a failed fetch just leaves the
+  // themed-scene flow, same as a pair with no sets).
+  useEffect(() => {
+    let cancelled = false;
+    setSeedSets([]);
+    setSelectedSet("");
+    if (!pair) return;
+    getSeedSets(pair)
+      .then((res) => {
+        if (!cancelled) setSeedSets(res.sets);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [pair]);
 
   const setBatchSize = useCallback((n: number) => {
     const clamped = clampBatchSize(n);
@@ -210,9 +237,16 @@ export default function BatchSeed() {
   }, []);
 
   const hasBatch = words !== null;
+  const activeSet = seedSets.find((s) => s.name === selectedSet) ?? null;
 
   async function run() {
     setError(null);
+    if (activeSet) {
+      // Fixed pre-built list — nothing to ask the server for.
+      setScene(null);
+      setWords(activeSet.words);
+      return;
+    }
     setLoading(true);
     try {
       const batch = await suggestStarterBatch(pair, batchSize);
@@ -240,25 +274,52 @@ export default function BatchSeed() {
         Generate a themed batch — medium-to-difficult verbs and the nouns that
         share one positive everyday scene, at a middle absurdity. Review each
         card and add the keepers; re-roll a weak keyword hook.
+        {seedSets.length > 0 &&
+          " This pair also has curated seed sets (NGSL + Oxford CEFR): pick one as the source to generate its fixed word list instead."}
       </p>
       <div className="batch-controls">
-        <label className="pack-toolbar-label" htmlFor="batch-size">
-          Batch size
-        </label>
-        <input
-          id="batch-size"
-          className="admin-input pack-target-input"
-          type="number"
-          min={1}
-          max={24}
-          value={batchSize}
-          onChange={(e) => {
-            const n = Number(e.target.value);
-            if (e.target.value !== "" && Number.isFinite(n)) setBatchSize(n);
-          }}
-          aria-label="Number of cards to generate per batch"
-          disabled={loading}
-        />
+        {seedSets.length > 0 && (
+          <>
+            <label className="pack-toolbar-label" htmlFor="seed-set">
+              Source
+            </label>
+            <select
+              id="seed-set"
+              className="admin-input"
+              value={selectedSet}
+              onChange={(e) => setSelectedSet(e.target.value)}
+              disabled={loading}
+            >
+              <option value="">Themed scene (LLM)</option>
+              {seedSets.map((s) => (
+                <option key={s.name} value={s.name}>
+                  {s.name} ({s.words.length} words)
+                </option>
+              ))}
+            </select>
+          </>
+        )}
+        {!activeSet && (
+          <>
+            <label className="pack-toolbar-label" htmlFor="batch-size">
+              Batch size
+            </label>
+            <input
+              id="batch-size"
+              className="admin-input pack-target-input"
+              type="number"
+              min={1}
+              max={24}
+              value={batchSize}
+              onChange={(e) => {
+                const n = Number(e.target.value);
+                if (e.target.value !== "" && Number.isFinite(n)) setBatchSize(n);
+              }}
+              aria-label="Number of cards to generate per batch"
+              disabled={loading}
+            />
+          </>
+        )}
         <button
           className="admin-btn primary"
           onClick={() => void run()}
@@ -266,9 +327,11 @@ export default function BatchSeed() {
         >
           {loading
             ? "Finding a scene…"
-            : hasBatch
-              ? "Generate another batch"
-              : `Generate a batch of ${batchSize}`}
+            : activeSet
+              ? `Generate ${activeSet.name} (${activeSet.words.length} cards)`
+              : hasBatch
+                ? "Generate another batch"
+                : `Generate a batch of ${batchSize}`}
         </button>
         {(hasBatch || loading) && (
           <button className="admin-btn" onClick={done} disabled={loading}>
