@@ -274,6 +274,29 @@ export function suggestStarterBatch(
   );
 }
 
+export interface SeedSet {
+  name: string;
+  words: string[];
+}
+
+export interface SeedSets {
+  pair: string;
+  // Human-readable provenance of the sets (e.g. "NGSL 1.2 ∩ Oxford 3000/5000
+  // CEFR"); null when the pair has no committed sets.
+  source: string | null;
+  sets: SeedSet[];
+}
+
+// Committed seed word sets for the pair (VocabCards #595/#596): nested
+// seed-20 ⊂ seed-50 ⊂ seed-100 candidate lists built offline from pedagogical
+// sources and shipped with the server. Empty `sets` for pairs without them —
+// the seed pane only shows the pre-select when non-empty.
+export function getSeedSets(pair: string): Promise<SeedSets> {
+  return adminFetch<SeedSets>(
+    `/admin/starter-pack/${encodeURIComponent(pair)}/seed-sets`,
+  );
+}
+
 // Association-quality lab (#426). These calls deliberately share adminFetch
 // with starter packs: both use the community bearer token client-side while
 // the parent /admin layout enforces the allowlist server-side.
