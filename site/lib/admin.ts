@@ -878,6 +878,20 @@ export interface InventoryRow {
   image_model: string | null;
   image_cost_usd: number | null;
   image_latency_ms: number | null;
+  // Per-LLM-call telemetry from the generation_calls sidecar (VocabCards #621).
+  // A card fans out across the word_info lookup, the two-step keyword + scene
+  // calls (or the oneshot fallback); each call's cost/latency is its own
+  // column. cost_usd/latency_ms above stay the summed "text total"
+  // (keyword+scene+oneshot); total_cost/latency add lookup + image on top.
+  // All null on rows generated before the sidecar existed.
+  lookup_cost_usd: number | null;
+  lookup_latency_ms: number | null;
+  keyword_cost_usd: number | null;
+  keyword_latency_ms: number | null;
+  scene_cost_usd: number | null;
+  scene_latency_ms: number | null;
+  oneshot_cost_usd: number | null;
+  oneshot_latency_ms: number | null;
   total_cost_usd: number | null;
   total_latency_ms: number | null;
   in_starter_pack: boolean;
@@ -933,6 +947,14 @@ export type InventorySortKey =
   | "tokens_out"
   | "image_cost"
   | "image_latency"
+  | "lookup_cost"
+  | "lookup_latency"
+  | "keyword_cost"
+  | "keyword_latency"
+  | "scene_cost"
+  | "scene_latency"
+  | "oneshot_cost"
+  | "oneshot_latency"
   | "total_cost"
   | "total_latency"
   | "vote_score";

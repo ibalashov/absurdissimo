@@ -231,8 +231,43 @@ export default function CardDetail({
             <Meta label="audience" value={detail.audience} />
             <Meta label="triggered by" value={detail.device_id} />
             <Meta label="provenance" value={detail.provenance} />
-            <Meta label="text cost" value={fmtUsd(detail.cost_usd)} />
-            <Meta label="text latency" value={fmtMs(detail.latency_ms)} />
+            {/* Per-call breakdown (VocabCards #621): only the calls this card
+                actually made show — cost/latency stay null otherwise, and Meta
+                skips nulls (unlike the table's always-present columns). */}
+            <Meta
+              label="lookup cost"
+              value={detail.lookup_cost_usd != null ? fmtUsd(detail.lookup_cost_usd) : null}
+            />
+            <Meta
+              label="lookup latency"
+              value={detail.lookup_latency_ms != null ? fmtMs(detail.lookup_latency_ms) : null}
+            />
+            <Meta
+              label="keyword cost"
+              value={detail.keyword_cost_usd != null ? fmtUsd(detail.keyword_cost_usd) : null}
+            />
+            <Meta
+              label="keyword latency"
+              value={detail.keyword_latency_ms != null ? fmtMs(detail.keyword_latency_ms) : null}
+            />
+            <Meta
+              label="scene cost"
+              value={detail.scene_cost_usd != null ? fmtUsd(detail.scene_cost_usd) : null}
+            />
+            <Meta
+              label="scene latency"
+              value={detail.scene_latency_ms != null ? fmtMs(detail.scene_latency_ms) : null}
+            />
+            <Meta
+              label="1-shot cost"
+              value={detail.oneshot_cost_usd != null ? fmtUsd(detail.oneshot_cost_usd) : null}
+            />
+            <Meta
+              label="1-shot latency"
+              value={detail.oneshot_latency_ms != null ? fmtMs(detail.oneshot_latency_ms) : null}
+            />
+            <Meta label="text total cost" value={fmtUsd(detail.cost_usd)} />
+            <Meta label="text total latency" value={fmtMs(detail.latency_ms)} />
             <Meta label="img provider" value={detail.image_provider} />
             <Meta label="img model" value={detail.image_model} />
             <Meta label="img cost" value={fmtUsd(detail.image_cost_usd)} />
