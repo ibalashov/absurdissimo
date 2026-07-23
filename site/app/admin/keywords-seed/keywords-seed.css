@@ -1,0 +1,116 @@
+.keywords-seed-page {
+  max-width: 900px;
+}
+
+.keywords-seed-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.keywords-seed-controls > label,
+.keywords-seed-controls > div {
+  display: flex;
+  flex: 1 1 260px;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.keywords-seed-label {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.keywords-seed-label strong {
+  color: var(--accent);
+  margin-left: 0.35rem;
+}
+
+.keywords-seed-sets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.keywords-seed-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 1rem;
+}
+
+.keywords-seed-editor textarea {
+  box-sizing: border-box;
+  line-height: 1.55;
+  resize: vertical;
+  width: 100%;
+}
+
+.keywords-seed-preview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.7rem;
+  margin: 1.25rem 0 0.75rem;
+}
+
+.keywords-seed-preview > div {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.8rem;
+}
+
+.keywords-seed-preview span {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.keywords-seed-preview strong {
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.keywords-seed-preview .cost {
+  border-color: #f5c54259;
+}
+
+.keywords-seed-preview .cost strong {
+  color: var(--accent);
+  font-size: 1.5rem;
+}
+
+.keywords-seed-run {
+  margin-top: 0.75rem;
+}
+
+.keywords-seed-status {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
+  margin: 1rem 0;
+}
+
+.keywords-seed-status > span:not(.word-info-status) {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.keywords-seed-status strong {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.keywords-seed-review {
+  display: inline-block;
+  margin-top: 0.75rem;
+  text-decoration: none;
+}

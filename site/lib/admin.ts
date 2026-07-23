@@ -201,6 +201,77 @@ export function proposeAdminKeywords(values: {
   });
 }
 
+// Bulk keyword seeding (VocabCards #608). The server endpoints intentionally
+// land separately; keeping the pinned contract here lets the admin page build
+// and surface the normal API error while that deployment is absent.
+export interface KeywordSeedSet {
+  name?: string;
+  words: string[];
+}
+
+export interface KeywordSeedSetsResponse {
+  pair: string;
+  source?: string;
+  sets: KeywordSeedSet[];
+}
+
+export interface KeywordSeedRequest {
+  pair: string;
+  words: string[];
+  model: string;
+  reasoning_effort: string | null;
+}
+
+export interface KeywordSeedPreview {
+  total: number;
+  already_covered: number;
+  pending: number;
+  unit_estimate_usd: number;
+  projected_usd: number;
+}
+
+export interface KeywordSeedStatus {
+  active: boolean;
+  pair: string | null;
+  total: number | null;
+  pending: number | null;
+  completed: number | null;
+  skipped: number | null;
+  spent_usd: number | null;
+  current_word: string | null;
+  error: string | null;
+}
+
+export function fetchKeywordSeedSets(
+  pair: string,
+): Promise<KeywordSeedSetsResponse> {
+  return adminFetch(
+    `/admin/starter-pack/${encodeURIComponent(pair)}/seed-sets`,
+  );
+}
+
+export function previewKeywordSeed(
+  values: KeywordSeedRequest,
+): Promise<KeywordSeedPreview> {
+  return adminFetch("/admin/keywords/seed/preview", {
+    method: "POST",
+    json: values,
+  });
+}
+
+export function startKeywordSeed(
+  values: KeywordSeedRequest & { oversample?: number },
+): Promise<KeywordSeedStatus> {
+  return adminFetch("/admin/keywords/seed", {
+    method: "POST",
+    json: values,
+  });
+}
+
+export function fetchKeywordSeedStatus(): Promise<KeywordSeedStatus> {
+  return adminFetch("/admin/keywords/seed/status");
+}
+
 export function fetchStarterPack(pair: string): Promise<StarterPack> {
   return adminFetch<StarterPack>(
     `/admin/starter-pack/${encodeURIComponent(pair)}`,
