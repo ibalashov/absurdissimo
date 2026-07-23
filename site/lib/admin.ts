@@ -43,8 +43,15 @@ export interface AdminCardsPage {
 }
 
 // Admin image_url values are relative paths — absolutize against the server.
-export function adminImageUrl(imageUrl: string): string {
-  return imageUrl.startsWith("http") ? imageUrl : `${API_BASE}${imageUrl}`;
+// `width` requests a downscaled thumbnail (server whitelist 96|160|320); the
+// inventory table/gallery render one image per row, and the full 1024² PNG is
+// ~1.3 MB, so a full page pulled hundreds of MB and froze the tab. Relative
+// urls (every admin image_url) gain `?w=`; an already-absolute url is left
+// alone (a bucket URL wouldn't honor it anyway).
+export function adminImageUrl(imageUrl: string, width?: number): string {
+  if (imageUrl.startsWith("http")) return imageUrl;
+  const suffix = width ? `?w=${width}` : "";
+  return `${API_BASE}${imageUrl}${suffix}`;
 }
 
 // Carries the HTTP status so callers can branch on the API's meaningful
