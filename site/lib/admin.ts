@@ -147,10 +147,17 @@ export interface AdminKeyword {
   check_verdict: string | boolean | null;
   origin: string;
   model: string | null;
+  effort: string | null;
   created_at: string;
   rank: number | null;
   used_in_cards: number;
 }
+
+// Server-side sort whitelist (`used_in_cards` is computed post-query there,
+// so it is not sortable).
+export type KeywordSortKey =
+  | "created" | "word" | "keyword" | "status" | "check" | "origin"
+  | "model" | "effort" | "rank";
 
 export interface AdminKeywordsPage {
   items: AdminKeyword[];
@@ -165,11 +172,15 @@ export function fetchAdminKeywords(values: {
   q?: string;
   page?: number;
   page_size?: number;
+  sort?: KeywordSortKey;
+  dir?: "asc" | "desc";
 }): Promise<AdminKeywordsPage> {
   const params = new URLSearchParams({ pair: values.pair, status: values.status });
   if (values.q) params.set("q", values.q);
   if (values.page) params.set("page", String(values.page));
   if (values.page_size) params.set("page_size", String(values.page_size));
+  if (values.sort) params.set("sort", values.sort);
+  if (values.dir) params.set("dir", values.dir);
   return adminFetch<AdminKeywordsPage>(`/admin/keywords?${params.toString()}`);
 }
 

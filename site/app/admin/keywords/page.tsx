@@ -5,7 +5,7 @@ import { formatDateTime, languageFlag, languageName, type PairSummary } from "@/
 import {
   fetchAdminKeywords, fetchAdminPairs, proposeAdminKeywords,
   setAdminKeywordRank, setAdminKeywordVerdict,
-  type AdminKeyword, type KeywordStatus,
+  type AdminKeyword, type KeywordSortKey, type KeywordStatus,
 } from "@/lib/admin";
 
 const PAGE_SIZE = 50;
@@ -14,11 +14,17 @@ const COLUMNS_KEY = "admin.keywords.columns";
 const COLUMNS = [
   ["select", ""], ["order", "Order"], ["word", "Word"],
   ["keyword", "Keyword"], ["status", "Status"], ["check", "Check verdict"],
-  ["origin", "Origin / model"], ["used", "Used in cards"],
+  ["origin", "Origin / model"], ["effort", "Reasoning"], ["used", "Used in cards"],
   ["created", "Created (UTC)"], ["actions", "Actions"],
 ] as const;
 type ColumnKey = (typeof COLUMNS)[number][0];
 const DEFAULT_COLUMNS = COLUMNS.map(([key]) => key);
+// Which server sort key a header click maps to; absent = not sortable
+// ("used" is computed post-query on the server, select/actions are controls).
+const SORT_BY_COLUMN: Partial<Record<ColumnKey, KeywordSortKey>> = {
+  order: "rank", word: "word", keyword: "keyword", status: "status",
+  check: "check", origin: "origin", effort: "effort", created: "created",
+};
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Something went wrong.";
@@ -51,19 +57,14 @@ function checkRejected(value: AdminKeyword["check_verdict"]) {
     .includes(value.toLowerCase());
 }
 
-function serveSort(a: AdminKeyword, b: AdminKeyword) {
-  if (a.word !== b.word) return a.word.localeCompare(b.word);
-  const verified = Number(b.status === "verified") - Number(a.status === "verified");
-  const rank = (a.rank ?? Number.MAX_SAFE_INTEGER) - (b.rank ?? Number.MAX_SAFE_INTEGER);
-  return verified || rank || a.created_at.localeCompare(b.created_at);
-}
-
 export default function KeywordsPage() {
   const [pairs, setPairs] = useState<PairSummary[]>([]);
   const [pair, setPair] = useState("");
   const [status, setStatus] = useState<KeywordStatus | "all">("candidate");
   const [qDraft, setQDraft] = useState("");
   const [q, setQ] = useState("");
+  const [sort, setSort] = useState<KeywordSortKey>("created");
+  const [dir, setDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
   const [data, setData] = useState<{ items: AdminKeyword[]; total: number } | null>(null);
   const [counts, setCounts] = useState<Record<KeywordStatus, number> | null>(null);
@@ -103,10 +104,10 @@ export default function KeywordsPage() {
   const refresh = useCallback(async () => {
     if (!pair) return;
     try {
-      const fresh = await fetchAdminKeywords({ pair, status, q, page, page_size: PAGE_SIZE });
+      const fresh = await fetchAdminKeywords({ pair, status, q, page, page_size: PAGE_SIZE, sort, dir });
       setData(fresh); setSelected(new Set()); setError(null);
     } catch (err) { setError(errorMessage(err)); }
-  }, [pair, status, q, page]);
+  }, [pair, status, q, page, sort, dir]);
   useEffect(() => { void refresh(); }, [refresh]);
   useEffect(() => { void refreshCounts(); }, [refreshCounts]);
 
@@ -154,17 +155,31 @@ export default function KeywordsPage() {
     // Normalize the complete visible group. Updating only the swapped pair is
     // insufficient when older ranks are sparse (for example 10, 20, 30).
     const ids = new Set(moved.map((row) => row.id));
+    // Refill the group's slots in the new order, leaving every other row in
+    // place — display order inside a word group is item order, independent of
+    // the active column sort.
+    const reorder = (items: AdminKeyword[]) => {
+      const queue = moved.map((row) => ({ ...row, rank: ranks.get(row.id)! }));
+      return items.map((row) => (ids.has(row.id) ? queue.shift()! : row));
+    };
     const before = data;
     setBusy((current) => new Set([...current, ...ids]));
-    setData((current) => current && ({ ...current, items: current.items.map((row) =>
-      ids.has(row.id) ? { ...row, rank: ranks.get(row.id)! } : row).sort(serveSort) }));
+    setData((current) => current && ({ ...current, items: reorder(current.items) }));
     try {
       const updated = await Promise.all([...ids].map((id) => setAdminKeywordRank(id, ranks.get(id)!)));
       const byId = new Map(updated.map((row) => [row.id, row]));
       setData((current) => current && ({ ...current,
-        items: current.items.map((row) => byId.get(row.id) ?? row).sort(serveSort) }));
+        items: current.items.map((row) => byId.get(row.id) ?? row) }));
     } catch (err) { setData(before); setError(errorMessage(err)); }
     finally { setBusy((current) => new Set([...current].filter((id) => !ids.has(id)))); }
+  }
+
+  function toggleSort(column: ColumnKey) {
+    const key = SORT_BY_COLUMN[column];
+    if (!key) return;
+    if (key === sort) setDir((current) => (current === "asc" ? "desc" : "asc"));
+    else { setSort(key); setDir(key === "created" ? "desc" : "asc"); }
+    setPage(1);
   }
 
   async function propose(event: FormEvent) {
@@ -223,7 +238,9 @@ export default function KeywordsPage() {
     {error && <p className="admin-error">{error}</p>}
     {!data && !error && <p className="admin-muted">Loading keywords…</p>}
     {data?.items.length === 0 && <p className="admin-muted">Nothing matches these filters.</p>}
-    {data && data.items.length > 0 && <div className="lab-table-scroll"><table className="lab-table keywords-table cards-table"><thead><tr>{visible.map((key) => <th scope="col" key={key} title="Drag to re-arrange" draggable onDragStart={(e) => { setDragKey(key); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", key); }} onDragOver={(e) => { if (dragKey && dragKey !== key) { e.preventDefault(); setDragOverKey(key); } }} onDrop={(e) => { e.preventDefault(); if (dragKey) moveColumn(dragKey, key); setDragKey(null); setDragOverKey(null); }} onDragEnd={() => { setDragKey(null); setDragOverKey(null); }} className={[key === "used" ? "num" : "", "cards-th-drag", dragKey === key ? "dragging" : "", dragOverKey === key && dragKey !== key ? "drop-target" : ""].filter(Boolean).join(" ")}>{COLUMNS.find(([candidate]) => candidate === key)?.[1]}</th>)}</tr></thead><tbody>
+    {data && data.items.length > 0 && <div className="lab-table-scroll"><table className="lab-table keywords-table cards-table"><thead><tr>{visible.map((key) => { const sortKey = SORT_BY_COLUMN[key]; const active = sortKey === sort; return <th scope="col" key={key} title={sortKey ? "Click to sort, drag to re-arrange" : "Drag to re-arrange"} aria-sort={active ? (dir === "asc" ? "ascending" : "descending") : undefined} draggable onClick={() => toggleSort(key)} onDragStart={(e) => { setDragKey(key); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", key); }} onDragOver={(e) => { if (dragKey && dragKey !== key) { e.preventDefault(); setDragOverKey(key); } }} onDrop={(e) => { e.preventDefault(); if (dragKey) moveColumn(dragKey, key); setDragKey(null); setDragOverKey(null); }} onDragEnd={() => { setDragKey(null); setDragOverKey(null); }} className={[key === "used" ? "num" : "", "cards-th-drag", sortKey ? "sortable" : "", dragKey === key ? "dragging" : "", dragOverKey === key && dragKey !== key ? "drop-target" : ""].filter(Boolean).join(" ")}>{key === "select"
+      ? <input type="checkbox" aria-label="Select all on page" checked={data.items.length > 0 && data.items.every((row) => selected.has(row.id))} onClick={(e) => e.stopPropagation()} onChange={(e) => setSelected(e.target.checked ? new Set(data.items.map((row) => row.id)) : new Set())} />
+      : <>{COLUMNS.find(([candidate]) => candidate === key)?.[1]}{active && <span aria-hidden> {dir === "asc" ? "▲" : "▼"}</span>}</>}</th>; })}</tr></thead><tbody>
       {groups.flatMap((group) => group.rows.map((row, index) => <tr key={row.id} className={index === 0 ? "keywords-group-start" : undefined}>{visible.map((key) => <KeywordCell key={key} column={key} row={row} index={index} group={group.rows} busy={busy.has(row.id)} selected={selected.has(row.id)} onSelect={(checked) => setSelected((current) => { const next = new Set(current); if (checked) next.add(row.id); else next.delete(row.id); return next; })} onVerdict={(next) => void applyVerdict([row.id], next)} onMove={(delta) => void move(group.rows, index, delta)} />)}</tr>))}
     </tbody></table></div>}
     {data && totalPages > 1 && <div className="admin-pager"><button className="admin-btn" disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>← Prev</button><span>Page {page} of {totalPages}</span><button className="admin-btn" disabled={page >= totalPages} onClick={() => setPage((value) => value + 1)}>Next →</button></div>}
@@ -242,6 +259,7 @@ function KeywordCell({ column, row, index, group, busy, selected, onSelect, onVe
   if (column === "status") return <td><span className={`word-info-status ${row.status}`}>{row.status}</span></td>;
   if (column === "check") return <td><span className={checkRejected(row.check_verdict) ? "keywords-check-rejected" : undefined}>{row.check_verdict === null ? "—" : String(row.check_verdict)}</span></td>;
   if (column === "origin") return <td>{row.origin}{row.model ? <><br /><span className="admin-muted">{row.model}</span></> : null}</td>;
+  if (column === "effort") return <td>{row.effort ?? "—"}</td>;
   if (column === "used") return <td className="num">{row.used_in_cards.toLocaleString("en-US")}</td>;
   if (column === "created") return <td>{formatDateTime(row.created_at)}</td>;
   return <td><span className="keywords-actions"><button className="admin-btn" disabled={busy || row.status === "verified"} onClick={() => onVerdict("verified")}>Verify</button><button className="admin-btn danger" disabled={busy || row.status === "rejected"} onClick={() => onVerdict("rejected")}>Reject</button></span></td>;
