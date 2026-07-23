@@ -29,6 +29,12 @@ export const ADMIN_SECTIONS: AdminSection[] = [
       "Review, rank, reject, and propose candidates in the keyword store.",
   },
   {
+    title: "Keywords seed",
+    href: "/admin/keywords-seed",
+    description:
+      "Bulk-seed keyword candidates from curated sets or a manual word list.",
+  },
+  {
     title: "Association quality",
     href: "/admin/labs",
     description:
