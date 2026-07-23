@@ -92,7 +92,7 @@ export default function CardsGalleryPage() {
                 {row.image_url && row.image_status === "ready" ? (
                   <CardImage
                     className="cards-tile-image"
-                    src={adminImageUrl(row.image_url)}
+                    src={adminImageUrl(row.image_url, 320)}
                     alt={row.display_word}
                   />
                 ) : (

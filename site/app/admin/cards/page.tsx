@@ -12,7 +12,12 @@ import {
   type InventoryRow,
   type InventorySortKey,
 } from "@/lib/admin";
-import { COLUMNS, DEFAULT_COLUMNS, type InventoryColumn } from "./columns";
+import {
+  COLUMNS,
+  DEFAULT_COLUMNS,
+  DEFAULT_WEIGHT,
+  type InventoryColumn,
+} from "./columns";
 import { errorMessage } from "./util";
 import { EMPTY_FILTERS, useCards } from "./CardsContext";
 import CardDetail from "./CardDetail";
@@ -142,6 +147,18 @@ export default function CardsTablePage() {
   );
   const [dragKey, setDragKey] = useState<string | null>(null);
   const [dragOverKey, setDragOverKey] = useState<string | null>(null);
+
+  // Under the table's fixed layout, column widths come from this normalized
+  // <colgroup>: each visible column's weight as a share of the visible total,
+  // so widths always sum to 100% and the table fills the viewport exactly —
+  // no horizontal overflow whatever subset the picker has on.
+  const colWidths = useMemo(() => {
+    const total =
+      columns.reduce((s, c) => s + (c.weight ?? DEFAULT_WEIGHT), 0) || 1;
+    return columns.map(
+      (c) => `${(((c.weight ?? DEFAULT_WEIGHT) / total) * 100).toFixed(4)}%`,
+    );
+  }, [columns]);
 
   // The live "Age" column ticks once a second — but only while it's shown.
   const ageVisible = visible.includes("age");
@@ -286,6 +303,11 @@ export default function CardsTablePage() {
       {data && data.rows.length > 0 && (
         <div className="lab-table-scroll">
           <table className="lab-table cards-table">
+            <colgroup>
+              {columns.map((c, i) => (
+                <col key={c.key} style={{ width: colWidths[i] }} />
+              ))}
+            </colgroup>
             <thead>
               <tr>
                 {columns.map((c) => (

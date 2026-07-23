@@ -177,9 +177,11 @@ export default function CardDetail({
               rel="noreferrer"
               className="cards-detail-img"
             >
+              {/* Thumbnail in-page (220px box); the link opens the full-size
+                  image in a new tab. */}
               <CardImage
                 className="cards-detail-image"
-                src={adminImageUrl(detail.image_url)}
+                src={adminImageUrl(detail.image_url, 320)}
                 alt={detail.display_word}
               />
             </a>

@@ -22,8 +22,18 @@ export interface InventoryColumn {
   numeric?: boolean;
   sortKey?: InventorySortKey;
   defaultVisible?: boolean;
+  // Relative column width under the table's fixed layout. The page normalizes
+  // the visible columns' weights to percentages summing to 100%, so the table
+  // always fills the viewport exactly and never overflows horizontally,
+  // whatever subset the picker has on. Omitted → DEFAULT_WEIGHT.
+  weight?: number;
   render: (row: InventoryRow, ctx: { now: number }) => ReactNode;
 }
+
+// Widest text columns (Association, timestamps, model) earn the most room;
+// short numeric/enum columns the least. The image column reserves enough for
+// its 44px thumb box plus cell padding.
+export const DEFAULT_WEIGHT = 5;
 
 function pairCell(row: InventoryRow): ReactNode {
   return (
@@ -42,6 +52,7 @@ export const COLUMNS: InventoryColumn[] = [
     label: "ID",
     numeric: true,
     sortKey: "id",
+    weight: 3,
     render: (r) => r.id,
   },
   {
@@ -49,6 +60,7 @@ export const COLUMNS: InventoryColumn[] = [
     label: "Created (UTC)",
     sortKey: "created_at",
     defaultVisible: true,
+    weight: 7,
     render: (r) => formatDateTime(r.created_at),
   },
   {
@@ -56,12 +68,14 @@ export const COLUMNS: InventoryColumn[] = [
     label: "Age",
     sortKey: "created_at",
     defaultVisible: true,
+    weight: 6,
     render: (r, ctx) => agoExact(r.created_at, ctx.now),
   },
   {
     key: "pair",
     label: "Pair",
     defaultVisible: true,
+    weight: 3,
     render: pairCell,
   },
   {
@@ -69,6 +83,7 @@ export const COLUMNS: InventoryColumn[] = [
     label: "Word",
     sortKey: "word",
     defaultVisible: true,
+    weight: 6,
     render: (r) => <strong>{r.display_word}</strong>,
   },
   {
@@ -83,7 +98,7 @@ export const COLUMNS: InventoryColumn[] = [
         {r.image_url && r.image_status === "ready" ? (
           <CardImage
             className="cards-thumb"
-            src={adminImageUrl(r.image_url)}
+            src={adminImageUrl(r.image_url, 96)}
             alt={r.display_word}
           />
         ) : (
@@ -96,12 +111,14 @@ export const COLUMNS: InventoryColumn[] = [
     key: "keyword",
     label: "Keyword",
     defaultVisible: true,
+    weight: 6,
     render: (r) => r.keyword ?? "—",
   },
   {
     key: "mnemonic",
     label: "Association",
     defaultVisible: true,
+    weight: 14,
     render: (r) => (
       <span className="cards-clip" title={r.mnemonic}>
         {r.mnemonic}
@@ -113,6 +130,7 @@ export const COLUMNS: InventoryColumn[] = [
     label: "Model",
     sortKey: "model",
     defaultVisible: true,
+    weight: 8,
     render: (r) => r.model ?? "—",
   },
   {
@@ -120,6 +138,7 @@ export const COLUMNS: InventoryColumn[] = [
     label: "Prompt v",
     numeric: true,
     defaultVisible: true,
+    weight: 4,
     render: (r) => r.prompt_version ?? "—",
   },
   {
@@ -189,16 +208,19 @@ export const COLUMNS: InventoryColumn[] = [
   {
     key: "provider",
     label: "Provider",
+    weight: 7,
     render: (r) => r.provider ?? "—",
   },
   {
     key: "image_provider",
     label: "Img provider",
+    weight: 7,
     render: (r) => r.image_provider ?? "—",
   },
   {
     key: "image_model",
     label: "Img model",
+    weight: 8,
     render: (r) => r.image_model ?? "—",
   },
   {
@@ -214,6 +236,7 @@ export const COLUMNS: InventoryColumn[] = [
   {
     key: "strategy",
     label: "Strategy",
+    weight: 7,
     render: (r) => r.strategy ?? "—",
   },
   {
@@ -224,6 +247,7 @@ export const COLUMNS: InventoryColumn[] = [
   {
     key: "triggered_by",
     label: "Triggered by",
+    weight: 9,
     render: (r) =>
       r.device_id ? (
         <span className="cards-clip-narrow" title={r.device_id}>
@@ -262,6 +286,7 @@ export const COLUMNS: InventoryColumn[] = [
   {
     key: "in_starter_pack",
     label: "Pack",
+    weight: 3,
     render: (r) => (r.in_starter_pack ? "📦" : ""),
   },
   {
@@ -269,6 +294,7 @@ export const COLUMNS: InventoryColumn[] = [
     label: "Votes",
     numeric: true,
     sortKey: "vote_score",
+    weight: 3,
     render: (r) => r.vote_score,
   },
 ];

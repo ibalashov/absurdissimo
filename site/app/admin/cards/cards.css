@@ -110,8 +110,31 @@
   white-space: nowrap;
 }
 
+/* Fixed layout so the table always fits the viewport (VocabCards #618): the
+   page emits a normalized <colgroup> whose widths sum to 100%, and every cell
+   truncates with an ellipsis instead of forcing the table wider. 15 nowrap
+   columns previously overflowed by ~320px, so the whole table sat behind a
+   horizontal scrollbar. The scroll container is kept for the rare case where
+   the picker adds enough extra columns to still overflow. */
+.cards-table {
+  table-layout: fixed;
+}
+
+.cards-table th,
+.cards-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .cards-table td {
   vertical-align: middle;
+}
+
+/* Under fixed layout the cell itself clips, so the clip spans use the full
+   column width rather than a fixed character cap. */
+.cards-table .cards-clip,
+.cards-table .cards-clip-narrow {
+  max-width: 100%;
 }
 
 .cards-thumb {
