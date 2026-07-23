@@ -141,20 +141,96 @@ export const COLUMNS: InventoryColumn[] = [
     weight: 4,
     render: (r) => r.prompt_version ?? "—",
   },
+  // Per-LLM-call cost/latency from the generation_calls sidecar (VocabCards
+  // #621). A card fans out across the word_info lookup, the two-step keyword +
+  // scene calls (or the oneshot fallback); each call is its own column. The
+  // common two-step pair (keyword + scene) is default-visible; lookup and the
+  // oneshot fallback are mostly-NULL, so they're opt-in via the picker, as is
+  // the summed "Text total" (keyword+scene+oneshot) below — kept because it's
+  // the only text figure legacy rows (no per-call breakdown) carry. All render
+  // as — when null.
+  {
+    key: "lookup_cost",
+    label: "Lookup cost",
+    numeric: true,
+    sortKey: "lookup_cost",
+    weight: 5,
+    render: (r) => fmtUsd(r.lookup_cost_usd),
+  },
+  {
+    key: "lookup_latency",
+    label: "Lookup lat",
+    numeric: true,
+    sortKey: "lookup_latency",
+    weight: 5,
+    render: (r) => fmtMs(r.lookup_latency_ms),
+  },
+  {
+    key: "keyword_cost",
+    label: "Keyword cost",
+    numeric: true,
+    sortKey: "keyword_cost",
+    defaultVisible: true,
+    weight: 5,
+    render: (r) => fmtUsd(r.keyword_cost_usd),
+  },
+  {
+    key: "keyword_latency",
+    label: "Keyword lat",
+    numeric: true,
+    sortKey: "keyword_latency",
+    defaultVisible: true,
+    weight: 5,
+    render: (r) => fmtMs(r.keyword_latency_ms),
+  },
+  {
+    key: "scene_cost",
+    label: "Scene cost",
+    numeric: true,
+    sortKey: "scene_cost",
+    defaultVisible: true,
+    weight: 5,
+    render: (r) => fmtUsd(r.scene_cost_usd),
+  },
+  {
+    key: "scene_latency",
+    label: "Scene lat",
+    numeric: true,
+    sortKey: "scene_latency",
+    defaultVisible: true,
+    weight: 5,
+    render: (r) => fmtMs(r.scene_latency_ms),
+  },
+  {
+    key: "oneshot_cost",
+    label: "1-shot cost",
+    numeric: true,
+    sortKey: "oneshot_cost",
+    weight: 5,
+    render: (r) => fmtUsd(r.oneshot_cost_usd),
+  },
+  {
+    key: "oneshot_latency",
+    label: "1-shot lat",
+    numeric: true,
+    sortKey: "oneshot_latency",
+    weight: 5,
+    render: (r) => fmtMs(r.oneshot_latency_ms),
+  },
   {
     key: "cost",
-    label: "Text cost",
+    label: "Text total",
     numeric: true,
     sortKey: "cost",
-    defaultVisible: true,
+    weight: 5,
     render: (r) => fmtUsd(r.cost_usd),
   },
   {
     key: "latency",
-    label: "Text latency",
+    label: "Text total lat",
     numeric: true,
     sortKey: "latency",
-    defaultVisible: true,
+    weight: 5,
     render: (r) => fmtMs(r.latency_ms),
   },
   // Image-render telemetry (VocabCards #464). Legacy images predate the
