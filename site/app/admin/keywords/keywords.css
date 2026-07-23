@@ -9,6 +9,7 @@
 .keywords-check-rejected { color: #ff8a80; text-decoration: line-through; }
 .keywords-order, .keywords-actions { display: flex; align-items: center; gap: .3rem; }
 .keywords-order .admin-btn { padding-inline: .45rem; }
+.keywords-table th.sortable { cursor: pointer; user-select: none; }
 .word-info-status.candidate { color: var(--text); }
 .word-info-status.verified { color: var(--accent); background: var(--accent-soft); }
 .word-info-status.rejected { color: #ff8a80; }
