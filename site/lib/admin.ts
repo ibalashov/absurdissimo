@@ -702,6 +702,26 @@ export interface RuntimeSettings {
   keyword_prompt: string;
   scene_prompt: string;
   keyword_oversample: number;
+  // Per-span overrides (VocabCards #615). null = inherit the global
+  // model/effort/temperature above — the raw override is returned, never the
+  // resolved value, so the UI can render "inherits <global>". Cleared by
+  // PUTting an explicit null, like the tunables.
+  keyword_model: string | null;
+  keyword_reasoning_effort: string | null;
+  keyword_temperature: number | null;
+  scene_model: string | null;
+  scene_reasoning_effort: string | null;
+  scene_temperature: number | null;
+  oneshot_model: string | null;
+  oneshot_reasoning_effort: string | null;
+  oneshot_temperature: number | null;
+  // word_info and image inherit nothing: their own compile-time defaults, so
+  // (except the effort) they clear on default like the prompt fields.
+  word_info_model: string;
+  word_info_reasoning_effort: string | null;
+  image_model: string;
+  image_quality: string;
+  image_prompt: string;
 }
 
 export type RuntimeSettingField = keyof RuntimeSettings;
@@ -717,6 +737,11 @@ export interface RuntimeSettingsResponse {
   // A tunable the selected model doesn't support is stored but inert — the UI
   // greys it out instead of hiding or clearing it.
   model_tunables: Record<string, string[]>;
+  // Span-specific option lists (VocabCards #615): word_info is OpenAI-only and
+  // images come from their own model registry.
+  word_info_model_options: string[];
+  image_model_options: string[];
+  image_quality_options: string[];
 }
 
 export function fetchRuntimeSettings(): Promise<RuntimeSettingsResponse> {

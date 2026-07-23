@@ -80,3 +80,53 @@
   gap: 1rem;
   margin-top: 2rem;
 }
+
+/* Sub-tabs (VocabCards #615): one group per LLM call the pipeline makes. The
+   form spans all tabs — a tab with unsaved edits carries a dot, so a change
+   parked on another tab can't be lost sight of before Save. */
+.setting-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0 0 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.setting-tab {
+  position: relative;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  padding: 0.55rem 0.8rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.setting-tab:hover {
+  color: var(--fg);
+}
+
+.setting-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.setting-tab-dot {
+  display: inline-block;
+  width: 0.4rem;
+  height: 0.4rem;
+  margin-left: 0.4rem;
+  border-radius: 50%;
+  background: var(--accent);
+  vertical-align: middle;
+}
+
+/* Lead-in describing the call a tab configures — same muted hint styling, but
+   spaced as a paragraph above the first field. */
+.setting-tab-intro {
+  margin: 0 0 1.5rem;
+  max-width: 60ch;
+}
