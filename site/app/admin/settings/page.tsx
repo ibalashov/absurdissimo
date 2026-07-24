@@ -48,6 +48,7 @@ const TAB_FIELDS: Record<TabId, RuntimeSettingField[]> = {
     "temperature",
     "default_absurdity_level",
     "prompt_version",
+    "fast_path_on_miss",
   ],
   word_info: ["word_info_model", "word_info_reasoning_effort"],
   keyword: [
@@ -443,6 +444,31 @@ export default function SettingsPage() {
               "Unset (provider default)",
               "Unset",
             )}
+
+            <div className="setting-field">
+              <label
+                className="setting-label"
+                htmlFor="setting-fast-path-on-miss"
+              >
+                Fast path on keyword-store miss
+                {fieldStatus("fast_path_on_miss")}
+              </label>
+              <input
+                id="setting-fast-path-on-miss"
+                className="setting-checkbox"
+                type="checkbox"
+                checked={form.fast_path_on_miss}
+                onChange={(e) =>
+                  set("fast_path_on_miss", e.target.checked)
+                }
+              />
+              <p className="admin-pane-hint">
+                Serve a one-shot card immediately when no stored keywords are
+                usable, and propose keywords in the background. Off: run the
+                keyword and scene calls inline (slower, higher quality
+                selection).
+              </p>
+            </div>
 
             <div className="setting-field">
               <label className="setting-label" htmlFor="setting-absurdity">

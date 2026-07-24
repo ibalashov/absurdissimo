@@ -709,6 +709,10 @@ export interface RuntimeSettings {
   keyword_prompt: string;
   scene_prompt: string;
   keyword_oversample: number;
+  // Pipeline routing (VocabCards #626). On a keyword-store miss, true serves
+  // the one-shot fallback immediately while keyword proposals run in the
+  // background; false keeps both association calls inline.
+  fast_path_on_miss: boolean;
   // Per-span overrides (VocabCards #615). null = inherit the global
   // model/effort/temperature above — the raw override is returned, never the
   // resolved value, so the UI can render "inherits <global>". Cleared by
