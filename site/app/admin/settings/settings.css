@@ -59,6 +59,17 @@
   max-width: 8rem;
 }
 
+/* Boolean runtime settings use a compact native control instead of inheriting
+   the text/select input box treatment. */
+.setting-checkbox {
+  display: block;
+  width: 1.15rem;
+  height: 1.15rem;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
 /* A tunable the selected model doesn't support: greyed but visible — the
    stored value stays and re-activates on a supporting model. */
 .setting-field .admin-input:disabled {
